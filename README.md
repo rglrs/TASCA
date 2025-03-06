@@ -1,12 +1,59 @@
-# React + Vite
+# Cara Menjalankan Program
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### 1. Clone Repository
+```bash
+git clone -b web https://github.com/fahrillrizal/Tasca.git
+```
 
-Currently, two official plugins are available:
+### 2. Install Dependencies
+Pastikan Anda berada di direktori proyek, kemudian jalankan:
+```bash
+npm install
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 3. Install React Router
+Tambahkan React Router ke dalam proyek:
+```bash
+npm install react-router-dom
+```
 
-## Expanding the ESLint configuration
+### 4. Konfigurasi Tailwind CSS (Opsional)
+Jika belum ada file konfigurasi Tailwind, inisialisasi dengan:
+```bash
+npx tailwindcss init -p
+```
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 5. Update File tailwind.config.js (Lakukan jika tailwind belum di inisiasi)
+Sesuaikan konfigurasi content untuk memastikan Tailwind bekerja dengan benar:
+```js
+// tailwind.config.js
+module.exports = {
+  content: [
+    './index.html',
+    './src/**/*.{js,jsx,ts,tsx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+```
+
+### 6. Jalankan Proyek
+```bash
+npm run dev
+```
+Proyek akan berjalan di `http://localhost:5173` atau sesuai output terminal.
+
+### 7. Troubleshooting
+- Jika ada masalah dengan module, coba hapus node_modules dan instal ulang:
+
+```bash
+rm -rf node_modules
+npm install
+```
+- Jika Vite tidak dapat menemukan alias `@`, pastikan konfigurasi di `vite.config.js` sudah benar.
+
+### 8. Happy Coding!
+Semangatt Gesss!!
+

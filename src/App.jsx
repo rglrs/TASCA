@@ -1,14 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import NotFound from './pages/NotFound';
+
+const routes = [
+  { path: '/', element: <Dashboard /> },
+  { path: '*', element: <NotFound /> },
+];
 
 function App() {
   return (
-    <>
-      <h1 className='text-red-500'>halo</h1>
-    </>
-  )
+    <Router>
+      <Routes>
+        {routes.map((route, index) => (
+          <Route key={index} path={route.path} element={route.element} />
+        ))}
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
