@@ -44,7 +44,7 @@ const Features = () => {
             whileHover={{ scale: 1.05 }}
           >
             <div className="p-2 rounded-full mb-3">
-              <img src={feature.icon} alt="icon" className="w-20 h-20" />
+              <img src={feature.icon} alt="icon" className="w-14 h-14" />
             </div>
             <h3 className="font-semibold text-lg tracking-wide text-gray-800 mb-2">
               {feature.title}
