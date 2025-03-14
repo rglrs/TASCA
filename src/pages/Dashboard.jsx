@@ -3,7 +3,11 @@ import Navbar from '../component/Navbar';
 import Footer from '../component/Footer';
 import Features from '../component/Features';
 import LandingPage from '../component/LandingPage';
+<<<<<<< HEAD
 import About from '../component/about';
+=======
+import Ourteam from '../component/Ourteam';
+>>>>>>> 38688b17a1cd8dd1a35d92ba6f23271383d677d0
 
 export default function Dashboard() {
     const [loading, setLoading] = useState(true);
@@ -67,7 +71,11 @@ export default function Dashboard() {
             <LandingPage />
             <About /> {/* Panggil About di sini */}
             <Features />
+<<<<<<< HEAD
             <Footer />
+=======
+            <Ourteam />
+>>>>>>> 38688b17a1cd8dd1a35d92ba6f23271383d677d0
         </div>
     );
 }
