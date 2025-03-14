@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Navbar from '../component/Navbar';
 import Features from '../component/Features';
 import LandingPage from '../component/LandingPage';
+import Ourteam from '../component/Ourteam';
 
 export default function Dashboard() {
     const [loading, setLoading] = useState(true);
@@ -66,6 +67,7 @@ export default function Dashboard() {
             <Navbar />
             <LandingPage />
             <Features />
+            <Ourteam />
         </div>
     );
 }
