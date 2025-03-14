@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import mockupImage from '../assets/image/mockup.svg';
+import taskbgImage from '../assets/image/taskbg.svg';
 import googlePlayImage from '../assets/image/gp.png';
 
 export default function LandingPage() {
@@ -24,7 +24,7 @@ export default function LandingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.5 }}
                 >
-                    Tingkatkan produktivitasmu dengan fitur manajemen tugas dan teknik Pomodoro. Cocok untuk pelajar, mahasiswa, dan profesional.
+                    Tingkatkan produktivitasmu dengan fitur manajemen tugas dan teknik Pomodoro. agar manajemen tugas kamu jadi lebih baik.
                 </motion.p>
                 <motion.div
                     className="flex items-center space-x-4"
@@ -38,7 +38,7 @@ export default function LandingPage() {
                 </motion.div>
             </div>
             <motion.img
-                src={mockupImage}
+                src={taskbgImage}
                 alt="TASCA Mockup"
                 className="w-64 sm:w-80 md:w-[35rem] lg:w-[40rem] mt-12 md:mt-10 translate-x-20 sm:translate-x-40 -translate-y-10 sm:-translate-y-20"
                 initial={{ opacity: 0, x: 50 }}
