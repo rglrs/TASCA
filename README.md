@@ -3,7 +3,7 @@
 ## 1. Clone repository/Pull
 ### a. Cara Clone
 ```
-git clone -b BE --single-branch https://github.com/fahrillrizal/Tasca.git
+git clone -b BE --single-branch https://github.com/rglrs/TASCA.git
 ```
 ### b. Cara Pull
 ```
