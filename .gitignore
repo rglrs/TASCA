@@ -1,0 +1,7 @@
+go*
+.env.prod
+.env
+Dockerfile
+dockercompose.yaml
+.dockerignore
+.DS_Store

@@ -1,0 +1,127 @@
+basePath: /api
+definitions:
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      google_id:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      picture:
+        type: string
+      provider:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API untuk aplikasi Tasca A4 AGILE menggunakan gin
+  title: Tag Tasca API
+  version: "1.0"
+paths:
+  /api/google/callback:
+    get:
+      description: Handle callback from Google OAuth
+      responses:
+        "200":
+          description: 'message: Login berhasil'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Failed to authenticate'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Google Authentication Callback
+      tags:
+      - auth
+  /api/google/login:
+    get:
+      description: Redirect user to Google authentication page
+      responses: {}
+      summary: Google Login
+      tags:
+      - auth
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return a token
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'token: JWT Token'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Input tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /api/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with username, email, and password
+      parameters:
+      - description: User Data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Registrasi berhasil'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register user
+      tags:
+      - auth
+swagger: "2.0"
