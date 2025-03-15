@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import logo from '../assets/image/logo.png';
 
@@ -10,6 +9,15 @@ export default function Navbar() {
     threshold: 0.1,
   });
 
+  const scrollToSection = (id) => {
+    const section = document.getElementById(id);
+    if (section) {
+      const offset = 120; 
+        const sectionPosition = section.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top: sectionPosition, behavior: 'smooth' });
+    }
+};
+
   return (
     <nav
       ref={ref}
@@ -17,6 +25,7 @@ export default function Navbar() {
         transition-all duration-[1200ms] ease-[cubic-bezier(0.25, 1, 0.5, 1)] 
         ${inView ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}
     >
+      {/* Logo */}
       <div className="flex items-center space-x-2">
         <img src={logo} alt="Logo" className="h-13" />
         <h1 className="text-2xl font-bold font-poppins">
@@ -28,35 +37,32 @@ export default function Navbar() {
         </h1>
       </div>
 
+      {/* Menu Navbar */}
       <div className="hidden md:flex flex-1 justify-center">
         <div className="flex space-x-8 font-poppins font-semibold">
           {['Home', 'About', 'Features', 'Our Teams'].map((item, index) => (
-            <Link
+            <button
               key={index}
-              to={`/${item.toLowerCase().replace(' ', '')}`}
+              onClick={() => scrollToSection(item.toLowerCase().replace(' ', ''))}
               className="text-blue-600 relative group transition-transform duration-500 hover:scale-110"
             >
               {item}
               <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-blue-600 transition-all duration-500 group-hover:w-full"></span>
-            </Link>
+            </button>
           ))}
         </div>
       </div>
 
-      <Link
-        to="/download"
+      {/* Button */}
+      <button
+        onClick={() => scrollToSection('download')}
         className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
       >
-        Download
-      </Link>
+        Demo
+      </button>
 
+      {/* Menu Mobile */}
       <div className="flex md:hidden items-center space-x-2">
-        <Link
-          to="/download"
-          className="bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
-        >
-          Download
-        </Link>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 w-10 h-10 flex items-center justify-center text-sm text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -74,18 +80,21 @@ export default function Navbar() {
         </button>
       </div>
 
+      {/* Dropdown Mobile */}
       {isMobileMenuOpen && (
         <div className="absolute top-16 right-0 w-[80%] bg-white border border-gray-100 rounded-lg shadow-lg z-40">
           <ul className="flex flex-col p-4 space-y-2">
             {['Home', 'About', 'Features', 'Our Teams'].map((item, index) => (
               <li key={index}>
-                <Link
-                  to={`/${item.toLowerCase().replace(' ', '')}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 px-3 text-blue-600 hover:bg-gray-100 rounded"
+                <button
+                  onClick={() => {
+                    scrollToSection(item.toLowerCase().replace(' ', ''));
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block py-2 px-3 text-blue-600 hover:bg-gray-100 rounded w-full text-left"
                 >
                   {item}
-                </Link>
+                </button>
               </li>
             ))}
           </ul>

@@ -8,15 +8,15 @@ export default function About() {
 
     return (
         <section ref={ref} className="bg-[#F7F1FE] text-black px-4 sm:px-8 md:px-16 lg:px-32 mt-16 min-h-[80vh] flex flex-col items-center">
-            {/* Judul di Tengah */}
+            
             <motion.h1
-                className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-12"
+                className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-5"
                 initial={{ opacity: 0, y: -50 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 1 }}
             >
                 Yuk Kenalan Sama
-                <span className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4">
+                <span className="block sm:inline-block mt-2 -mb-10 sm:mt-0 sm:ml-4">
                     <span className="text-[#007BFF] mr-2">T</span>
                     <span className="text-[#007BFF] mr-2">A</span>
                     <span className="text-[#28A745] mr-2">S</span>

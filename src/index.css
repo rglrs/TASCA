@@ -46,3 +46,10 @@ body {
 .animate-outline {
   animation: outlineAnimation 2s infinite;
 }
+
+.bg-dashboard {
+  background-image: url('./assets/image/bgweb.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

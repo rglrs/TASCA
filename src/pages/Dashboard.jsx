@@ -3,11 +3,8 @@ import Navbar from '../component/Navbar';
 import Footer from '../component/Footer';
 import Features from '../component/Features';
 import LandingPage from '../component/LandingPage';
-<<<<<<< HEAD
 import About from '../component/about';
-=======
-import Ourteam from '../component/Ourteam';
->>>>>>> 38688b17a1cd8dd1a35d92ba6f23271383d677d0
+import OurTeam from '../component/OurTeam';
 
 export default function Dashboard() {
     const [loading, setLoading] = useState(true);
@@ -68,14 +65,21 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-[#F7F1FE] transition-opacity duration-[2000ms]">
             <Navbar />
-            <LandingPage />
-            <About /> {/* Panggil About di sini */}
-            <Features />
-<<<<<<< HEAD
-            <Footer />
-=======
-            <Ourteam />
->>>>>>> 38688b17a1cd8dd1a35d92ba6f23271383d677d0
+            <div id="home" className="container mx-auto my-16">
+                <LandingPage />
+            </div>
+            <div id="about" className="container mx-auto my-16">
+                <About />
+            </div>
+            <div id="features" className="container mx-auto my-36">
+                <Features />
+            </div>
+            <div id="ourteams" className="container mx-auto my-20">
+                <OurTeam />
+            </div>
+            <div id="download" className="container mx-auto my-16">
+                <Footer />
+            </div>
         </div>
     );
 }
