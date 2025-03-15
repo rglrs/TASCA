@@ -2,8 +2,9 @@
 
 ### 1. Clone Repository
 ```bash
-git clone -b web https://github.com/fahrillrizal/Tasca.git
+git clone -b web https://github.com/rglrs/TASCA.git
 ```
+
 
 ### 2. Install Dependencies
 Pastikan Anda berada di direktori proyek, kemudian jalankan:
