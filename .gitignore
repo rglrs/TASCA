@@ -1,5 +1,5 @@
 go*
-.env.prod
+.env.*
 .env
 Dockerfile
 dockercompose.yaml
