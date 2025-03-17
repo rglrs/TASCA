@@ -24,13 +24,10 @@ export default function ResetPassword() {
       setIsSubmitting(true);
   
       setTimeout(() => {
-        // Deep link ke aplikasi Flutter
         const appLink = "yourapp://detail?place_id=123"; 
         const fallbackLink = "https://play.google.com/store/apps/details?id=com.yourapp"; 
   
         window.location.href = appLink;
-  
-        // Jika aplikasi tidak terbuka dalam 2 detik, arahkan ke Play Store
         setTimeout(() => {
           window.location.href = fallbackLink;
         }, 2000);

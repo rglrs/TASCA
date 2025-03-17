@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
+import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/image/logo.png';
 
 export default function Navbar() {
@@ -10,13 +11,21 @@ export default function Navbar() {
   });
 
   const scrollToSection = (id) => {
+    const offsets = {
+      home: 120,
+      about: 150,
+      features: 59,
+      ourteams: 180,
+      download: 100,
+    };
+
     const section = document.getElementById(id);
     if (section) {
-      const offset = 120; 
-        const sectionPosition = section.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top: sectionPosition, behavior: 'smooth' });
+      const offset = offsets[id] || 120;
+      const sectionPosition = section.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: sectionPosition, behavior: 'smooth' });
     }
-};
+  };
 
   return (
     <nav
@@ -43,7 +52,7 @@ export default function Navbar() {
           {['Home', 'About', 'Features', 'Our Teams'].map((item, index) => (
             <button
               key={index}
-              onClick={() => scrollToSection(item.toLowerCase().replace(' ', ''))}
+              onClick={() => scrollToSection(item.toLowerCase().replace(/\s/g, ''))}
               className="text-blue-600 relative group transition-transform duration-500 hover:scale-110"
             >
               {item}
@@ -58,7 +67,7 @@ export default function Navbar() {
         onClick={() => scrollToSection('download')}
         className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
       >
-        Demo
+        Demo Apps
       </button>
 
       {/* Menu Mobile */}
@@ -81,25 +90,33 @@ export default function Navbar() {
       </div>
 
       {/* Dropdown Mobile */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-16 right-0 w-[80%] bg-white border border-gray-100 rounded-lg shadow-lg z-40">
-          <ul className="flex flex-col p-4 space-y-2">
-            {['Home', 'About', 'Features', 'Our Teams'].map((item, index) => (
-              <li key={index}>
-                <button
-                  onClick={() => {
-                    scrollToSection(item.toLowerCase().replace(' ', ''));
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block py-2 px-3 text-blue-600 hover:bg-gray-100 rounded w-full text-left"
-                >
-                  {item}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10, transition: { duration: 0.3, ease: 'easeInOut' } }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="absolute top-16 right-0 w-[80%] bg-white border border-gray-100 rounded-lg shadow-lg z-40 overflow-hidden"
+          >
+            <ul className="flex flex-col p-4 space-y-2">
+              {['Home', 'About', 'Features', 'Our Teams'].map((item, index) => (
+                <li key={index}>
+                  <button
+                    onClick={() => {
+                      scrollToSection(item.toLowerCase().replace(/\s/g, ''));
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block py-2 px-3 text-blue-600 hover:bg-gray-100 rounded w-full text-left transition-all duration-300"
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

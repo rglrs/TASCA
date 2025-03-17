@@ -28,7 +28,6 @@ const TimeScheduleDrawer = () => {
 
    const handleSubmit = (e) => {
       e.preventDefault();
-      // Handle form submission logic here
       console.log('Schedule saved:', { businessHours, timezones, schedule });
    };
 

@@ -3,52 +3,59 @@ import clockIcon from "../assets/image/clock.svg";
 import musicIcon from "../assets/image/music.svg";
 import notesIcon from "../assets/image/notes.svg";
 import calendarIcon from "../assets/image/calendar.svg";
+import mockupImage from "../assets/image/tes.svg";
 import { motion } from "framer-motion";
 
 const features = [
   {
     icon: clockIcon,
     title: "Pomodoro",
-    description: "Mengelola waktu belajar dengan teknik Pomodoro untuk meningkatkan produktivitas dan fokus.",
+    description: "Atur waktu belajarmu lebih efisien dengan teknik Pomodoro.",
   },
   {
     icon: musicIcon,
     title: "Music Relaxation",
-    description: "Dengarkan musik yang menenangkan untuk meningkatkan konsentrasi dan relaksasi selama belajar.",
+    description: "Tingkatkan konsentrasi dengan musik yang menenangkan.",
   },
   {
     icon: notesIcon,
     title: "Todolist",
-    description: "Buat daftar tugas dan tetap terorganisir untuk mencapai target harian dengan lebih mudah.",
+    description: "Kelola tugas-tugasmu jadi lebih terstruktur dan terorganisir.",
   },
   {
     icon: calendarIcon,
     title: "Calendar",
-    description: "Lihat jadwal dan deadline tugasmu secara praktis agar tidak ada yang terlewat.",
+    description: "Tidak perlu khawatir terlewat deadline tugas.",
   },
 ];
 
 const Features = () => {
   return (
-    <section className="flex flex-col items-center px-6 md:px-12 lg:px-36 py-16 bg-[#F7F1FE] font-poppins">
-      <h2 className="text-2xl md:text-3xl font-semibold mb-14">Features</h2>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-16 lg:px-32 py-16 bg-[#F7F1FE] font-poppins">
+      {/* Cards */}
+      <div className="w-full md:w-1/2 space-y-6 ml-6">
         {features.map((feature, index) => (
           <motion.div
             key={index}
-            className="flex flex-col items-start bg-white p-4 rounded-xl shadow-md transition-all duration-500 hover:bg-[#e0e7ff]"
+            className="flex items-center bg-white p-4 rounded-xl shadow-md transition-all duration-500 hover:bg-[#e0e7ff] w-full"
             whileHover={{ scale: 1.05 }}
           >
-            <img src={feature.icon} alt="icon" className="w-8 h-8 mb-2" />
-            <h3 className="font-semibold text-base md:text-lg mb-1">
-              {feature.title}
-            </h3>
-            <p className="text-xs md:text-sm text-gray-600">
-              {feature.description}
-            </p>
+            <img src={feature.icon} alt="icon" className="w-10 h-10 mr-4" />
+            <div>
+              <h3 className="font-semibold text-base md:text-lg">{feature.title}</h3>
+              <p className="text-sm text-gray-600">{feature.description}</p>
+            </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* Mockup Image */}
+      <div className="w-full md:w-[60%] lg:w-[26%] flex justify-center mt-12 md:mt-0">
+        <img
+          src={mockupImage}
+          alt="Mockup"
+          className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[700px] h-auto"
+        />
       </div>
     </section>
   );

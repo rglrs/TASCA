@@ -27,17 +27,17 @@ export default function About() {
 
             {/* Konten About */}
             <div className="flex flex-col md:flex-row items-center justify-between w-full">
-                {/* Gambar di sebelah kiri */}
+                {/* Gambar */}
                 <motion.img
                     src={whyImage}
                     alt="Why TASCA"
-                    className="w-64 sm:w-80 md:w-[30rem] lg:w-[34rem] mb-10 md:mb-0 md:ml-16"
+                    className="w-64 sm:w-80 md:w-[30rem] lg:w-[30rem] mb-10 md:mb-0 md:ml-16 lg:ml-5"
                     initial={{ opacity: 0, x: -50 }}
                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                     transition={{ duration: 1 }}
                 />
 
-                {/* Teks di sebelah kanan */}
+                {/* Teks */}
                 <div className="max-w-md space-y-6 text-center md:text-left">
                     <motion.h2
                         className="text-2xl sm:text-3xl font-bold text-[#007BFF]"

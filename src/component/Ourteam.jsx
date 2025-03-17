@@ -16,7 +16,7 @@ const teamMembers = [
   { img: yafi, name: "Muhammad Yafi Rifdah", role: "Assistant Scrum Master & Frontend Developer, Mobile Developer" },
   { img: vonda, name: "Bayu Ariyo Vonda Wicaksono", role: "UI/UX Designer" },
   { img: fahril, name: "Mochammad Fahril Rizal", role: "Backend & Mobile Developer" },
-  { img: rafif, name: "Muhammad Rasyid Rafif", role: "UI/UX Designer" },
+  { img: rafif, name: "Muhammad Rasyid Rafif", role: "UI/UX Designer & Mobile Developer" },
 ];
 
 const OurTeam = () => {
@@ -26,7 +26,7 @@ const OurTeam = () => {
 
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Baris pertama (4 gambar) */}
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
           {teamMembers.slice(0, 4).map((member, index) => {
             const { ref, inView } = useInView({ triggerOnce: false, threshold: 0.2 });
             return (
@@ -53,14 +53,16 @@ const OurTeam = () => {
         </div>
 
         {/* Baris kedua (3 gambar) */}
-        <div className="grid grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {teamMembers.slice(4, 7).map((member, index) => {
             const { ref, inView } = useInView({ triggerOnce: false, threshold: 0.2 });
             return (
               <motion.div
                 key={index}
                 ref={ref}
-                className="flex flex-col items-center"
+                className={`flex flex-col items-center ${
+                  index === 2 ? "col-span-2 sm:col-span-1 mx-auto" : ""
+                }`}
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 transition={{ duration: 0.5, delay: (index + 4) * 0.1 }}

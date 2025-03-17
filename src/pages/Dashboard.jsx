@@ -77,7 +77,7 @@ export default function Dashboard() {
             <div id="ourteams" className="container mx-auto my-20">
                 <OurTeam />
             </div>
-            <div id="download" className="container mx-auto my-16">
+            <div id="download" className="container mx-auto my-0.5">
                 <Footer />
             </div>
         </div>
