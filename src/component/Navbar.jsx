@@ -13,7 +13,7 @@ export default function Navbar() {
   const scrollToSection = (id) => {
     const offsets = {
       home: 120,
-      about: 150,
+      about: 20,
       features: 59,
       ourteams: 180,
       download: 100,

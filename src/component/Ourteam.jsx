@@ -36,7 +36,7 @@ const teamMembers = [
   {
     img: rafif,
     name: "Muhammad Rasyid Rafif",
-    role: "UI/UX Designer & Mobile Developer",
+    role: "Kepala Departemen",
   },
 ];
 

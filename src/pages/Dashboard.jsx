@@ -62,24 +62,20 @@ export default function Dashboard() {
     return <Loading />;
   }
 
-    return (
-        <div className="min-h-screen bg-[#F7F1FE] transition-opacity duration-[2000ms]">
-            <Navbar />
-            <div id="home" className="container mx-auto my-16">
-                <LandingPage />
-            </div>
-            <div id="about" className="container mx-auto my-16">
-                <About />
-            </div>
-            <div id="features" className="container mx-auto my-36">
-                <Features />
-            </div>
-            <div id="ourteams" className="container mx-auto my-20">
-                <OurTeam />
-            </div>
-            <div id="download" className="container mx-auto my-0.5">
-                <Footer />
-            </div>
-        </div>
-    );
+  return (
+    <div className="min-h-screen bg-[#FFFFFF] transition-opacity duration-[2000ms]">
+      <Navbar />
+      <div id="home" className="mt-[-88px]">
+        <LandingPage />
+      </div>
+      <About /> 
+      <div id="features" className="w-full">
+        <Features />
+      </div>
+      <div id="ourteams" className="w-full min-h-screen">
+        <OurTeam />
+      </div>
+      <Footer />
+    </div>
+  );
 }
