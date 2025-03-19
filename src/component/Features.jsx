@@ -10,52 +10,82 @@ const features = [
   {
     icon: clockIcon,
     title: "Pomodoro",
-    description: "Atur waktu belajarmu lebih efisien dengan teknik Pomodoro.",
+    description:
+      "Organize your study time more efficiently with the Pomodoro technique",
   },
   {
     icon: musicIcon,
     title: "Music Relaxation",
-    description: "Tingkatkan konsentrasi dengan musik yang menenangkan.",
+    description: "Improve concentration with relaxing music",
   },
   {
     icon: notesIcon,
     title: "Todolist",
-    description: "Kelola tugas-tugasmu jadi lebih terstruktur dan terorganisir.",
+    description: "Manage your tasks to be more structured and organized",
   },
   {
     icon: calendarIcon,
     title: "Calendar",
-    description: "Tidak perlu khawatir terlewat deadline tugas.",
+    description: "No need to worry about missing assignment deadlines",
   },
 ];
 
 const Features = () => {
   return (
-    <section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-16 lg:px-32 py-16 bg-[#F7F1FE] font-poppins">
-      {/* Kiri - Fitur Cards */}
-      <div className="w-full md:w-1/2 space-y-6">
-        {features.map((feature, index) => (
-          <motion.div
-            key={index}
-            className="flex items-center bg-white p-4 rounded-xl shadow-md transition-all duration-500 hover:bg-[#e0e7ff] w-full"
-            whileHover={{ scale: 1.05 }}
-          >
-            <img src={feature.icon} alt="icon" className="w-10 h-10 mr-4" />
-            <div>
-              <h3 className="font-semibold text-base md:text-lg">{feature.title}</h3>
-              <p className="text-sm text-gray-600">{feature.description}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+    <section className="flex flex-col items-center px-6 md:px-16 lg:px-32 py-16 bg-[#FFFFFF] font-poppins">
+      {/* Judul di Tengah */}
+      <motion.h1
+        className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-12"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+      >
+        What does
+        <span className="inline-flex justify-center sm:justify-start mt-2 sm:mt-0 sm:ml-4">
+          <span className="text-[#007BFF]">T</span>
+          <span className="text-[#007BFF]">A</span>
+          <span className="text-[#28A745]">S</span>
+          <span className="text-[#FD7E14]">C</span>
+          <span className="text-[#FD7E14]">A</span>
+        </span>
+        <span className="text-[#333] ml-2">have?</span>
+      </motion.h1>
 
-      {/* Kanan - Mockup Image Diperbesar */}
-      <div className="w-full md:w-[60%] lg:w-[27%] flex justify-center mt-12 md:mt-0 mr-5">
-        <img
+      {/* Konten Fitur */}
+      <div className="flex flex-col md:flex-row items-center justify-between w-full">
+        {/* Kanan - Mockup Image (Dibuat Order 1 di Mobile) */}
+        <motion.img
           src={mockupImage}
           alt="Mockup"
-          className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[700px] h-auto"
+          className="w-[180px] md:w-[250px] lg:w-[300px] xl:max-w-[280px] h-auto"
+          whileHover={{ scale: 1.1 }}
+          transition={{ duration: 0.3 }}
         />
+
+        {/* Kiri - Fitur Cards (Dibuat Order 2 di Mobile) */}
+        <div className="w-full md:w-1/2 space-y-4 order-2 md:order-none mt-6 md:mt-0 flex flex-col items-center">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              className="flex items-center bg-white p-3 md:p-5 lg:p-6 rounded-lg shadow-md transition-all duration-500 hover:bg-[#e0e7ff] w-full md:w-full lg:w-full max-w-[1000px]"
+              whileHover={{ scale: 1.05 }}
+            >
+              <img
+                src={feature.icon}
+                alt="icon"
+                className="w-8 h-8 md:w-10 md:h-10 mr-3"
+              />
+              <div>
+                <h3 className="font-semibold text-sm md:text-base lg:text-lg">
+                  {feature.title}
+                </h3>
+                <p className="text-xs md:text-sm text-gray-600 min-h-[40px]">
+                  {feature.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );

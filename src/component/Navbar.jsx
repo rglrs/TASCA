@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { motion, AnimatePresence } from 'framer-motion';
-import logo from '../assets/image/logo.png';
+import logo from '../assets/image/logo.svg';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
