@@ -71,7 +71,7 @@ export default function Dashboard() {
             <div id="about" className="container mx-auto my-16">
                 <About />
             </div>
-            <div id="features" className="container mx-auto my-36">
+            <div id="features" className="container mx-auto my-24">
                 <Features />
             </div>
             <div id="ourteams" className="container mx-auto my-20">

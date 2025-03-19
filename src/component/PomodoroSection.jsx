@@ -1,90 +1,104 @@
-import React from 'react';
-import { Clock, Check, Zap, BarChart, Loader2 } from 'lucide-react';
-import Badge from '../component/ui/Badge';
-import { cn } from '../lib/utils';
-import Progress from '../component/ui/Progress';
+import React, { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Clock, Check, Zap, BarChart } from "lucide-react";
+import mockupImage from "../assets/image/mockup.svg";
 
 const PomodoroSection = () => {
-return (
-    <section className="py-20 bg-white overflow-hidden">
-    <div className="container px-4 mx-auto max-w-7xl">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24">
-        
-        {/* Left side: Timer illustration */}
-        <div className="w-full lg:w-1/2 order-2 lg:order-1">
-            <div className="relative mx-auto max-w-md">
-            
-            {/* Main timer circle */}
-            <div className="aspect-square relative rounded-full border-[16px] border-red-100 dark:border-red-900/30 p-4 animate-scale-in">
-                <div className="absolute inset-0 rounded-full border-t-[16px] border-l-[8px] border-red-500 animate-spin" style={{animationDuration: '30s'}}></div>
-                
-                <div className="flex flex-col items-center justify-center h-full">
-                <div className="text-5xl font-display font-bold text-red-500">24:38</div>
-                <div className="text-gray-500 dark:text-gray-400 mt-2">Focus Time</div>
-                
-                <div className="flex gap-4 mt-6">
-                    <div className="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                    <Zap className="h-6 w-6" />
-                    </div>
-                </div>
-                </div>
-            </div>
-            </div>
+  const mockupRef = useRef(null);
+  const featuresRef = useRef(null);
+  const isMockupInView = useInView(mockupRef, { triggerOnce: true });
+  const isFeaturesInView = useInView(featuresRef, { triggerOnce: true });
+
+  return (
+    <div className="mt-16 max-w-6xl w-full flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-12">
+      {/* Mockup Image */}
+      <motion.div
+        ref={mockupRef}
+        initial={{ opacity: 0, x: -50 }}
+        animate={isMockupInView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 0.5 }}
+        whileHover={{ scale: 1.05 }}
+        className="w-full md:w-1/2 flex justify-start"
+      >
+        <img
+          src={mockupImage}
+          alt="Mockup TASCA"
+          className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[700px] xl:max-w-[800px] rounded-xl"
+        />
+      </motion.div>
+
+      {/* Teks Penjelasan */}
+      <motion.div
+        ref={featuresRef}
+        initial={{ opacity: 0, y: 50 }}
+        animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.5 }}
+        className="w-full md:w-1/2 flex flex-col items-center md:items-start"
+      >
+        <motion.h3
+          initial={{ opacity: 0, y: 20 }}
+          animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="text-2xl font-semibold text-gray-700"
+        >
+          Mengapa Pomodoro?
+        </motion.h3>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6 }}
+          className="text-gray-600 mt-2 max-w-lg"
+        >
+          Metode Pomodoro membantu meningkatkan fokus dan produktivitas dengan bekerja dalam interval 25 menit, diikuti dengan istirahat singkat. Ini efektif untuk menghindari kelelahan dan mempertahankan konsentrasi lebih lama.
+        </motion.p>
+
+        {/* Fitur Pomodoro */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 w-full">
+          {[
+            {
+              icon: <Clock className="h-8 w-8 p-1.5 bg-red-100 text-red-600 rounded-lg " />,
+              title: "Manajemen Waktu",
+              description: "Bekerja dalam sesi fokus dengan istirahat terjadwal.",
+              bgHover: "bg-red-200"
+            },
+            {
+              icon: <Check className="h-8 w-8 p-1.5 bg-green-100 text-green-600 rounded-lg" />,
+              title: "Integrasi Tugas",
+              description: "Hubungkan Pomodoro dengan manajemen tugasmu.",
+              bgHover: "bg-green-200"
+            },
+            {
+              icon: <Zap className="h-8 w-8 p-1.5 bg-yellow-100 text-yellow-600 rounded-lg" />,
+              title: "Mode Fokus",
+              description: "Hilangkan gangguan dan tingkatkan produktivitas.",
+              bgHover: "bg-yellow-200"
+            },
+            {
+              icon: <BarChart className="h-8 w-8 p-1.5 bg-blue-100 text-blue-600 rounded-lg" />,
+              title: "Analisis Produktivitas",
+              description: "Lacak sesi fokus dan optimalkan kebiasaan kerjamu.",
+              bgHover: "bg-blue-200"
+            }
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={isFeaturesInView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+              whileHover={{ scale: 1.05, backgroundColor: item.bgHover }}
+              className="flex gap-4 p-4 rounded-lg transition-colors"
+            >
+              <div className="flex-shrink-0 mt-1">{item.icon}</div>
+              <div>
+                <h3 className="font-semibold mb-1">{item.title}</h3>
+                <p className="text-sm text-gray-600">{item.description}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
-        
-        {/* Right side: Content */}
-        <div className="w-full lg:w-1/2 text-center lg:text-left order-1 lg:order-2">
-            <Badge variant="outline" className="px-4 py-2 mb-6 border-red-200 text-red-700 bg-red-50 rounded-full dark:border-red-800 dark:bg-red-900/30 dark:text-red-400 transition-transform duration-300 hover:scale-105">
-            Pomodoro Technique
-            </Badge>
-            
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
-            Boost Your Productivity and Learning Efficiency
-            </h2>
-            
-            <p className="text-lg text-gray-600 mb-8 dark:text-gray-300">
-            Our integrated Pomodoro timer helps you maintain focus, prevent burnout, and track your productive time while you learn and complete tasks.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {[{
-                icon: <Clock className="h-8 w-8 p-1.5 bg-red-100 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400" />, 
-                title: "Time Management",
-                description: "Alternate between focused work periods and short breaks to maximize productivity."
-                },
-                {
-                icon: <Check className="h-8 w-8 p-1.5 bg-green-100 text-green-600 rounded-lg dark:bg-green-900/30 dark:text-green-400" />,
-                title: "Task Integration",
-                description: "Link your Pomodoro sessions directly to tasks in your project management system."
-                },
-                {
-                icon: <Zap className="h-8 w-8 p-1.5 bg-yellow-100 text-yellow-600 rounded-lg dark:bg-yellow-900/30 dark:text-yellow-400" />,
-                title: "Focus Mode",
-                description: "Block distractions and stay in the zone with our dedicated focus mode."
-                },
-                {
-                icon: <BarChart className="h-8 w-8 p-1.5 bg-blue-100 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400" />,
-                title: "Productivity Analytics",
-                description: "Track your focus sessions and see data-driven insights on your work patterns."
-                }
-            ].map((item, i) => (
-                <div key={i} className="flex gap-4 animate-slide-up transition-transform duration-300 hover:scale-105" style={{animationDelay: `${i * 100}ms`}}>
-                <div className="flex-shrink-0 mt-1">{item.icon}</div>
-                <div>
-                    <h3 className="font-display font-semibold mb-1">{item.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
-                </div>
-                </div>
-            ))}
-            </div>
-        </div>
-        </div>
+      </motion.div>
     </div>
-    </section>
-);
+  );
 };
 
 export default PomodoroSection;

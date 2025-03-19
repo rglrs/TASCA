@@ -6,6 +6,12 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        "tasca-bg": "hsl(266, 83%, 97%)",
+        "tasca-blue": "hsl(211, 100%, 50%)",
+        "tasca-green": "hsl(134, 65%, 40%)",
+        "tasca-orange": "hsl(29, 98%, 54%)",
+      },
       fontFamily: {
         'poppins': ['Poppins', 'sans-serif'],
       },

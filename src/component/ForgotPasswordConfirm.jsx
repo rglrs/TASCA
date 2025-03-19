@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiLock, FiEye, FiEyeOff } from "react-icons/fi";
+import Lottie from "lottie-react";
 import forgotImage from "../assets/image/forgot.svg";
+import successAnimation from "../assets/animation/success.json"; // Pastikan file ada di assets/animation
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -12,6 +14,7 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
   const validatePassword = (password) => {
@@ -24,28 +27,34 @@ export default function ResetPassword() {
       setIsSubmitting(true);
   
       setTimeout(() => {
-        const appLink = "yourapp://detail?place_id=123"; 
-        const fallbackLink = "https://play.google.com/store/apps/details?id=com.yourapp"; 
-  
-        window.location.href = appLink;
-        setTimeout(() => {
-          window.location.href = fallbackLink;
-        }, 2000);
+        setShowModal(true);
+        setIsSubmitting(false);
       }, 1500);
     } else {
       setIsMatch(password === confirmPassword);
       setIsValid(validatePassword(password));
     }
   };
-  
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setTimeout(() => {
+      window.location.href = "yourapp://home"; // Ganti dengan deep link aplikasi kamu
+    }, 1000);
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 relative">
+      {/* Overlay & Blur Effect */}
+      {showModal && <div className="absolute inset-0 bg-gray-200 bg-opacity-30 backdrop-blur-md"></div>}
+
       <motion.div 
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col md:flex-row"
+        className={`w-full max-w-4xl bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col md:flex-row transition ${
+          showModal ? "blur-sm" : ""
+        }`}
       >
         {/* Image */}
         <div className="w-full md:w-1/2 flex items-center justify-center bg-blue-50 p-6">
@@ -116,6 +125,37 @@ export default function ResetPassword() {
           </form>
         </div>
       </motion.div>
+
+      {/* Modal Pop-up */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0, y: -20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative bg-white shadow-xl p-6 rounded-2xl w-96 text-center"
+          >
+            {/* Kontainer Animasi (Diperbesar & Looping) */}
+            <div className="flex justify-center p-4">
+              <Lottie animationData={successAnimation} loop={true} className="w-52 h-52" />
+            </div>
+
+            {/* Judul & Pesan */}
+            <h3 className="text-xl font-semibold text-gray-800">Berhasil!</h3>
+            <p className="text-gray-700 text-sm mt-2 leading-relaxed">
+              Kata sandi Anda telah diperbarui. Silakan login kembali ke aplikasi.
+            </p>
+
+            {/* Tombol Kembali */}
+            <button
+              onClick={handleCloseModal}
+              className="mt-5 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
+            >
+              Kembali ke Aplikasi
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
