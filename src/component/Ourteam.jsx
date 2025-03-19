@@ -31,12 +31,12 @@ const teamMembers = [
   {
     img: fahril,
     name: "Mochammad Fahril Rizal",
-    role: "Backend & Mobile Developer",
+    role: "Backend Developer",
   },
   {
     img: rafif,
     name: "Muhammad Rasyid Rafif",
-    role: "Kepala Departemen",
+    role: "Mobile Developer",
   },
 ];
 
