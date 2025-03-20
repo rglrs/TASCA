@@ -4,7 +4,7 @@ import Footer from "../component/Footer";
 import Features from "../component/Features";
 import LandingPage from "../component/LandingPage";
 import About from "../component/about";
-import OurTeam from "../component/OurTeam";
+import OurTeam from "../component/Ourteam";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);

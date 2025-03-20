@@ -43,16 +43,14 @@ const teamMembers = [
 const OurTeam = () => {
   return (
     <div
-  className="pt-36 pb-36 py-10 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-cover bg-top bg-no-repeat"
-  style={{
-    backgroundImage: `url(${bgOurteam})`,
-  }}
->
-
-
+      className="pt-36 pb-36 py-10 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-cover bg-top bg-no-repeat"
+      style={{
+        backgroundImage: `url(${bgOurteam})`,
+      }}
+    >
       <h2 className="text-3xl font-bold text-white mb-10">Our Team</h2>
 
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8 px-4 sm:px-0">
         {/* Baris pertama (4 gambar) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
           {teamMembers.slice(0, 4).map((member, index) => {

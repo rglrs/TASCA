@@ -96,7 +96,7 @@ const About = () => {
     <section
       id="about"
       ref={ref}
-      className="bg-indigo-200 py-20 md:py-32 px-4 relative overflow-hidden"
+      className="bg-indigo-200 py-20 md:py-32 px-6 md:px-16 lg:px-32 relative overflow-hidden"
     >
       {/* Background decorative elements */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-[#007BFF]/10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
@@ -109,14 +109,13 @@ const About = () => {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-5 inline-flex items-center justify-center">
-            <span className="mr-3">Yuk Kenalan Sama</span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-5 flex flex-col sm:flex-row items-center justify-center px-4 sm:px-0">
+            <span className="mr-0 sm:mr-3 mb-2 sm:mb-0">Let's get to know</span>
             <TascaLogo size="lg" />
           </h2>
-          <p className="text-lg text-gray-700 leading-relaxed">
-            TASCA adalah aplikasi manajemen tugas dan belajar yang dirancang
-            untuk membantu Anda mengelola waktu dan meningkatkan produktivitas
-            dengan metode
+          <p className="text-lg text-gray-700 leading-relaxed px-4 sm:px-8 md:px-12">
+            TASCA is a task and study management app designed to help you manage
+            your time and increase your productivity with its
             <span className="font-semibold text-[#007BFF] ml-1">Pomodoro</span>.
           </p>
         </motion.div>
@@ -124,39 +123,43 @@ const About = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Left side - Features */}
           <motion.div
-            className="space-y-8 pl-20"
+            className="space-y-8 px-4 md:pl-20"
             variants={containerVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
             <motion.h3
-              className="text-2xl md:text-3xl font-bold text-gray-800"
+              className="text-2xl md:text-3xl font-bold text-gray-800 text-center md:text-left"
               variants={itemVariants}
             >
-              Kenapa Memilih <span className="text-[#007BFF]">TASCA</span>?
+              Why Choose <span className="text-[#007BFF]">TASCA</span>?
             </motion.h3>
 
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                className="feature-card p-6 flex items-start gap-4 bg-white/80 rounded-xl hover:shadow-lg transition-shadow"
-                variants={itemVariants}
-                whileHover={{ y: -5 }}
-              >
-                <div className="flex-shrink-0">{feature.icon}</div>
-                <div>
-                  <h4 className="text-xl font-semibold mb-2">
-                    {feature.title}
-                  </h4>
-                  <p className="text-gray-600">{feature.description}</p>
-                </div>
-              </motion.div>
-            ))}
+            <div className="flex flex-col gap-4 md:gap-8">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  className="feature-card p-6 flex flex-col md:flex-row items-start gap-4 bg-white/80 rounded-xl hover:shadow-lg transition-shadow"
+                  variants={itemVariants}
+                  whileHover={{ y: -5 }}
+                >
+                  <div className="flex-shrink-0">{feature.icon}</div>
+                  <div>
+                    <h4 className="text-xl font-semibold mb-2 text-center md:text-left">
+                      {feature.title}
+                    </h4>
+                    <p className="text-gray-600 text-center md:text-left">
+                      {feature.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Right side - Dashboard Preview */}
           <motion.div
-            className="relative"
+            className="relative px-4"
             initial={{ opacity: 0, x: 50 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -254,15 +257,15 @@ const About = () => {
         </div>
 
         <motion.div
-          className="text-center mt-16"
+          className="text-center mt-16 px-4"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.5 }}
         >
           <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-            TASCA cocok untuk mahasiswa, pelajar, dan profesional yang ingin
-            mengatur waktu dengan lebih baik dan mencapai tujuan mereka secara
-            lebih efisien dan terstruktur.
+            TASCA is suitable for college students, students, and professionals
+            who want to better organize their time and achieve their goals in a
+            more efficient and structured manner.
           </p>
         </motion.div>
       </div>

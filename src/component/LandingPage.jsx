@@ -17,7 +17,7 @@ const LandingPage = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center text-center scroll-smooth pt-40 w-full"
+      className="min-h-screen flex flex-col items-center text-center scroll-smooth pt-60 w-full px-6 md:px-16 lg:px-32"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",
@@ -37,7 +37,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isHeroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-4xl font-bold leading-tight"
+            className="text-4xl sm:text-5xl font-bold leading-snug"
           >
             <span style={{ color: "#007BFF" }}>Master</span> Your{" "}
             <span style={{ color: "#007BFF" }}>Time</span>
@@ -80,7 +80,7 @@ const LandingPage = () => {
       </motion.section>
 
       {/* Penjelasan Pomodoro */}
-      <div className="mt-24 md:mt-32 max-w-6xl w-full flex flex-col md:flex-row items-center md:items-start text-center md:text-left py-10">
+      <div className="mt-6 md:mt-12 max-w-6xl w-full flex flex-col md:flex-row items-center md:items-start text-center md:text-left py-10">
         <motion.div
           ref={mockupRef}
           initial={{ opacity: 0, x: -50 }}
@@ -109,53 +109,53 @@ const LandingPage = () => {
             transition={{ duration: 0.5 }}
             className="text-2xl font-semibold text-gray-700"
           >
-            Mengapa Pomodoro?
+            Why Pomodoro?
           </motion.h3>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
-            className="text-gray-600 mt-2"
+            className="text-gray-600 mt-2 px-4 md:px-0"
           >
-            Metode Pomodoro membantu meningkatkan fokus dan produktivitas dengan
-            bekerja dalam interval 25 menit, diikuti dengan istirahat singkat.
-            Ini efektif untuk menghindari kelelahan dan mempertahankan
-            konsentrasi lebih lama.
+            The Pomodoro method helps improve focus and productivity by working
+            in 25-minute intervals, followed by short breaks. This is effective
+            for avoiding fatigue and maintaining concentration for longer.
           </motion.p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 items-center">
             {[
               {
                 icon: (
                   <Clock className="h-8 w-8 p-1.5 bg-red-100 text-red-600 rounded-lg" />
                 ),
-                title: "Manajemen Waktu",
-                description:
-                  "Bekerja dalam sesi fokus dengan istirahat terjadwal.",
+                title: "Time Management",
+                description: "Work in focused sessions with scheduled breaks.",
                 bgHover: "bg-red-200",
               },
               {
                 icon: (
                   <Check className="h-8 w-8 p-1.5 bg-green-100 text-green-600 rounded-lg" />
                 ),
-                title: "Integrasi Tugas",
-                description: "Hubungkan Pomodoro dengan manajemen tugasmu.",
+                title: "Task Integration",
+                description: "Connect Pomodoro with your task management.",
                 bgHover: "bg-green-200",
               },
               {
                 icon: (
                   <Zap className="h-8 w-8 p-1.5 bg-yellow-100 text-yellow-600 rounded-lg" />
                 ),
-                title: "Mode Fokus",
-                description: "Hilangkan gangguan dan tingkatkan produktivitas.",
+                title: "Focus Mode",
+                description:
+                  "Eliminate distractions and increase productivity.",
                 bgHover: "bg-yellow-200",
               },
               {
                 icon: (
                   <BarChart className="h-8 w-8 p-1.5 bg-blue-100 text-blue-600 rounded-lg" />
                 ),
-                title: "Analisis Produktivitas",
+                title: "Productivity Analysis",
                 description:
-                  "Lacak sesi fokus dan optimalkan kebiasaan kerjamu.",
+                  "Track focus sessions and optimize your work habits.",
                 bgHover: "bg-blue-200",
               },
             ].map((item, i) => (

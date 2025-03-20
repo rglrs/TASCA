@@ -32,10 +32,10 @@ const features = [
 
 const Features = () => {
   return (
-    <section className="flex flex-col items-center px-6 md:px-16 lg:px-32 py-16 bg-[#FFFFFF] font-poppins">
+    <section className="flex flex-col items-center px-4 md:px-16 lg:px-32 py-16 bg-[#FFFFFF] font-poppins max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mx-auto">
       {/* Judul di Tengah */}
       <motion.h1
-        className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-12"
+        className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-24 mt-12"
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
@@ -63,7 +63,7 @@ const Features = () => {
         />
 
         {/* Kiri - Fitur Cards (Dibuat Order 2 di Mobile) */}
-        <div className="w-full md:w-1/2 space-y-4 order-2 md:order-none mt-6 md:mt-0 flex flex-col items-center">
+        <div className="w-full md:w-1/2 space-y-4 order-2 md:order-none mt-14 md:mt-0 flex flex-col items-center px-4">
           {features.map((feature, index) => (
             <motion.div
               key={index}
