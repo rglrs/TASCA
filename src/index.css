@@ -1,26 +1,24 @@
 @import "tailwindcss";
 
 body {
-    font-family: 'Poppins', sans-serif;
-  }
-  
-  body {
-    outline: 2px solid red;
-    overflow-x: hidden;
+  font-family: 'Poppins', sans-serif;
+  overflow-x: hidden;
 }
 
 @keyframes pulse {
   0% {
-      transform: scale(1);
-      opacity: 0.5;
+    transform: scale(1);
+    opacity: 0.5;
   }
+
   50% {
-      transform: scale(1.05);
-      opacity: 0.7;
+    transform: scale(1.05);
+    opacity: 0.7;
   }
+
   100% {
-      transform: scale(1);
-      opacity: 0.5;
+    transform: scale(1);
+    opacity: 0.5;
   }
 }
 
@@ -30,16 +28,18 @@ body {
 
 @keyframes outlineAnimation {
   0% {
-      border-color: rgba(239, 137, 79, 0);
-      transform: scale(1);
+    border-color: rgba(239, 137, 79, 0);
+    transform: scale(1);
   }
+
   50% {
-      border-color: rgba(239, 137, 79, 1);
-      transform: scale(1.05);
+    border-color: rgba(239, 137, 79, 1);
+    transform: scale(1.05);
   }
+
   100% {
-      border-color: rgba(239, 137, 79, 0);
-      transform: scale(1);
+    border-color: rgba(239, 137, 79, 0);
+    transform: scale(1);
   }
 }
 
