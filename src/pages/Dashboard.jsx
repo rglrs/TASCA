@@ -63,7 +63,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] transition-opacity duration-[2000ms]">
+      <div className="min-h-screen bg-[#FFFFFF] transition-opacity duration-[2000ms] overflow-x-hidden">
+    
       <Navbar />
       <div id="home" className="mt-[-88px]">
         <LandingPage />
