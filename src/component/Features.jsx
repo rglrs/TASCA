@@ -35,20 +35,20 @@ const Features = () => {
     <section className="flex flex-col items-center px-4 md:px-16 lg:px-32 py-16 bg-[#FFFFFF] font-poppins max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mx-auto">
       {/* Judul di Tengah */}
       <motion.h1
-        className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-24 mt-12"
+        className="text-3xl sm:text-4xl font-bold font-popins text-center text-[#333] mb-10"
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
       >
-        What does
-        <span className="inline-flex justify-center sm:justify-start mt-2 sm:mt-0 sm:ml-4">
+        What does{" "}
+        <span className="inline-flex items-center">
           <span className="text-[#007BFF]">T</span>
           <span className="text-[#007BFF]">A</span>
           <span className="text-[#28A745]">S</span>
           <span className="text-[#FD7E14]">C</span>
           <span className="text-[#FD7E14]">A</span>
+          <span className="text-[#333] ml-2">have?</span>
         </span>
-        <span className="text-[#333] ml-2">have?</span>
       </motion.h1>
 
       {/* Konten Fitur */}
