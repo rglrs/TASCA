@@ -3,14 +3,12 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import ForgotPasswordConfirm from './component/ForgotPasswordConfirm';
 import Pomodoro from './component/pomodoro';
-import Maintenance from './pages/maintenance';
 
 const routes = [
   { path: '/', element: <Dashboard /> },
   { path: '*', element: <NotFound /> },
   { path: 'ForgotPasswordConfirm', element: <ForgotPasswordConfirm/>},
   { path: 'Pomodoro', element: <Pomodoro />},
-  { path: 'Maintenance', element: <Maintenance />},
 ];
 
 function App() {
