@@ -31,7 +31,7 @@ export default function Navbar() {
   return (
     <nav
       ref={ref}
-      className={`fixed top-3 left-1/2 transform -translate-x-1/2 bg-white shadow-lg shadow-gray-400/50 rounded-[20px] px-6 py-4 flex items-center justify-between w-[95%] max-w-6xl z-50
+      className={`fixed top-2 left-1/2 transform -translate-x-1/2 bg-white shadow-lg shadow-gray-400/50 rounded-[20px] px-6 py-4 flex items-center justify-between w-[95%] max-w-6xl z-50
     transition-all duration-[1200ms] ease-[cubic-bezier(0.25, 1, 0.5, 1)]
     ${inView ? "translate-y-0 opacity-100" : "-translate-y-5 opacity-0"}`}
     >
