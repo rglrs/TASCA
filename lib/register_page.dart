@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }
@@ -92,7 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String _processPhoneNumber(String phoneNumber) {
     if (phoneNumber.startsWith('+62')) {
-      return '0' + phoneNumber.substring(3);
+      return '0${phoneNumber.substring(3)}';
     }
     return phoneNumber;
   }
@@ -264,7 +266,7 @@ class _RegisterPageState extends State<RegisterPage> {
         SizedBox(height: 8),
         Row(
           children: [
-            Container(
+            SizedBox(
               width: 60,
               child: TextField(
                 decoration: InputDecoration(

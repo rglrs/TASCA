@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class PomodoroTimer extends StatefulWidget {
+  const PomodoroTimer({super.key});
+
   @override
   _PomodoroTimerState createState() => _PomodoroTimerState();
 }
@@ -58,7 +60,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return Container(
+        return SizedBox(
           height: 300,
           child: Stack(
             children: [

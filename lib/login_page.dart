@@ -7,6 +7,8 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -186,14 +188,14 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () => _login(context),
-                            child: Text(
-                              'Lanjut',
-                              style: TextStyle(color: Colors.white),
-                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               padding: EdgeInsets.symmetric(vertical: 15),
                               textStyle: TextStyle(fontSize: 16),
+                            ),
+                            child: Text(
+                              'Lanjut',
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
                         ),
