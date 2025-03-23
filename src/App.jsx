@@ -7,7 +7,8 @@ import Pomodoro from './component/pomodoro';
 const routes = [
   { path: '/', element: <Dashboard /> },
   { path: '*', element: <NotFound /> },
-  { path: 'ForgotPasswordConfirm', element: <ForgotPasswordConfirm/>},
+  { path: '/not-found', element: <NotFound /> },
+  { path: 'forgot-password', element: <ForgotPasswordConfirm/>},
   { path: 'Pomodoro', element: <Pomodoro />},
 ];
 

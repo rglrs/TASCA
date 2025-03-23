@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import Lottie from "lottie-react";
 import forgotImage from "../assets/image/forgot.svg";
-import successAnimation from "../assets/animation/success.json"; // Pastikan file ada di assets/animation
+import successAnimation from "../assets/animation/success.json";
+import axios from "axios";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -15,21 +16,78 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
+  const [token, setToken] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tokenParam = urlParams.get('token');
+    
+    if (tokenParam) {
+      if (tokenParam.length >= 32) {
+        setToken(tokenParam);
+      } else {
+        navigate('/not-found', { replace: true });
+      }
+    } else {
+      navigate('/not-found', { replace: true });
+    }
+  }, [location, navigate]);
+
+  useEffect(() => {
+    const validateToken = async () => {
+      if (token) {
+        try {
+          await axios.post('https://api.tascaid.com/api/validate-token', {
+            token: token
+          });
+        } catch (error) {
+          navigate('/not-found', { replace: true });
+        }
+      }
+    };
+    
+    validateToken();
+  }, [token, navigate]);
 
   const validatePassword = (password) => {
     return password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    
     if (password === confirmPassword && validatePassword(password)) {
       setIsSubmitting(true);
-  
-      setTimeout(() => {
+      
+      try {
+        const response = await axios.post('https://api.tascaid.com/api/reset-password', {
+          token: token,
+          new_password: password,
+          confirm_password: confirmPassword
+        });
+        
         setShowModal(true);
+      } catch (error) {
+        // Check if token is invalid
+        if (error.response && error.response.data) {
+          if (error.response.data.error === "token tidak valid" || 
+              error.response.data.error === "token sudah kadaluarsa") {
+            // Redirect to NotFound for token-specific errors
+            navigate('/not-found', { replace: true });
+            return;
+          }
+          
+          setError(error.response.data.error || "Terjadi kesalahan saat memperbarui kata sandi.");
+        } else {
+          setError("Terjadi kesalahan saat memperbarui kata sandi. Silakan coba lagi.");
+        }
+      } finally {
         setIsSubmitting(false);
-      }, 1500);
+      }
     } else {
       setIsMatch(password === confirmPassword);
       setIsValid(validatePassword(password));
@@ -39,9 +97,13 @@ export default function ResetPassword() {
   const handleCloseModal = () => {
     setShowModal(false);
     setTimeout(() => {
-      window.location.href = "yourapp://home"; // Ganti dengan deep link aplikasi kamu
+      window.location.href = "yourapp://home";
     }, 1000);
   };
+
+  if (!token) {
+    return null; 
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 relative">
@@ -69,6 +131,14 @@ export default function ResetPassword() {
           <p className="text-gray-600 text-sm text-center mb-6">
             Masukkan kata sandi baru Anda.
           </p>
+          
+          {/* Display error message if any */}
+          {error && (
+            <div className="mb-4 p-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded">
+              {error}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit}>
             <label htmlFor="password" className="block text-gray-700 text-sm font-medium mb-2">
               Kata Sandi Baru
