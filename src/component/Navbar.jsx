@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "../assets/image/logo.svg";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const { ref, inView } = useInView({
     triggerOnce: false,
     threshold: 0.1,
@@ -26,6 +28,10 @@ export default function Navbar() {
         section.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top: sectionPosition, behavior: "smooth" });
     }
+  };
+
+  const handleDemoAppsClick = () => {
+    navigate("/pomodoro"); // Navigate to the pomodoro page
   };
 
   return (
@@ -65,16 +71,25 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Button */}
+      {/* Button - Desktop */}
       <button
-        onClick={() => scrollToSection("download")}
+        onClick={handleDemoAppsClick}
         className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
       >
         Demo Apps
       </button>
 
-      {/* Menu Mobile */}
+      {/* Mobile Menu Controls */}
       <div className="flex md:hidden items-center space-x-2">
+        {/* Demo Apps Button - Mobile */}
+        <button
+          onClick={handleDemoAppsClick}
+          className="bg-blue-600 text-white px-2 py-1 text-sm rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md"
+        >
+          Demo Apps
+        </button>
+        
+        {/* Hamburger Menu */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 w-10 h-10 flex items-center justify-center text-sm text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
