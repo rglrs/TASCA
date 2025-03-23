@@ -4,7 +4,7 @@ import 'login_page.dart';
 class DashboardPage extends StatelessWidget {
   final String userName;
 
-  DashboardPage({required this.userName});
+  const DashboardPage({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
