@@ -31,7 +31,7 @@ const teamMembers = [
   {
     img: fahril,
     name: "Mochammad Fahril Rizal",
-    role: "Backend Developer & Mobile Developer",
+    role: "Backend Developer & DevOps",
   },
   {
     img: rafif,
