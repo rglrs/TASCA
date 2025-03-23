@@ -25,13 +25,13 @@ const teamMembers = [
   {
     img: yafi,
     name: "Muhammad Yafi Rifdah",
-    role: "Assistant Scrum Master & Frontend Developer, Mobile Developer",
+    role: "Assistant Scrum Master, Frontend Developer & Mobile Developer",
   },
   { img: vonda, name: "Bayu Ariyo Vonda Wicaksono", role: "UI/UX Designer" },
   {
     img: fahril,
     name: "Mochammad Fahril Rizal",
-    role: "Backend Developer & DevOps",
+    role: "Backend Developer & Mobile Developer",
   },
   {
     img: rafif,
