@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FocusTimerScreen extends StatefulWidget {
-  const FocusTimerScreen({Key? key}) : super(key: key);
+  const FocusTimerScreen({super.key});
 
   @override
   State<FocusTimerScreen> createState() => _FocusTimerScreenState();
@@ -9,6 +10,27 @@ class FocusTimerScreen extends StatefulWidget {
 
 class _FocusTimerScreenState extends State<FocusTimerScreen> {
   int selectedInterval = 0; // 0 for 25min, 1 for 50min
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedInterval();
+  }
+
+  Future<void> _loadSavedInterval() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedInterval = prefs.getInt('focus_interval') ?? 0;
+    });
+  }
+
+  Future<void> _saveInterval(int interval) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('focus_interval', interval);
+    setState(() {
+      selectedInterval = interval;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +41,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
         title: const Text(
           'Focus Timer',
@@ -73,14 +97,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                     isSelected: selectedInterval == 0,
                     focusTime: '25 min',
                     relaxTime: '5 min',
-                    onTap: () => setState(() => selectedInterval = 0),
+                    onTap: () => _saveInterval(0),
                   ),
                   const Divider(height: 1, thickness: 1),
                   _buildIntervalOption(
                     isSelected: selectedInterval == 1,
                     focusTime: '50 min',
                     relaxTime: '10 min',
-                    onTap: () => setState(() => selectedInterval = 1),
+                    onTap: () => _saveInterval(1),
                   ),
                 ],
               ),

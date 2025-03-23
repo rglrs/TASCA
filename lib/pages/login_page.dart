@@ -20,28 +20,33 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _login(BuildContext context) async {
-    final String email = emailController.text;
-    final String password = passwordController.text;
+  final String email = emailController.text;
+  final String password = passwordController.text;
 
-    final response = await http.post(
-      Uri.parse('http://157.245.193.85:9000/api/login'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'email': email, 'password': password}),
+  final response = await http.post(
+    Uri.parse('https://api.tascaid.com/api/login'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{'email': email, 'password': password}),
+  );
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    final String token = data['token']; // JWT token
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jwtToken', token);
+
+    print('Login successful: $token');
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => DashboardPage(userName: email)),
     );
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      print('Login successful: ${data['token']}');
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DashboardPage(userName: email)),
-      );
-    } else {
-      print('Failed to login: ${response.reasonPhrase}');
-    }
+  } else {
+    print('Failed to login: ${response.reasonPhrase}');
   }
+}
 
   Future<void> _loginWithGoogle() async {
     setState(() {
@@ -49,7 +54,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final String backendUrl = 'http://157.245.193.85:9000/google/login';
+      final String backendUrl = 'https://api.tascaid.com/api/google/login';
       final String callbackUrlScheme = 'com.example.tasca';
 
       final result = await FlutterWebAuth2.authenticate(
