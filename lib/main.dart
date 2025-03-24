@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/sliding_pages.dart';
+import 'pages/login_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TASCA',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: SlidingPages(),
+      home: LoginPage(),
     );
   }
 }

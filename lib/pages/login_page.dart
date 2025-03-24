@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'register_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dashboard.dart';
+import 'pomodoro.dart'; // Import the Pomodoro page
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'forgot_pw.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
     final String password = passwordController.text;
 
     final response = await http.post(
-      Uri.parse('http://157.245.193.85:9000/api/login'),
+      Uri.parse('https://api.tascaid.com/api/login'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -33,10 +34,17 @@ class _LoginPageState extends State<LoginPage> {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
-      print('Login successful: ${data['token']}');
+      final String token = data['token']; // JWT token
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('jwtToken', token);
+
+      print('Login successful: $token');
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => DashboardPage(userName: email)),
+        MaterialPageRoute(
+          builder: (context) => PomodoroTimer(),
+        ), // Navigate to PomodoroPage
       );
     } else {
       print('Failed to login: ${response.reasonPhrase}');
@@ -49,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final String backendUrl = 'http://157.245.193.85:9000/google/login';
+      final String backendUrl = 'https://api.tascaid.com/api/google/login';
       final String callbackUrlScheme = 'com.example.tasca';
 
       final result = await FlutterWebAuth2.authenticate(
@@ -91,8 +99,8 @@ class _LoginPageState extends State<LoginPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Container(
-                    height: 250,
-                    width: 250,
+                    height: 400,
+                    width: 400,
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('images/login.png'),
@@ -179,7 +187,12 @@ class _LoginPageState extends State<LoginPage> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              // Tambahkan aksi lupa kata sandi
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordPage(),
+                                ),
+                              );
                             },
                             child: Text('Lupa Kata Sandi?'),
                           ),
@@ -200,41 +213,41 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         SizedBox(height: 20),
-                        Row(
-                          children: <Widget>[
-                            Expanded(child: Divider()),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ),
-                              child: Text(
-                                'Atau',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                            Expanded(child: Divider()),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _loginWithGoogle,
-                            icon: Image.asset(
-                              'images/logo_google.png',
-                              height: 24.0,
-                              width: 24.0,
-                            ),
-                            label: Text(
-                              'Sign in with Google',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                            ),
-                          ),
-                        ),
+                        // Row(
+                        //   children: <Widget>[
+                        //     Expanded(child: Divider()),
+                        //     Padding(
+                        //       padding: const EdgeInsets.symmetric(
+                        //         horizontal: 8.0,
+                        //       ),
+                        //       child: Text(
+                        //         'Atau',
+                        //         style: TextStyle(color: Colors.grey),
+                        //       ),
+                        //     ),
+                        //     Expanded(child: Divider()),
+                        //   ],
+                        // ),
+                        // SizedBox(height: 20),
+                        // SizedBox(
+                        //   width: double.infinity,
+                        //   child: ElevatedButton.icon(
+                        //     onPressed: _isLoading ? null : _loginWithGoogle,
+                        //     icon: Image.asset(
+                        //       'images/logo_google.png',
+                        //       height: 24.0,
+                        //       width: 24.0,
+                        //     ),
+                        //     label: Text(
+                        //       'Sign in with Google',
+                        //       style: TextStyle(color: Colors.white),
+                        //     ),
+                        //     style: ElevatedButton.styleFrom(
+                        //       backgroundColor: Colors.blue,
+                        //       padding: EdgeInsets.symmetric(vertical: 15),
+                        //     ),
+                        //   ),
+                        // ),
                         SizedBox(height: 20),
                         TextButton(
                           onPressed: () {

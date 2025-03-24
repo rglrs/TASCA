@@ -13,7 +13,11 @@ class SlidingPages extends StatelessWidget {
         PageView(
           controller: pageController,
           physics: AlwaysScrollableScrollPhysics(),
-          children: <Widget>[_buildPageTwo(), _buildPageThree()],
+          children: <Widget>[
+            _buildPageOne(),
+            _buildPageTwo(),
+            _buildPageThree(),
+          ],
         ),
         _buildBackButton(context),
         _buildContinueButton(context),
@@ -37,6 +41,33 @@ class SlidingPages extends StatelessWidget {
             Navigator.of(context).pop();
           }
         },
+      ),
+    );
+  }
+
+  // Halaman 1 
+  Widget _buildPageOne() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start, 
+        children: [
+          SizedBox(height: 100),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Done! Combine all the features to make your productivity experience easier!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF4D4D4D)),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: 30),
+          Image.asset(
+            'images/halaman1.png',
+            width: 500,
+            height: 500,
+            fit: BoxFit.contain,
+          ),
+        ],
       ),
     );
   }

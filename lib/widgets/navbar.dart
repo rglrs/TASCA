@@ -1,12 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:tasca_mobile1/pages/pomodoro.dart'; // Import the Pomodoro page
 import 'package:tasca_mobile1/pages/setting_page.dart'; // Import the Setting page
+import 'package:shared_preferences/shared_preferences.dart';
 
-class Navbar extends StatelessWidget {
-  const Navbar({super.key});
+class Navbar extends StatefulWidget {
+  final int initialActiveIndex;
+
+  const Navbar({super.key, this.initialActiveIndex = 0});
+
+  @override
+  State<Navbar> createState() => _NavbarState();
+}
+
+class _NavbarState extends State<Navbar> {
+  String? jwtToken;
+  bool isLoading = true;
+  int activeIndex = 0; // Track the active index
+
+  @override
+  void initState() {
+    super.initState();
+    activeIndex = widget.initialActiveIndex;
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        jwtToken = prefs.getString('auth_token') ?? '';
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading token: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      activeIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(
+            5,
+            (index) => Container(
+              width: 40,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, color: Colors.grey.shade300, size: 28),
+                  SizedBox(height: 4),
+                  Container(height: 12, width: 30, color: Colors.grey.shade300),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       decoration: BoxDecoration(
@@ -27,8 +102,9 @@ class Navbar extends StatelessWidget {
           NavBarItem(
             icon: Icons.more_time_rounded,
             label: 'Focus',
-            isActive: true,
+            isActive: activeIndex == 0,
             onTap: () {
+              _onItemTapped(0);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => PomodoroTimer()),
@@ -38,32 +114,44 @@ class Navbar extends StatelessWidget {
           NavBarItem(
             icon: Icons.format_list_bulleted_add,
             label: 'To Do',
-            isActive: false,
+            isActive: activeIndex == 1,
             onTap: () {
+              _onItemTapped(1);
               // Add navigation logic for To Do page
             },
           ),
           NavBarItem(
             icon: Icons.calendar_today,
             label: 'Date',
-            isActive: false,
+            isActive: activeIndex == 2,
             onTap: () {
+              _onItemTapped(2);
               // Add navigation logic for Date page
             },
           ),
           NavBarItem(
             icon: Icons.check_circle,
             label: 'Done!',
-            isActive: false,
+            isActive: activeIndex == 3,
             onTap: () {
+              _onItemTapped(3);
               // Add navigation logic for Done page
             },
           ),
           NavBarItem(
             icon: Icons.settings,
             label: 'Setting',
-            isActive: false,
-            onTap: () {},
+            isActive: activeIndex == 4,
+            onTap: () {
+              _onItemTapped(4);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => SettingsScreen(jwtToken: jwtToken ?? ''),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -78,12 +166,12 @@ class NavBarItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const NavBarItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.isActive,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

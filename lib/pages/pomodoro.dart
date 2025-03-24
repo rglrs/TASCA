@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart'; // Ensure this path is correct
 
 class PomodoroTimer extends StatefulWidget {
+  const PomodoroTimer({super.key});
+
   @override
   _PomodoroTimerState createState() => _PomodoroTimerState();
 }
@@ -18,12 +21,40 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   AudioPlayer audioPlayer = AudioPlayer();
   bool isFocusSession = true; // State variable to track session type
 
-  // Dropdown options
-  String dropdownValue = '25 min focus, 5 min rest';
-
   // Timer settings
   int focusDuration = 1500; // 25 minutes
   int restDuration = 300; // 5 minutes
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedInterval();
+  }
+
+  // Load saved interval from SharedPreferences
+  Future<void> _loadSavedInterval() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final interval = prefs.getInt('focus_interval') ?? 0; // Default to 25min
+      
+      setState(() {
+        if (interval == 0) {
+          // 25 min focus, 5 min rest
+          focusDuration = 1500;
+          restDuration = 300;
+        } else {
+          // 50 min focus, 10 min rest
+          focusDuration = 3000;
+          restDuration = 600;
+        }
+        
+        timeLeft = isFocusSession ? focusDuration : restDuration;
+      });
+    } catch (e) {
+      // If there's an error, use default values
+      print('Error loading focus interval: $e');
+    }
+  }
 
   void startTimer() {
     if (!isRunning) {
@@ -107,7 +138,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return Container(
+        return SizedBox(
           height: 300,
           child: Stack(
             children: [
@@ -251,63 +282,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   ),
                 ),
                 const SizedBox(height: 10), // Add space below the title
-                Container(
-                  height: 50, // Set a fixed height for the dropdown
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: dropdownValue,
-                      icon: const Icon(
-                        Icons.arrow_drop_down_sharp,
-                        color: Colors.white,
-                      ),
-                      iconSize: 24,
-                      elevation: 16,
-                      style: const TextStyle(color: Colors.white),
-                      dropdownColor:
-                          Colors.deepPurple, // Set dropdown background color
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          dropdownValue = newValue!;
-                          if (dropdownValue == '25 min focus, 5 min rest') {
-                            focusDuration = 1500;
-                            restDuration = 300;
-                          } else if (dropdownValue ==
-                              '50 min focus, 10 min rest') {
-                            focusDuration = 3000;
-                            restDuration = 600;
-                          }
-                          resetTimer();
-                        });
-                      },
-                      items:
-                          <String>[
-                            '25 min focus, 5 min rest',
-                            '50 min focus, 10 min rest',
-                          ].map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20), // Add space below the dropdown
               ],
             ),
             Center(
@@ -498,7 +472,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                 ],
               ),
             ),
-            Container(
+            SizedBox(
               width:
                   MediaQuery.of(context).size.width *
                   0.9, // Set width to 80% of the screen width
