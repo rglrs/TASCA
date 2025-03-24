@@ -8,10 +8,15 @@ import Ambience from "../component/Ambience.jsx";
 import BgPomodoro from "../assets/image/bg_pomodoro.png";
 
 const Pomodoro = () => {
-  const defaultMinutes = 25;
-  const defaultTime = defaultMinutes * 60;
-  const [time, setTime] = useState(defaultTime);
-  const [focusMinutes, setFocusMinutes] = useState(defaultMinutes);
+  const defaultFocusMinutes = 25;
+  const defaultRelaxMinutes = 5;
+  const longFocusMinutes = 50;
+  const longRelaxMinutes = 10;
+
+  const [focusTime, setFocusTime] = useState(defaultFocusMinutes);
+  const [relaxTime, setRelaxTime] = useState(defaultRelaxMinutes);
+  const [isFocusMode, setIsFocusMode] = useState(true);
+  const [time, setTime] = useState(defaultFocusMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const navigate = useNavigate();
@@ -23,6 +28,8 @@ const Pomodoro = () => {
         setTime((prevTime) => prevTime - 1);
       }, 1000);
     } else if (time === 0) {
+      // Automatically switch modes when timer reaches zero
+      handleSkip();
       setIsRunning(false);
     }
     return () => clearInterval(timer);
@@ -38,13 +45,38 @@ const Pomodoro = () => {
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTime(focusMinutes * 60);
+    setTime(isFocusMode ? focusTime * 60 : relaxTime * 60);
+  };
+
+  const handleSkip = () => {
+    setIsRunning(false);
+
+    // Toggle between focus and relax mode
+    if (isFocusMode) {
+      // Switch to relax mode
+      setIsFocusMode(false);
+      setTime(relaxTime * 60);
+    } else {
+      // Switch to focus mode
+      setIsFocusMode(true);
+      setTime(focusTime * 60);
+    }
   };
 
   const setCustomTime = (minutes) => {
     setIsRunning(false);
+
+    if (minutes === 25) {
+      setFocusTime(defaultFocusMinutes);
+      setRelaxTime(defaultRelaxMinutes);
+    } else if (minutes === 50) {
+      setFocusTime(longFocusMinutes);
+      setRelaxTime(longRelaxMinutes);
+    }
+
+    // Reset to focus mode when changing timer settings
+    setIsFocusMode(true);
     setTime(minutes * 60);
-    setFocusMinutes(minutes);
     setIsDropdownOpen(false);
   };
 
@@ -54,19 +86,19 @@ const Pomodoro = () => {
 
   // Animation variants for dropdown
   const dropdownVariants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       y: -10,
-      scale: 0.95
+      scale: 0.95,
     },
-    visible: { 
+    visible: {
       opacity: 1,
       y: 0,
       scale: 1,
       transition: {
         duration: 0.3,
-        ease: "easeOut"
-      }
+        ease: "easeOut",
+      },
     },
     exit: {
       opacity: 0,
@@ -74,9 +106,15 @@ const Pomodoro = () => {
       scale: 0.95,
       transition: {
         duration: 0.2,
-        ease: "easeIn"
-      }
-    }
+        ease: "easeIn",
+      },
+    },
+  };
+
+  // Gradient style for the timer circle with 50% opacity on the blue color
+  const timerGradientStyle = {
+    background:
+      "radial-gradient(circle, rgba(0,123,255,0.5) 0%, rgba(255,255,255,1) 70%)",
   };
 
   return (
@@ -118,7 +156,7 @@ const Pomodoro = () => {
           </button>
           <AnimatePresence>
             {isDropdownOpen && (
-              <motion.div 
+              <motion.div
                 className="absolute right-0 mt-2 w-64 bg-blue-500 text-white rounded-lg shadow-lg z-10 overflow-hidden"
                 variants={dropdownVariants}
                 initial="hidden"
@@ -146,29 +184,39 @@ const Pomodoro = () => {
       {/* Kontainer Timer */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-20 mt-7">
         {/* Timer Section */}
-        <div className="relative w-64 h-64 md:w-80 md:h-80 flex flex-col justify-center items-center rounded-full border-4 border-gray-300 bg-white shadow-lg p-6 mt-28 md:mt-0">
+        <div
+          className="relative w-64 h-64 md:w-80 md:h-80 flex flex-col justify-center items-center rounded-full border-4 border-gray-300 shadow-lg p-6 mt-28 md:mt-0 overflow-hidden"
+          style={timerGradientStyle}
+        >
           {isRunning && (
             <div className="absolute inset-0 rounded-full border-8 border-transparent animate-outline"></div>
           )}
-          <div className="flex flex-col items-center mb-4">
-            <p className="text-md font-semibold">Stay Focused</p>
+          <div className="flex flex-col items-center mb-4 z-10">
+            <p className="text-md font-semibold">
+              {isFocusMode ? "Stay Focused" : "Take a Break"}
+            </p>
             <div className="flex gap-1 mt-1">
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-6xl font-poppins font-semibold mb-4">
+          <div className="text-6xl font-poppins font-semibold mb-4 z-10">
             {formatTime(time)}
           </div>
-          <Ambience isRunning={isRunning} />
+          <div className="z-10">
+            <Ambience isRunning={isRunning} />
+          </div>
         </div>
 
         {/* Tombol & Judul */}
-        <div className="flex flex-col items-center gap-4 px-6 md:px-0">
+        <div className="flex flex-col items-center gap-4 px-6 md:px-0 md:ml-32">
           <h2 className="text-3xl font-bold text-center">Pomodoro</h2>
           <div className="flex justify-center items-center gap-4 md:gap-6 mt-2 w-full max-w-[350px]">
-            <button className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-sm font-bold">
+            <button
+              onClick={handleSkip}
+              className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-sm font-bold"
+            >
               Skip
             </button>
             <button
@@ -199,14 +247,16 @@ const Pomodoro = () => {
             </button>
           </div>
           <p className="mt-4 px-4 py-2 bg-white shadow-md rounded-lg text-center text-gray-700 font-medium w-full max-w-[350px]">
-            Mulai sekarang, jangan tunggu nanti! {focusMinutes} menit ini milikmu!
+            {isFocusMode
+              ? `Start now, don't wait for later! These ${focusTime} minutes are yours!`
+              : `Time to recharge! Enjoy your ${relaxTime} minute break.`}
           </p>
         </div>
       </div>
 
       {/* bg bawah */}
       <motion.div
-        className="absolute bottom-[-40px] md:bottom-[-60px] w-full h-[100px] md:h-70 bg-no-repeat bg-cover"
+        className="absolute bottom-[-20px] md:bottom-[-50px] w-full h-40 md:h-70 bg-no-repeat bg-cover"
         style={{ backgroundImage: `url(${BgPomodoro})` }}
         animate={{ opacity: [0, 1], y: [50, 0] }}
         transition={{ duration: 1.5, ease: "easeOut" }}
