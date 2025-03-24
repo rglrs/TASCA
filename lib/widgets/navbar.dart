@@ -128,30 +128,30 @@ class _NavbarState extends State<Navbar> {
               // Add navigation logic for To Do page
             },
           ),
-          NavBarItem(
-            icon: Icons.calendar_today,
-            label: 'Date',
-            isActive: activeIndex == 2,
-            onTap: () {
-              _onItemTapped(2);
-              // Add navigation logic for Date page
-            },
-          ),
-          NavBarItem(
-            icon: Icons.check_circle,
-            label: 'Done!',
-            isActive: activeIndex == 3,
-            onTap: () {
-              _onItemTapped(3);
-              // Add navigation logic for Done page
-            },
-          ),
+          // NavBarItem(
+          //   icon: Icons.calendar_today,
+          //   label: 'Date',
+          //   isActive: activeIndex == 2,
+          //   onTap: () {
+          //     _onItemTapped(2);
+          //     // Add navigation logic for Date page
+          //   },
+          // ),
+          // NavBarItem(
+          //   icon: Icons.check_circle,
+          //   label: 'Done!',
+          //   isActive: activeIndex == 3,
+          //   onTap: () {
+          //     _onItemTapped(3);
+          //     // Add navigation logic for Done page
+          //   },
+          // ),
           NavBarItem(
             icon: Icons.settings,
             label: 'Setting',
-            isActive: activeIndex == 4,
+            isActive: activeIndex == 2,
             onTap: () {
-              _onItemTapped(4);
+              _onItemTapped(2);
               Navigator.push(
                 context,
                 MaterialPageRoute(
