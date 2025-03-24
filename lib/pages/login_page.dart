@@ -81,9 +81,7 @@ class _LoginPageState extends State<LoginPage> {
         // PERBAIKAN: Pass token ke SettingsScreen saat navigasi
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => PomodoroTimer(),
-          ),
+          MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
         // Parsing error message from server
@@ -172,8 +170,8 @@ class _LoginPageState extends State<LoginPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Container(
-                    height: 400,
-                    width: 400,
+                    height: 300,
+                    width: 300,
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('images/login.png'),

@@ -36,7 +36,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final interval = prefs.getInt('focus_interval') ?? 0; // Default to 25min
-      
+
       setState(() {
         if (interval == 0) {
           // 25 min focus, 5 min rest
@@ -47,7 +47,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           focusDuration = 3000;
           restDuration = 600;
         }
-        
+
         timeLeft = isFocusSession ? focusDuration : restDuration;
       });
     } catch (e) {
@@ -138,108 +138,110 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return SizedBox(
-          height: 300,
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: 40.0,
-                ), // Add top padding to GridView
-                child: GridView.count(
-                  crossAxisCount: 4,
-                  children: [
-                    _buildSoundOption('images/musicoff.png', 'Mute', () {
-                      setState(() {
-                        isMuted = true;
-                        currentSoundTitle = ''; // Clear sound title
-                        currentSoundPath = ''; // Clear sound path
-                      });
-                      audioPlayer.stop();
-                    }),
-                    _buildSoundOption('images/forest.png', 'Forest', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/forest_ambience.mp3';
-                        currentSoundTitle = 'Forest'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/forest_ambience.mp3', 'Forest');
-                      }
-                    }),
-                    _buildSoundOption('images/rain.png', 'Rain', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/rain_ambience.mp3';
-                        currentSoundTitle = 'Rain'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/rain_ambience.mp3', 'Rain');
-                      }
-                    }),
-                    _buildSoundOption('images/wave.png', 'Ocean', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/wave_ambience.mp3';
-                        currentSoundTitle = 'Ocean'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/wave_ambience.mp3', 'Ocean');
-                      }
-                    }),
-                    _buildSoundOption('images/fire.png', 'Fireplace', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/fire_ambience.mp3';
-                        currentSoundTitle = 'Fireplace'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/fire_ambience.mp3', 'Fireplace');
-                      }
-                    }),
-                    _buildSoundOption('images/bird.png', 'Bird', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/bird_ambience.mp3';
-                        currentSoundTitle = 'Bird'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/bird_ambience.mp3', 'Bird');
-                      }
-                    }),
-                    _buildSoundOption('images/wind.png', 'Wind', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/wind_ambience.mp3';
-                        currentSoundTitle = 'Wind'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/wind_ambience.mp3', 'Wind');
-                      }
-                    }),
-                    _buildSoundOption('images/night.png', 'Night', () {
-                      setState(() {
-                        isMuted = false;
-                        currentSoundPath = 'sound/night_ambience.mp3';
-                        currentSoundTitle = 'Night'; // Set sound title
-                      });
-                      if (isRunning) {
-                        playSound('sound/night_ambience.mp3', 'Night');
-                      }
-                    }),
-                  ],
+        return SingleChildScrollView(
+          child: SizedBox(
+            height: 300,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: 40.0,
+                  ), // Add top padding to GridView
+                  child: GridView.count(
+                    crossAxisCount: 4,
+                    children: [
+                      _buildSoundOption('images/musicoff.png', 'Mute', () {
+                        setState(() {
+                          isMuted = true;
+                          currentSoundTitle = ''; // Clear sound title
+                          currentSoundPath = ''; // Clear sound path
+                        });
+                        audioPlayer.stop();
+                      }),
+                      _buildSoundOption('images/forest.png', 'Forest', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/forest_ambience.mp3';
+                          currentSoundTitle = 'Forest'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/forest_ambience.mp3', 'Forest');
+                        }
+                      }),
+                      _buildSoundOption('images/rain.png', 'Rain', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/rain_ambience.mp3';
+                          currentSoundTitle = 'Rain'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/rain_ambience.mp3', 'Rain');
+                        }
+                      }),
+                      _buildSoundOption('images/wave.png', 'Ocean', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/wave_ambience.mp3';
+                          currentSoundTitle = 'Ocean'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/wave_ambience.mp3', 'Ocean');
+                        }
+                      }),
+                      _buildSoundOption('images/fire.png', 'Fireplace', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/fire_ambience.mp3';
+                          currentSoundTitle = 'Fireplace'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/fire_ambience.mp3', 'Fireplace');
+                        }
+                      }),
+                      _buildSoundOption('images/bird.png', 'Bird', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/bird_ambience.mp3';
+                          currentSoundTitle = 'Bird'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/bird_ambience.mp3', 'Bird');
+                        }
+                      }),
+                      _buildSoundOption('images/wind.png', 'Wind', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/wind_ambience.mp3';
+                          currentSoundTitle = 'Wind'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/wind_ambience.mp3', 'Wind');
+                        }
+                      }),
+                      _buildSoundOption('images/night.png', 'Night', () {
+                        setState(() {
+                          isMuted = false;
+                          currentSoundPath = 'sound/night_ambience.mp3';
+                          currentSoundTitle = 'Night'; // Set sound title
+                        });
+                        if (isRunning) {
+                          playSound('sound/night_ambience.mp3', 'Night');
+                        }
+                      }),
+                    ],
+                  ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: Icon(Icons.close),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

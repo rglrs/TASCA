@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -25,7 +26,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_isCheckboxChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You must agree to the terms and conditions'),
+          content: Text('Anda harus menyetujui syarat dan ketentuan'),
         ),
       );
       return;
@@ -87,7 +88,7 @@ class _RegisterPageState extends State<RegisterPage> {
         final Map<String, dynamic> data = jsonDecode(response.body);
         _showDialog(
           context,
-          'Registration Successful',
+          'Registrasi Berhasil',
           data['message'] ?? 'Registrasi berhasil',
         );
       } else {
@@ -96,22 +97,22 @@ class _RegisterPageState extends State<RegisterPage> {
           final Map<String, dynamic> errorData = jsonDecode(response.body);
           _showDialog(
             context,
-            'Registration Failed',
-            errorData['error'] ?? 'Unknown error',
+            'Registrasi Gagal',
+            errorData['error'] ?? 'Kesalahan tidak diketahui',
           );
         } catch (e) {
           _showDialog(
             context,
-            'Registration Failed',
-            'Error: ${response.body}',
+            'Registrasi Gagal',
+            'Kesalahan: ${response.body}',
           );
         }
       }
     } catch (e) {
       _showDialog(
         context,
-        'Connection Error',
-        'Failed to connect to server: $e',
+        'Kesalahan Koneksi',
+        'Gagal terhubung ke server: $e',
       );
     } finally {
       setState(() => _isLoading = false);
@@ -137,8 +138,8 @@ class _RegisterPageState extends State<RegisterPage> {
               child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
-                if (title == 'Registration Successful') {
-                  Navigator.of(context).pop(); // Kembali ke halaman login
+                if (title == 'Registrasi Berhasil') {
+                  Navigator.of(context).pop(LoginPage()); // Kembali ke halaman login
                 }
               },
             ),
@@ -210,6 +211,12 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Column(
                       children: [
                         _buildTextField(
+                          'Nama Lengkap*',
+                          'Masukkan nama lengkap',
+                          nameController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
                           'Username*',
                           'Masukkan username min. 4 karakter',
                           usernameController,
@@ -222,12 +229,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 16),
                         _buildWhatsAppField(),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          'Nama Lengkap*',
-                          'Masukkan nama lengkap',
-                          nameController,
-                        ),
                         const SizedBox(height: 16),
                         _buildPasswordField(
                           'Password*',

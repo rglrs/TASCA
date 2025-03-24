@@ -61,8 +61,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Container(
-                    height: 550,
-                    width: 550,
+                    height: 300,
+                    width: 300,
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('images/forgotpw.png'),
