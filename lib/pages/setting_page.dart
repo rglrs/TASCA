@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tasca_mobile1/pages/focus_timer_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -142,6 +143,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Icons.chevron_right,
                               color: subtitleColor,
                             ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FocusTimerScreen(),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

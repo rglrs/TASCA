@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pomodoro.dart'; // Ensure this path is correct
 
 class SlidingPages extends StatelessWidget {
   final PageController pageController = PageController();
@@ -12,13 +13,10 @@ class SlidingPages extends StatelessWidget {
         PageView(
           controller: pageController,
           physics: AlwaysScrollableScrollPhysics(),
-          children: <Widget>[
-            _buildPageTwo(),
-            _buildPageThree(),
-          ],
+          children: <Widget>[_buildPageTwo(), _buildPageThree()],
         ),
         _buildBackButton(context),
-        _buildContinueButton(),
+        _buildContinueButton(context),
       ],
     );
   }
@@ -47,23 +45,27 @@ class SlidingPages extends StatelessWidget {
   Widget _buildPageTwo() {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.start, 
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(height: 100), 
+          SizedBox(height: 100),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 20), 
+            padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Enable your notifications to get the most out of it!', 
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF4D4D4D)), 
-              textAlign: TextAlign.center, 
+              'Enable your notifications to get the most out of it!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4D4D4D),
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
           SizedBox(height: 30),
           Image.asset(
-            'images/halaman2.png', 
-            width: 500, 
-            height: 500, 
-            fit: BoxFit.contain, 
+            'images/halaman2.png',
+            width: 500,
+            height: 500,
+            fit: BoxFit.contain,
           ),
         ],
       ),
@@ -74,43 +76,49 @@ class SlidingPages extends StatelessWidget {
   Widget _buildPageThree() {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.start, 
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(height: 100), 
+          SizedBox(height: 100),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 20), 
+            padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Pomodoro & Relaxation Music to learn more effectively & create cozy atmosphere', 
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF4D4D4D)), 
-              textAlign: TextAlign.center, 
+              'Pomodoro & Relaxation Music to learn more effectively & create cozy atmosphere',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4D4D4D),
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
-          SizedBox(height: 20), 
+          SizedBox(height: 20),
           Image.asset(
-            'images/halaman3.png', 
-            width: 500, 
-            height: 500, 
-            fit: BoxFit.contain, 
+            'images/halaman3.png',
+            width: 500,
+            height: 500,
+            fit: BoxFit.contain,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildContinueButton(BuildContext context) {
     return Positioned(
       bottom: 20,
       left: 20,
       right: 20,
       child: ElevatedButton(
         onPressed: () {
-          if (pageController.page!.toInt() < 1) { 
+          if (pageController.page!.toInt() < 1) {
             pageController.nextPage(
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOut,
             );
           } else {
-            pageController.jumpToPage(0); 
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => PomodoroTimer()),
+            ); // Navigate to Pomodoro page
           }
         },
         style: ElevatedButton.styleFrom(

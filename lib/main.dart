@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'login_page.dart';
-import 'pages/pomodoro.dart';
+import 'pages/sliding_pages.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,7 +14,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TASCA',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: PomodoroTimer(),
+      home: SlidingPages(),
     );
   }
 }

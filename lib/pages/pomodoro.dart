@@ -69,6 +69,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
               ? focusDuration
               : restDuration; // Reset based on session type
       isRunning = false;
+      isMuted = true; // Ensure sound is off when timer is reset
       currentSoundTitle = ''; // Reset sound title
       currentSoundPath = ''; // Reset sound path
       audioPlayer.stop(); // Stop sound when timer is reset
