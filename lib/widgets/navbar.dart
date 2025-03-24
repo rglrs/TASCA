@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tasca_mobile1/pages/pomodoro.dart'; // Import the Pomodoro page
 import 'package:tasca_mobile1/pages/setting_page.dart'; // Import the Setting page
+import 'package:tasca_mobile1/pages/todo.dart'; // Import the Setting page
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Navbar extends StatefulWidget {
@@ -117,6 +118,13 @@ class _NavbarState extends State<Navbar> {
             isActive: activeIndex == 1,
             onTap: () {
               _onItemTapped(1);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => TodoPage(),
+                ),
+              );
               // Add navigation logic for To Do page
             },
           ),
@@ -150,7 +158,7 @@ class _NavbarState extends State<Navbar> {
                   builder:
                       (context) => SettingsScreen(jwtToken: jwtToken ?? ''),
                 ),
-              );
+              );              
             },
           ),
         ],

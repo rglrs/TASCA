@@ -3,7 +3,7 @@ import 'register_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'pomodoro.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+// import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_pw.dart';
 
@@ -126,38 +126,38 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> _loginWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
+  // Future<void> _loginWithGoogle() async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
 
-    try {
-      final String backendUrl = 'https://api.tascaid.com/api/google/login';
-      final String callbackUrlScheme = 'com.example.tasca';
+  //   try {
+  //     final String backendUrl = 'https://api.tascaid.com/api/google/login';
+  //     final String callbackUrlScheme = 'com.example.tasca';
 
-      final result = await FlutterWebAuth2.authenticate(
-        url: backendUrl,
-        callbackUrlScheme: callbackUrlScheme,
-      );
+  //     final result = await FlutterWebAuth2.authenticate(
+  //       url: backendUrl,
+  //       callbackUrlScheme: callbackUrlScheme,
+  //     );
 
-      final token = Uri.parse(result).queryParameters['token'];
+  //     final token = Uri.parse(result).queryParameters['token'];
 
-      if (token != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', token);
+  //     if (token != null) {
+  //       final prefs = await SharedPreferences.getInstance();
+  //       await prefs.setString('auth_token', token);
 
-        Navigator.of(context).pushReplacementNamed('/home');
-      } else {
-        _showErrorMessage('Login gagal: Token tidak diterima');
-      }
-    } catch (e) {
-      _showErrorMessage('Login dengan Google gagal: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+  //       Navigator.of(context).pushReplacementNamed('/home');
+  //     } else {
+  //       _showErrorMessage('Login gagal: Token tidak diterima');
+  //     }
+  //   } catch (e) {
+  //     _showErrorMessage('Login dengan Google gagal: ${e.toString()}');
+  //   } finally {
+  //     setState(() {
+  //       _isLoading = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
