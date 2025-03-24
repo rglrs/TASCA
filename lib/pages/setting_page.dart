@@ -35,7 +35,7 @@ class UserProfile {
 }
 
 class SettingsScreen extends StatefulWidget {
-  final String jwtToken;
+  final String? jwtToken;
 
   const SettingsScreen({super.key, required this.jwtToken});
 
@@ -47,11 +47,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   UserProfile? _userProfile;
   bool _isLoading = true;
   String _errorMessage = '';
+  String? _token;
 
   @override
   void initState() {
     super.initState();
+    _getToken();
     _fetchUserProfile();
+  }
+
+  Future<void> _getToken() async {
+    try {
+      // Coba ambil dari widget parameter
+      if (widget.jwtToken != null && widget.jwtToken!.isNotEmpty) {
+        _token = widget.jwtToken;
+      } else {
+        // Jika tidak ada, ambil dari SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        _token = prefs.getString('auth_token');
+      }
+
+      print('Token untuk fetch profile: $_token'); // Debug info
+
+      if (_token == null || _token!.isEmpty) {
+        setState(() {
+          _errorMessage = 'Token tidak ditemukan. Silakan login kembali.';
+          _isLoading = false;
+        });
+
+        // Redirect ke login setelah delay
+        Future.delayed(Duration(seconds: 2), () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => LoginPage()),
+            (route) => false,
+          );
+        });
+
+        return;
+      }
+
+      _fetchUserProfile();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error mendapatkan token: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchUserProfile() async {
@@ -59,16 +100,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final response = await http.get(
         Uri.parse('https://api.tascaid.com/api/profile'),
         headers: {
-          'Authorization': 'Bearer ${widget.jwtToken}',
+          'Authorization': 'Bearer $_token',
           'Content-Type': 'application/json',
         },
       );
+
+      print('Profile fetch status: ${response.statusCode}');
+      print('Profile response: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         setState(() {
           _userProfile = UserProfile.fromJson(data);
           _isLoading = false;
+          _errorMessage = '';
         });
       } else {
         setState(() {
@@ -90,51 +135,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = true;
       });
 
-      // Call the logout API
       final response = await http.post(
         Uri.parse('https://api.tascaid.com/api/logout'),
         headers: {
-          'Authorization': 'Bearer ${widget.jwtToken}',
+          'Authorization': 'Bearer $_token',
           'Content-Type': 'application/json',
         },
       );
 
-      // Clear token from SharedPreferences regardless of API response
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-
       if (response.statusCode == 200) {
-        // If logout was successful, navigate to LoginPage
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-          (Route<dynamic> route) => false, // Remove all previous pages
-        );
-      } else {
-        // If logout failed, show error message but still navigate to login
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Logout gagal, coba lagi!')));
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('auth_token');
 
-        // Navigate to login page anyway
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => LoginPage()),
           (Route<dynamic> route) => false,
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logout gagal, coba lagi nanti')),
+        );
       }
     } catch (e) {
-      // Even if there's an error with the API call, we still want to clear the token and navigate to login
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Logged out with error: $e')));
-
-      // Navigate to login page
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
-        (Route<dynamic> route) => false,
-      );
+      ).showSnackBar(SnackBar(content: Text('Error saat logout: $e')));
     } finally {
       setState(() {
         _isLoading = false;

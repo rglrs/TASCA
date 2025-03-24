@@ -64,7 +64,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     fetchUserProfile();
   }
 
-  // Fungsi fetchUserProfile yang diperbarui di Flutter
   Future<void> fetchUserProfile() async {
     setState(() {
       isLoading = true;
@@ -73,6 +72,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
+
+      print('Token for profile request: $token');
+
+      if (token.isEmpty) {
+        setState(() {
+          isLoading = false;
+        });
+        _showErrorDialog('Token tidak ditemukan. Silakan login kembali.');
+        return;
+      }
 
       final response = await http.get(
         Uri.parse('https://api.tascaid.com/api/profile'),
@@ -91,13 +100,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           nameController.text = data['name'] ?? '';
           phoneController.text = data['phone'] ?? '';
 
-          // Store original values for reset functionality
           originalUsername = data['username'];
           originalName = data['name'];
           originalPhone = data['phone'];
           originalPicture = data['picture'];
 
-          // Langsung gunakan URL yang diberikan oleh API
           profileImageUrl = data['picture'];
 
           isLoading = false;
@@ -106,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           isLoading = false;
         });
-        _showErrorDialog('Failed to load profile data');
+        _showErrorDialog('Failed to load profile data: ${response.statusCode}');
       }
     } catch (e) {
       setState(() {
@@ -125,9 +132,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
+      if (token.isEmpty) {
+        setState(() {
+          isLoading = false;
+        });
+        _showErrorDialog('Token tidak ditemukan. Silakan login kembali.');
+        return;
+      }
+
       var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://api.tascaid.com/api/update-profile'),
+        'PATCH',
+        Uri.parse('https://api.tascaid.com/api/profile/update'),
       );
 
       request.headers.addAll({'Authorization': 'Bearer $token'});
@@ -406,7 +421,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   label: 'Email',
                                   controller: emailController,
                                   editable: false,
-                                  isEmail: true,
                                 ),
                                 const SizedBox(height: 16),
                                 _buildProfileField(
@@ -491,7 +505,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String label,
     required TextEditingController controller,
     bool editable = false,
-    bool isEmail = false,
     Function(String)? onChanged,
   }) {
     return Column(
@@ -507,6 +520,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.withOpacity(0.2)),
             borderRadius: BorderRadius.circular(8),
+            // Tambahkan background berbeda untuk yang tidak bisa diedit
+            color: editable ? Colors.white : Colors.grey.shade50,
           ),
           child: Row(
             children: [
@@ -515,13 +530,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.only(left: 12.0),
                   child: TextField(
                     controller: controller,
-                    readOnly: !editable && !isEmail,
+                    readOnly: !editable,
+                    enabled:
+                        editable, // Tambahkan ini agar benar-benar tidak bisa diklik
                     onChanged: onChanged,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
-                    style: const TextStyle(fontSize: 15),
+                    style: TextStyle(
+                      fontSize: 15,
+                      // Warna teks berbeda untuk yang tidak bisa diedit
+                      color: editable ? Colors.black : Colors.grey.shade700,
+                    ),
                   ),
                 ),
               ),

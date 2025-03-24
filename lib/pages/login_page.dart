@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'register_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'pomodoro.dart'; // Import the Pomodoro page
+import 'pomodoro.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_pw.dart';
@@ -15,40 +15,117 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController loginIdentifierController =
+      TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
   Future<void> _login(BuildContext context) async {
-    final String email = emailController.text;
-    final String password = passwordController.text;
+    setState(() {
+      _isLoading = true;
+    });
 
-    final response = await http.post(
-      Uri.parse('https://api.tascaid.com/api/login'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'email': email, 'password': password}),
-    );
+    try {
+      final String identifier = loginIdentifierController.text.trim();
+      final String password = passwordController.text;
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final String token = data['token']; // JWT token
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('jwtToken', token);
+      if (identifier.isEmpty) {
+        _showErrorMessage('Email atau username tidak boleh kosong');
+        return;
+      }
 
-      print('Login successful: $token');
+      if (password.isEmpty) {
+        _showErrorMessage('Password tidak boleh kosong');
+        return;
+      }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PomodoroTimer(),
-        ), // Navigate to PomodoroPage
+      // Menentukan apakah input adalah email atau username berdasarkan format
+      final bool isEmail = identifier.contains('@');
+
+      final Map<String, String> requestBody = {'password': password};
+
+      // Mengisi field yang sesuai berdasarkan input
+      if (isEmail) {
+        requestBody['email'] = identifier;
+      } else {
+        requestBody['username'] = identifier;
+      }
+
+      print('Request body: $requestBody'); // Debug
+
+      final response = await http.post(
+        Uri.parse('https://api.tascaid.com/api/login'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(requestBody),
       );
-    } else {
-      print('Failed to login: ${response.reasonPhrase}');
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final String token = data['token']; // JWT token
+
+        // PERBAIKAN: Simpan token dengan nama key yang konsisten
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'auth_token',
+          token,
+        ); // Gunakan key 'auth_token' konsisten
+
+        print('Login successful with token: $token');
+
+        // PERBAIKAN: Pass token ke SettingsScreen saat navigasi
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PomodoroTimer(),
+          ),
+        );
+      } else {
+        // Parsing error message from server
+        try {
+          final Map<String, dynamic> errorData = jsonDecode(response.body);
+          final String errorMessage = errorData['error'] ?? 'Login gagal';
+
+          // Menampilkan pesan error yang spesifik
+          if (errorMessage.contains('tidak ditemukan')) {
+            _showErrorMessage('Email atau username tidak terdaftar');
+          } else if (errorMessage.contains('Password salah') ||
+              errorMessage.contains('password salah')) {
+            _showErrorMessage('Password yang Anda masukkan salah');
+          } else {
+            _showErrorMessage(errorMessage);
+          }
+        } catch (e) {
+          _showErrorMessage('Login gagal: Coba lagi nanti');
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  void _showErrorMessage(String message) {
+    setState(() {
+      _isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   Future<void> _loginWithGoogle() async {
@@ -73,14 +150,10 @@ class _LoginPageState extends State<LoginPage> {
 
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: No token received')),
-        );
+        _showErrorMessage('Login gagal: Token tidak diterima');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+      _showErrorMessage('Login dengan Google gagal: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -147,22 +220,25 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         SizedBox(height: 20),
                         TextField(
-                          controller: emailController,
+                          controller: loginIdentifierController,
                           decoration: InputDecoration(
-                            labelText: 'Masukkan Email',
+                            labelText: 'Email atau Username',
+                            hintText: 'Masukkan email atau username Anda',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(
                                 Radius.circular(12.0),
                               ),
                             ),
                           ),
+                          keyboardType: TextInputType.emailAddress,
                         ),
                         SizedBox(height: 20),
                         TextField(
                           controller: passwordController,
                           obscureText: !_isPasswordVisible,
                           decoration: InputDecoration(
-                            labelText: 'Masukkan Password',
+                            labelText: 'Password',
+                            hintText: 'Masukkan password Anda',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(
                                 Radius.circular(12.0),
@@ -200,54 +276,29 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () => _login(context),
+                            onPressed:
+                                _isLoading ? null : () => _login(context),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               padding: EdgeInsets.symmetric(vertical: 15),
                               textStyle: TextStyle(fontSize: 16),
                             ),
-                            child: Text(
-                              'Lanjut',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child:
+                                _isLoading
+                                    ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.0,
+                                      ),
+                                    )
+                                    : Text(
+                                      'Lanjut',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                           ),
                         ),
-                        SizedBox(height: 20),
-                        // Row(
-                        //   children: <Widget>[
-                        //     Expanded(child: Divider()),
-                        //     Padding(
-                        //       padding: const EdgeInsets.symmetric(
-                        //         horizontal: 8.0,
-                        //       ),
-                        //       child: Text(
-                        //         'Atau',
-                        //         style: TextStyle(color: Colors.grey),
-                        //       ),
-                        //     ),
-                        //     Expanded(child: Divider()),
-                        //   ],
-                        // ),
-                        // SizedBox(height: 20),
-                        // SizedBox(
-                        //   width: double.infinity,
-                        //   child: ElevatedButton.icon(
-                        //     onPressed: _isLoading ? null : _loginWithGoogle,
-                        //     icon: Image.asset(
-                        //       'images/logo_google.png',
-                        //       height: 24.0,
-                        //       width: 24.0,
-                        //     ),
-                        //     label: Text(
-                        //       'Sign in with Google',
-                        //       style: TextStyle(color: Colors.white),
-                        //     ),
-                        //     style: ElevatedButton.styleFrom(
-                        //       backgroundColor: Colors.blue,
-                        //       padding: EdgeInsets.symmetric(vertical: 15),
-                        //     ),
-                        //   ),
-                        // ),
                         SizedBox(height: 20),
                         TextButton(
                           onPressed: () {

@@ -11,10 +11,12 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   bool _isCurrentPasswordVisible = false;
   bool _isNewPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -53,13 +55,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     }
 
     try {
-      // Get auth token
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      // Make API request with PUT method matching the backend
-      final response = await http.put(
-        Uri.parse('https://api.tascaid.com/api/change-password'),
+      print('Token untuk change password: $token');
+
+      if (token.isEmpty) {
+        setState(() {
+          _errorMessage = 'Token tidak ditemukan. Silakan login kembali.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.patch(
+        Uri.parse('https://api.tascaid.com/api/profile/change-password'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -70,22 +80,28 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         }),
       );
 
+      print('Response status change password: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        // Show success message
         if (!mounted) return;
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password berhasil diubah')),
         );
-        
-        // Go back to previous screen
+
         Navigator.pop(context);
       } else {
-        // Handle error
-        final responseData = json.decode(response.body);
-        setState(() {
-          _errorMessage = responseData['error'] ?? 'Gagal mengubah password';
-        });
+        try {
+          final responseData = json.decode(response.body);
+          setState(() {
+            _errorMessage = responseData['error'] ?? 'Gagal mengubah password';
+          });
+        } catch (e) {
+          setState(() {
+            _errorMessage = 'Gagal memproses respons server';
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -146,10 +162,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     // Current Password Field
                     const Text(
                       'Current Password',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -181,22 +194,20 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           ),
                           onPressed: () {
                             setState(() {
-                              _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
+                              _isCurrentPasswordVisible =
+                                  !_isCurrentPasswordVisible;
                             });
                           },
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // New Password Field
                     const Text(
                       'New Password',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -234,16 +245,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Confirm New Password Field
                     const Text(
                       'Confirm New Password',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -275,7 +283,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           ),
                           onPressed: () {
                             setState(() {
-                              _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                              _isConfirmPasswordVisible =
+                                  !_isConfirmPasswordVisible;
                             });
                           },
                         ),
@@ -284,7 +293,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   ],
                 ),
               ),
-              
+
               // Error message
               if (_errorMessage.isNotEmpty)
                 Padding(
@@ -298,7 +307,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              
+
               // Save Button
               Container(
                 margin: const EdgeInsets.only(top: 32),
@@ -311,24 +320,27 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    disabledBackgroundColor: const Color(0xFF8B7DFA).withOpacity(0.6),
+                    disabledBackgroundColor: const Color(
+                      0xFF8B7DFA,
+                    ).withOpacity(0.6),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                          : const Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        )
-                      : const Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                 ),
               ),
             ],

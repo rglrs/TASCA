@@ -19,57 +19,110 @@ class _RegisterPageState extends State<RegisterPage> {
       TextEditingController();
   bool _isPasswordVisible = false;
   bool _isCheckboxChecked = false;
+  bool _isLoading = false;
 
   Future<void> _register(BuildContext context) async {
     if (!_isCheckboxChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You must agree to the terms and conditions')),
+        const SnackBar(
+          content: Text('You must agree to the terms and conditions'),
+        ),
       );
       return;
     }
+
+    setState(() => _isLoading = true);
 
     final String username = usernameController.text;
     final String name = nameController.text;
     final String email = emailController.text;
-    final String phone = _processPhoneNumber(phoneController.text);
+    final String phoneRaw = phoneController.text.trim();
     final String password = passwordController.text;
     final String confirmPassword = confirmPasswordController.text;
 
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Passwords do not match')));
+    // Validasi input
+    if (username.length < 4) {
+      _showError('Username harus minimal 4 karakter');
       return;
     }
 
-    final response = await http.post(
-      Uri.parse('http://157.245.193.85:9000/api/register'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'username': username,
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'password': password,
-        'confirm_password': confirmPassword,
-      }),
-    );
+    if (password.length < 8) {
+      _showError('Password harus minimal 8 karakter');
+      return;
+    }
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      _showDialog(context, 'Registration Successful', data['message']);
-    } else if (response.statusCode == 409) {
-      // Assuming 409 is the status code for conflict (duplicate account)
-      _showDialog(context, 'Registration Failed', 'Account already exists.');
-    } else {
+    if (password != confirmPassword) {
+      _showError('Passwords tidak cocok');
+      return;
+    }
+
+    // Proses nomor telepon - kirim null jika kosong
+    String? phone;
+    if (phoneRaw.isNotEmpty) {
+      phone = _processPhoneNumber(phoneRaw);
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.tascaid.com/api/register'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'username': username,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+          'confirm_password': confirmPassword,
+        }),
+      );
+
+      // Debug response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        // Status berhasil sesuai backend (201 Created)
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        _showDialog(
+          context,
+          'Registration Successful',
+          data['message'] ?? 'Registrasi berhasil',
+        );
+      } else {
+        // Handle error dengan informasi lebih detail
+        try {
+          final Map<String, dynamic> errorData = jsonDecode(response.body);
+          _showDialog(
+            context,
+            'Registration Failed',
+            errorData['error'] ?? 'Unknown error',
+          );
+        } catch (e) {
+          _showDialog(
+            context,
+            'Registration Failed',
+            'Error: ${response.body}',
+          );
+        }
+      }
+    } catch (e) {
       _showDialog(
         context,
-        'Registration Failed',
-        response.reasonPhrase ?? 'Unknown error',
+        'Connection Error',
+        'Failed to connect to server: $e',
       );
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String message) {
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showDialog(BuildContext context, String title, String message) {
@@ -81,9 +134,12 @@ class _RegisterPageState extends State<RegisterPage> {
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
+                if (title == 'Registration Successful') {
+                  Navigator.of(context).pop(); // Kembali ke halaman login
+                }
               },
             ),
           ],
@@ -102,127 +158,136 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3E8FF),
+      backgroundColor: const Color(0xFFF3E8FF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: GestureDetector(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Icon(Icons.arrow_back, size: 24),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ternyata akun kamu belum terdaftar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
-                    child: Icon(Icons.arrow_back, size: 24),
+                    child: const Text(
+                      'Masuk di sini',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.blue),
+                    ),
                   ),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Ternyata akun kamu belum terdaftar.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text(
-                    'Masuk di sini',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.blue),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildTextField(
-                        'Username*',
-                        'Masukkan username min. 4 karakter',
-                        usernameController,
-                      ),
-                      SizedBox(height: 16),
-                      _buildTextField(
-                        'Email*',
-                        'alexantos@gmail.com',
-                        emailController,
-                      ),
-                      SizedBox(height: 16),
-                      _buildWhatsAppField(),
-                      SizedBox(height: 16),
-                      _buildTextField(
-                        'Nama Lengkap*',
-                        'Masukkan nama lengkap',
-                        nameController,
-                      ),
-                      SizedBox(height: 16),
-                      _buildPasswordField(
-                        'Password*',
-                        'Password minimum 8 karakter',
-                        passwordController,
-                      ),
-                      SizedBox(height: 16),
-                      _buildPasswordField(
-                        'Konfirmasi Password*',
-                        'Harus sama dengan password di atas',
-                        confirmPasswordController,
-                      ),
-                      SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _isCheckboxChecked,
-                            onChanged: (value) {
-                              setState(() {
-                                _isCheckboxChecked = value!;
-                              });
-                            },
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Saya Menyetujui Kebijakan Privasi serta Kondisi dan Ketentuan oleh Tim Tasca',
-                              style: TextStyle(fontSize: 12),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _buildTextField(
+                          'Username*',
+                          'Masukkan username min. 4 karakter',
+                          usernameController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          'Email*',
+                          'alexantos@gmail.com',
+                          emailController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildWhatsAppField(),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          'Nama Lengkap*',
+                          'Masukkan nama lengkap',
+                          nameController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPasswordField(
+                          'Password*',
+                          'Password minimum 8 karakter',
+                          passwordController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPasswordField(
+                          'Konfirmasi Password*',
+                          'Harus sama dengan password di atas',
+                          confirmPasswordController,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _isCheckboxChecked,
+                              onChanged: (value) {
+                                setState(() {
+                                  _isCheckboxChecked = value!;
+                                });
+                              },
+                            ),
+                            const Expanded(
+                              child: Text(
+                                'Saya Menyetujui Kebijakan Privasi serta Kondisi dan Ketentuan oleh Tim Tasca',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed:
+                              _isLoading ? null : () => _register(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 130,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _register(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 130,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          child:
+                              _isLoading
+                                  ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                  : const Text(
+                                    'Daftar',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                         ),
-                        child: Text(
-                          'Daftar',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -240,15 +305,18 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: placeholder,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ),
           ),
         ),
       ],
@@ -259,11 +327,11 @@ class _RegisterPageState extends State<RegisterPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Nomor WhatsApp',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Row(
           children: [
             SizedBox(
@@ -271,13 +339,13 @@ class _RegisterPageState extends State<RegisterPage> {
               child: TextField(
                 decoration: InputDecoration(
                   hintText: '+62',
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(8),
                       bottomLeft: Radius.circular(8),
                     ),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     vertical: 12,
                     horizontal: 12,
                   ),
@@ -290,17 +358,18 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: phoneController,
                 decoration: InputDecoration(
                   hintText: '8xx xxxx xxxx',
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: BorderRadius.only(
                       topRight: Radius.circular(8),
                       bottomRight: Radius.circular(8),
                     ),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     vertical: 12,
                     horizontal: 16,
                   ),
                 ),
+                keyboardType: TextInputType.phone,
               ),
             ),
           ],
@@ -319,16 +388,19 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           obscureText: !_isPasswordVisible,
           decoration: InputDecoration(
             hintText: placeholder,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ),
             suffixIcon: IconButton(
               icon: Icon(
                 _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
