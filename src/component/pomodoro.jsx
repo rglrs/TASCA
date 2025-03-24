@@ -111,12 +111,6 @@ const Pomodoro = () => {
     },
   };
 
-  // Gradient style for the timer circle with 50% opacity on the blue color
-  const timerGradientStyle = {
-    background:
-      "radial-gradient(circle, rgba(0,123,255,0.5) 0%, rgba(255,255,255,1) 70%)",
-  };
-
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-white text-black pb-40">
       {/* Navbar */}
@@ -185,28 +179,26 @@ const Pomodoro = () => {
       <div className="flex flex-col md:flex-row items-center justify-center gap-20 mt-7">
         {/* Timer Section */}
         <div
-          className="relative w-64 h-64 md:w-80 md:h-80 flex flex-col justify-center items-center rounded-full border-4 border-gray-300 shadow-lg p-6 mt-28 md:mt-0 overflow-hidden"
-          style={timerGradientStyle}
+          className="relative w-64 h-64 md:w-80 md:h-80 flex flex-col justify-center items-center 
+  rounded-full border-4 border-gray-300 
+  bg-[radial-gradient(circle,_rgba(0,123,255,0.5)_0%,_rgba(255,255,255,1)_70%)]
+  shadow-lg p-6 mt-28 md:mt-0"
         >
           {isRunning && (
             <div className="absolute inset-0 rounded-full border-8 border-transparent animate-outline"></div>
           )}
-          <div className="flex flex-col items-center mb-4 z-10">
-            <p className="text-md font-semibold">
-              {isFocusMode ? "Stay Focused" : "Take a Break"}
-            </p>
+          <div className="flex flex-col items-center mb-4">
+            <p className="text-md font-semibold">Stay Focused</p>
             <div className="flex gap-1 mt-1">
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
               <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-6xl font-poppins font-semibold mb-4 z-10">
+          <div className="text-6xl font-poppins font-semibold mb-4">
             {formatTime(time)}
           </div>
-          <div className="z-10">
-            <Ambience isRunning={isRunning} />
-          </div>
+          <Ambience isRunning={isRunning} />
         </div>
 
         {/* Tombol & Judul */}

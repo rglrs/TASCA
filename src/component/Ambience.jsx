@@ -86,6 +86,11 @@ const Ambience = ({ isRunning }) => {
     setIsAmbienceMenuOpen(false);
   };
 
+  // Determine the icon to display based on selected ambience
+  const currentIcon = selectedAmbience 
+    ? ambienceSounds.find(sound => sound.name === selectedAmbience)?.icon 
+    : SongIcon;
+
   return (
     <div className="relative" ref={buttonRef}>
       <button
@@ -93,7 +98,7 @@ const Ambience = ({ isRunning }) => {
         className="flex items-center gap-2 font-semibold text-black hover:text-gray-700"
       >
         <img 
-          src={isSoundPlaying ? ActiveSongIcon : SongIcon} 
+          src={isSoundPlaying ? ActiveSongIcon : currentIcon} 
           alt="Sound" 
           className="w-5 h-5" 
         />
