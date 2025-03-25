@@ -82,19 +82,13 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         if (mounted) {
           setState(() {
             tasks =
-                todosData
-                    .map(
-                      (todo) => {
-                        'id': todo['id'],
-                        'title': todo['title'] ?? 'Unnamed Todo',
-                        'urgency': todo['urgency'],
-                        'importance': todo['importance'],
-                        'progress': todo['progress'] ?? 0,
-                        // Use the same key as API
-                        'taskCount': todo['task_count'] ?? 0,
-                      },
-                    )
-                    .toList();
+                todosData.map((todo) {
+                  return {
+                    'id': todo['id'],
+                    'title': todo['title'] ?? 'Unnamed Todo',
+                    'taskCount': todo['task_count'] ?? 0,
+                  };
+                }).toList();
             _isLoading = false;
           });
         }
@@ -120,7 +114,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       ),
       builder:
           (context) => AddTodoPage(
-            onTaskAdded: (task) async {
+            onTodoAdded: (task) async {
               try {
                 final prefs = await SharedPreferences.getInstance();
                 final token = prefs.getString('auth_token');
@@ -302,38 +296,51 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           IconButton(icon: Icon(Icons.add), onPressed: _showAddTodoBottomSheet),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetchTodos,
-        child:
-            _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _errorMessage != null
-                ? Center(child: Text('Error: $_errorMessage'))
-                : tasks.isEmpty
-                ? _EmptyStateView()
-                : _TodoListView(
-                  tasks: tasks,
-                  onTodoTap: (todoId, todoTitle) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => DetailTodoPage(
-                              todoId: todoId,
-                              todoTitle: todoTitle,
-                              onTodoUpdated: () {
-                                // Refresh todo list when detail page updates something
-                                _fetchTodos();
-                              },
+      body: Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchTodos,
+              child:
+                  _isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
+                      ? Center(child: Text('Error: $_errorMessage'))
+                      : tasks.isEmpty
+                      ? _EmptyStateView()
+                      : _TodoListView(
+                        tasks: tasks,
+                        onTodoTap: (todoId, todoTitle, taskCount) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => DetailTodoPage(
+                                    todoId: todoId,
+                                    todoTitle: todoTitle,
+                                    taskCount: taskCount,
+                                    onTodoUpdated: () {
+                                      // Refresh todo list when detail page updates something
+                                      _fetchTodos();
+                                    },
+                                  ),
                             ),
+                          ).then((_) {
+                            // Also refresh after returning from detail page
+                            _fetchTodos();
+                          });
+                        },
+                        onMorePressed: _showTodoOptions,
                       ),
-                    ).then((_) {
-                      // Also refresh after returning from detail page
-                      _fetchTodos();
-                    });
-                  },
-                  onMorePressed: _showTodoOptions,
-                ),
+            ),
+          ),
+          // Always show the navbar at the bottom
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Navbar(initialActiveIndex: 1),
+          ),
+          SizedBox(height: 20),
+        ],
       ),
     );
   }
@@ -342,44 +349,31 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 class _EmptyStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset('images/empty.png', width: 200, height: 200),
-                SizedBox(height: 20),
-                Text(
-                  'There are no scheduled tasks.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Create a new task or activity to ensure it is always scheduled.',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset('images/empty.png', width: 200, height: 200),
+          SizedBox(height: 20),
+          Text(
+            'There are no scheduled tasks.',
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
           ),
-        ), // Add space above the Navbar
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.9,
-          child: Navbar(
-            initialActiveIndex: 1,
-          ), // Set the active index for Settings
-        ),
-        SizedBox(height: 20),
-      ],
+          SizedBox(height: 10),
+          Text(
+            'Create a new task or activity to ensure it is always scheduled.',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _TodoListView extends StatelessWidget {
   final List<Map<String, dynamic>> tasks;
-  final Function(int, String) onTodoTap;
+  final Function(int, String, int) onTodoTap;
   final Function(int) onMorePressed;
 
   const _TodoListView({
@@ -405,7 +399,7 @@ class _TodoListView extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: InkWell(
-              onTap: () => onTodoTap(task['id'], task['title']),
+              onTap: () => onTodoTap(task['id'], task['title'], taskCount),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -428,6 +422,7 @@ class _TodoListView extends StatelessWidget {
                         ),
                       ],
                     ),
+                    SizedBox(height: 8),
                     SizedBox(height: 8),
                     Text(
                       '$taskCount ${taskCount == 1 ? "task" : "tasks"}',

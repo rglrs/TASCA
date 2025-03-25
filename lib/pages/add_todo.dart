@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AddTodoPage extends StatefulWidget {
-  final Function(Map<String, dynamic>) onTaskAdded;
+  final Function(Map<String, dynamic>) onTodoAdded;
 
-  const AddTodoPage({Key? key, required this.onTaskAdded}) : super(key: key);
+  const AddTodoPage({Key? key, required this.onTodoAdded}) : super(key: key);
 
   @override
   _AddTodoPageState createState() => _AddTodoPageState();
@@ -14,14 +14,14 @@ class _AddTodoPageState extends State<AddTodoPage> {
   String? _selectedUrgency;
   String? _selectedImportance;
 
-  void _addTask() {
+  void _addTodo() {
     if (_titleController.text.isNotEmpty) {
       final task = {
         'title': _titleController.text,
         'urgency': _selectedUrgency,
         'importance': _selectedImportance,
       };
-      widget.onTaskAdded(task);
+      widget.onTodoAdded(task);
     }
   }
 
@@ -108,7 +108,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
           ),
           SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _addTask,
+            onPressed: _addTodo,
             child: Text('Add Task'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepPurple,

@@ -149,14 +149,15 @@ class _AddTaskPageState extends State<AddTaskPage> {
       final hour = _selectedTime?.hour ?? 23;
       final minute = _selectedTime?.minute ?? 59;
 
-      final deadline = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        hour,
-        minute,
-        59,
-      ).toUtc();
+      final deadline =
+          DateTime(
+            _selectedDate!.year,
+            _selectedDate!.month,
+            _selectedDate!.day,
+            hour,
+            minute,
+            00,
+          ).toUtc();
 
       deadlineString = deadline.toIso8601String();
     }
@@ -178,9 +179,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
   // Add a new task
   Future<void> _addTask() async {
     if (_titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Task title is required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Task title is required')));
       return;
     }
 
@@ -218,9 +219,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         widget.onTaskAdded();
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Task added successfully')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Task added successfully')));
       } else {
         String errorMessage;
         try {
@@ -233,9 +234,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
       }
     } catch (e) {
       print('Add Task Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -246,9 +247,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
   // Update an existing task
   Future<void> _updateTask() async {
     if (_titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Task title is required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Task title is required')));
       return;
     }
 
@@ -258,7 +259,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
     // Create http client that will be used and closed later
     final client = http.Client();
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -268,12 +269,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
       }
 
       // URL for updating an existing task
-      final url = 'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/${widget.taskId}/';
+      final url =
+          'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/${widget.taskId}/';
       final requestBody = _prepareRequestBody();
 
       print('Update Task - URL: $url');
       print('Update Task - Body: ${json.encode(requestBody)}');
-      
+
       // Create a PATCH request
       final request = http.Request('PATCH', Uri.parse(url));
       request.headers['Authorization'] = 'Bearer $token';
@@ -282,15 +284,15 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       // Send the request and get the stream response
       final streamedResponse = await client.send(request);
-      
+
       http.Response response;
-      
+
       // If we get a redirect, manually follow it while maintaining the PATCH method
       if (streamedResponse.statusCode == 307) {
         final redirectUrl = streamedResponse.headers['location'];
         if (redirectUrl != null) {
           print('Redirecting PATCH to: $redirectUrl');
-          
+
           // Handle both absolute and relative URLs
           Uri redirectUri;
           if (redirectUrl.startsWith('http')) {
@@ -301,19 +303,22 @@ class _AddTaskPageState extends State<AddTaskPage> {
             // Extract the base URL from the original request
             final baseUri = Uri.parse(url);
             final baseUrl = '${baseUri.scheme}://${baseUri.host}';
-            
+
             // Remove leading slash if present in both
-            final cleanRedirectUrl = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
+            final cleanRedirectUrl =
+                redirectUrl.startsWith('/')
+                    ? redirectUrl.substring(1)
+                    : redirectUrl;
             redirectUri = Uri.parse('$baseUrl/$cleanRedirectUrl');
           }
-          
+
           print('Full redirect URL: $redirectUri');
-          
+
           final redirectRequest = http.Request('PATCH', redirectUri);
           redirectRequest.headers['Authorization'] = 'Bearer $token';
           redirectRequest.headers['Content-Type'] = 'application/json';
           redirectRequest.body = json.encode(requestBody);
-          
+
           final redirectResponse = await client.send(redirectRequest);
           response = await http.Response.fromStream(redirectResponse);
         } else {
@@ -331,9 +336,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         widget.onTaskAdded();
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Task updated successfully')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Task updated successfully')));
       } else {
         String errorMessage;
         try {
@@ -350,9 +355,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
       }
     } catch (e) {
       print('Update Task Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -369,6 +374,15 @@ class _AddTaskPageState extends State<AddTaskPage> {
     } else {
       _updateTask();
     }
+  }
+
+  bool _isTaskReady() {
+    bool isTitleFilled = _titleController.text.trim().isNotEmpty;
+
+    bool isDeadlineValid = _selectedDate != null && _selectedTime != null;
+
+    return isTitleFilled &&
+        isDeadlineValid; // Atau tambahkan && isDeadlineValid jika ingin deadline wajib
   }
 
   @override
@@ -397,10 +411,24 @@ class _AddTaskPageState extends State<AddTaskPage> {
             )
           else
             TextButton(
-              onPressed: _addOrUpdateTask,
+              onPressed:
+                  _isTaskReady()
+                      ? _addOrUpdateTask
+                      : null, // Disable jika belum siap
               child: Text(
                 widget.taskId == null ? 'Add' : 'Save',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color:
+                      _isTaskReady()
+                          ? Colors.white
+                          : Colors.grey, // Warna berubah sesuai kesiapan
+                ),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    _isTaskReady()
+                        ? Colors.green
+                        : Colors.grey.shade300, // Background button
               ),
             ),
         ],

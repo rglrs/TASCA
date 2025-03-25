@@ -8,12 +8,14 @@ import 'add_task.dart';
 class DetailTodoPage extends StatefulWidget {
   final int todoId;
   final String todoTitle;
+  final int taskCount;
   final Function? onTodoUpdated; // Callback untuk ketika todo diperbarui
 
   const DetailTodoPage({
     Key? key,
     required this.todoId,
     required this.todoTitle,
+    required this.taskCount,
     this.onTodoUpdated,
   }) : super(key: key);
 
@@ -54,7 +56,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       }
 
       debugPrint('Fetching tasks for todo ID: ${widget.todoId}');
-      
+
       final response = await http.get(
         Uri.parse('https://api.tascaid.com/api/todos/${widget.todoId}/tasks'),
         headers: {
@@ -64,20 +66,20 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       );
 
       debugPrint('Tasks API response status: ${response.statusCode}');
-      
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
         debugPrint('Tasks API response: $responseBody');
-        
+
         setState(() {
           tasks = responseBody['data'] ?? [];
           _completedTasks =
               tasks.where((task) => task['is_complete'] == true).length;
           _isLoading = false;
         });
-        
+
         debugPrint('Loaded ${tasks.length} tasks, $_completedTasks completed');
-        
+
         // Update parent todo list jika callback ada
         if (widget.onTodoUpdated != null) {
           widget.onTodoUpdated!();
@@ -186,12 +188,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
           _currentTitle = newTitle;
           _isEditingTitle = false;
         });
-        
+
         // Trigger callback untuk update parent jika ada
         if (widget.onTodoUpdated != null) {
           widget.onTodoUpdated!();
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Judul todo berhasil diperbarui')),
         );
@@ -250,7 +252,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
 
         // Kirim request dan dapatkan stream response
         final streamedResponse = await client.send(request);
-        
+
         // Dapatkan response lengkap
         final response = await http.Response.fromStream(streamedResponse);
 
@@ -258,23 +260,24 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
         debugPrint('Delete Todo Response Body: ${response.body}');
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Todo berhasil dihapus')),
-          );
-          
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+
           // Trigger callback untuk update parent jika ada
           if (widget.onTodoUpdated != null) {
             widget.onTodoUpdated!();
           }
-          
+
           // Kembali ke layar sebelumnya
           Navigator.pop(context);
         } else {
           // Coba cara alternatif jika metode pertama gagal
           // Coba URL tanpa trailing slash
-          final alternativeUrl = 'https://api.tascaid.com/api/todos/${widget.todoId}';
+          final alternativeUrl =
+              'https://api.tascaid.com/api/todos/${widget.todoId}';
           debugPrint('Trying alternative URL: $alternativeUrl');
-          
+
           final alternativeResponse = await http.delete(
             Uri.parse(alternativeUrl),
             headers: {
@@ -282,23 +285,28 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
               'Content-Type': 'application/json',
             },
           );
-          
-          debugPrint('Alternative Delete Response Status: ${alternativeResponse.statusCode}');
-          
-          if (alternativeResponse.statusCode >= 200 && alternativeResponse.statusCode < 300) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Todo berhasil dihapus')),
-            );
-            
+
+          debugPrint(
+            'Alternative Delete Response Status: ${alternativeResponse.statusCode}',
+          );
+
+          if (alternativeResponse.statusCode >= 200 &&
+              alternativeResponse.statusCode < 300) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+
             // Trigger callback untuk update parent jika ada
             if (widget.onTodoUpdated != null) {
               widget.onTodoUpdated!();
             }
-            
+
             // Kembali ke layar sebelumnya
             Navigator.pop(context);
           } else {
-            throw Exception('Gagal menghapus todo: Status ${response.statusCode}, ${response.body}');
+            throw Exception(
+              'Gagal menghapus todo: Status ${response.statusCode}, ${response.body}',
+            );
           }
         }
       } finally {
@@ -307,9 +315,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       }
     } catch (e) {
       debugPrint('Error deleting todo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus todo: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
     }
   }
 
@@ -320,7 +328,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Hapus Todo'),
-          content: Text('Apakah Anda yakin ingin menghapus todo ini dan semua task-nya?'),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus todo ini dan semua task-nya?',
+          ),
           actions: [
             TextButton(
               child: Text('Batal'),
@@ -348,29 +358,33 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Hapus Todo', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context); // Tutup bottom sheet
-                _showDeleteConfirmation();
-              },
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text(
+                    'Hapus Todo',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Tutup bottom sheet
+                    _showDeleteConfirmation();
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.cancel),
+                  title: Text('Batal'),
+                  onTap: () {
+                    Navigator.pop(context); // Tutup bottom sheet
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.cancel),
-              title: Text('Batal'),
-              onTap: () {
-                Navigator.pop(context); // Tutup bottom sheet
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -378,16 +392,17 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddTaskPage(
-          todoId: widget.todoId,
-          onTaskAdded: () {
-            _fetchTodoTasks();
-            // Trigger callback untuk update parent jika ada
-            if (widget.onTodoUpdated != null) {
-              widget.onTodoUpdated!();
-            }
-          },
-        ),
+        builder:
+            (context) => AddTaskPage(
+              todoId: widget.todoId,
+              onTaskAdded: () {
+                _fetchTodoTasks();
+                // Trigger callback untuk update parent jika ada
+                if (widget.onTodoUpdated != null) {
+                  widget.onTodoUpdated!();
+                }
+              },
+            ),
       ),
     ).then((_) {
       // Refresh tasks saat kembali dari layar add task
@@ -421,7 +436,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
 
       if (response.statusCode == 200) {
         await _fetchTodoTasks();
-        
+
         // Trigger callback untuk update parent jika ada
         if (widget.onTodoUpdated != null) {
           widget.onTodoUpdated!();
@@ -447,7 +462,8 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       }
 
       // Debug print untuk URL
-      final url = 'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/$taskId/';
+      final url =
+          'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/$taskId/';
       debugPrint('Attempting to delete task with URL: $url');
 
       // Buat instance client
@@ -461,20 +477,20 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
 
         // Kirim request dan dapatkan stream response
         final streamedResponse = await client.send(request);
-        
+
         // Dapatkan response lengkap
         final response = await http.Response.fromStream(streamedResponse);
 
         debugPrint('Delete Task Response Status: ${response.statusCode}');
-        
+
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Task berhasil dihapus')),
-          );
-          
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Task berhasil dihapus')));
+
           // Refresh daftar task
           await _fetchTodoTasks();
-          
+
           // Trigger callback untuk update parent
           if (widget.onTodoUpdated != null) {
             widget.onTodoUpdated!();
@@ -482,9 +498,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
         } else {
           // Coba cara alternatif jika metode pertama gagal
           // Coba URL tanpa trailing slash
-          final alternativeUrl = 'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/$taskId';
-          debugPrint('Trying alternative URL for task deletion: $alternativeUrl');
-          
+          final alternativeUrl =
+              'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/$taskId';
+          debugPrint(
+            'Trying alternative URL for task deletion: $alternativeUrl',
+          );
+
           final alternativeResponse = await http.delete(
             Uri.parse(alternativeUrl),
             headers: {
@@ -492,23 +511,28 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
               'Content-Type': 'application/json',
             },
           );
-          
-          debugPrint('Alternative Delete Response Status: ${alternativeResponse.statusCode}');
-          
-          if (alternativeResponse.statusCode >= 200 && alternativeResponse.statusCode < 300) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Task berhasil dihapus')),
-            );
-            
+
+          debugPrint(
+            'Alternative Delete Response Status: ${alternativeResponse.statusCode}',
+          );
+
+          if (alternativeResponse.statusCode >= 200 &&
+              alternativeResponse.statusCode < 300) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Task berhasil dihapus')));
+
             // Refresh daftar task
             await _fetchTodoTasks();
-            
+
             // Trigger callback untuk update parent
             if (widget.onTodoUpdated != null) {
               widget.onTodoUpdated!();
             }
           } else {
-            throw Exception('Gagal menghapus task: Status ${response.statusCode}');
+            throw Exception(
+              'Gagal menghapus task: Status ${response.statusCode}',
+            );
           }
         }
       } finally {
@@ -517,9 +541,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       }
     } catch (e) {
       debugPrint('Error deleting task: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus task: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error menghapus task: $e')));
     }
   }
 
@@ -555,29 +579,48 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     if (deadlineStr == null) return '';
 
     try {
-      DateTime deadline = DateTime.parse(deadlineStr);
+      // Parse sebagai UTC dan konversi ke local
+      DateTime deadline = DateTime.parse(deadlineStr).toLocal();
       DateTime now = DateTime.now();
 
+      // Hari ini
       if (deadline.year == now.year &&
           deadline.month == now.month &&
           deadline.day == now.day) {
         return 'Today, ${DateFormat('HH:mm').format(deadline)}';
       }
 
-      // Check if it's a past date
+      // Besok
+      if (deadline.year == now.year &&
+          deadline.month == now.month &&
+          deadline.day == now.day + 1) {
+        return 'Tomorrow, ${DateFormat('HH:mm').format(deadline)}';
+      }
+
+      // Masa lalu
       if (deadline.isBefore(now)) {
         final difference = now.difference(deadline);
 
-        if (difference.inDays < 30) {
-          // Within a month, show days ago
+        if (difference.inDays < 1) {
+          // Kurang dari 24 jam
+          return 'Yesterday, ${DateFormat('HH:mm').format(deadline)}';
+        } else if (difference.inDays < 7) {
+          // Dalam seminggu
           return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago, ${DateFormat('HH:mm').format(deadline)}';
         } else {
-          // More than a month ago, show full date
+          // Lebih dari seminggu
           return DateFormat('d MMM yyyy, HH:mm').format(deadline);
         }
-      } else {
-        // Future date, show full date
-        return DateFormat('d MMM yyyy, HH:mm').format(deadline);
+      }
+      // Masa depan
+      else {
+        // Dalam minggu ini atau tahun ini
+        if (deadline.year == now.year) {
+          return DateFormat('d MMM, HH:mm').format(deadline);
+        } else {
+          // Tahun berbeda
+          return DateFormat('d MMM yyyy, HH:mm').format(deadline);
+        }
       }
     } catch (e) {
       debugPrint('Error parsing deadline: $e');
@@ -588,6 +631,39 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   // Warna background untuk action hapus dalam swipe
   Color _getDeleteBackgroundColor() {
     return Colors.red;
+  }
+
+  Color _getDeadlineColor(String? deadlineStr) {
+    if (deadlineStr == null) return Colors.grey.shade300;
+
+    try {
+      DateTime deadline = DateTime.parse(deadlineStr).toLocal();
+      DateTime now = DateTime.now();
+
+      // Hari ini
+      if (deadline.year == now.year &&
+          deadline.month == now.month &&
+          deadline.day == now.day) {
+        return Colors.green; // Hijau untuk hari ini
+      }
+
+      // Besok
+      if (deadline.year == now.year &&
+          deadline.month == now.month &&
+          deadline.day == now.day + 1) {
+        return Colors.blue; // Biru untuk besok
+      }
+
+      // Masa lalu
+      if (deadline.isBefore(now)) {
+        return Colors.red; // Merah untuk deadline terlewat
+      }
+
+      // Masa depan
+      return Colors.pink.shade300;
+    } catch (e) {
+      return Colors.grey.shade300;
+    }
   }
 
   @override
@@ -606,16 +682,17 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
             pinned: true,
             expandedHeight: 150,
             flexibleSpace: FlexibleSpaceBar(
+              centerTitle: true,
               title: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onTap: () {
                       setState(() {
                         _isEditingTitle = true;
                         _titleController.text = _currentTitle;
-                        // Pastikan text field mendapat fokus dan kursor di akhir
                         Future.delayed(Duration(milliseconds: 50), () {
                           _titleController
                               .selection = TextSelection.fromPosition(
@@ -630,10 +707,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                               width: MediaQuery.of(context).size.width * 0.7,
                               height: 40,
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Expanded(
                                     child: TextField(
                                       controller: _titleController,
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
@@ -704,6 +783,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                             )
                             : Text(
                               _currentTitle,
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -711,20 +791,23 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                               ),
                             ),
                   ),
-                  SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: completionPercentage / 100,
-                    backgroundColor: Colors.red.shade300,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: LinearProgressIndicator(
+                      value: completionPercentage / 100,
+                      backgroundColor: Colors.red.shade300,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 8),
                   Text(
                     '${tasks.length} ${tasks.length == 1 ? "task" : "tasks"} • ${completionPercentage.toStringAsFixed(0)}% Completed',
+                    textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],
               ),
-              centerTitle: false,
             ),
             actions: [
               IconButton(
@@ -782,10 +865,10 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                           return Dismissible(
                             // Key unik untuk Dismissible
                             key: Key('task-${task['id']}'),
-                            
+
                             // Hanya izinkan swipe dari kanan ke kiri (untuk delete)
                             direction: DismissDirection.endToStart,
-                            
+
                             // Background yang tampil saat swipe
                             background: Container(
                               alignment: Alignment.centerRight,
@@ -797,10 +880,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.delete,
-                                    color: Colors.white,
-                                  ),
+                                  Icon(Icons.delete, color: Colors.white),
                                   SizedBox(height: 4),
                                   Text(
                                     'Delete',
@@ -812,7 +892,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                 ],
                               ),
                             ),
-                            
+
                             // Yang terjadi saat dismissed (diswipe)
                             confirmDismiss: (direction) async {
                               // Tampilkan dialog konfirmasi sebelum menghapus
@@ -822,7 +902,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                 builder: (BuildContext context) {
                                   return AlertDialog(
                                     title: Text('Hapus Task'),
-                                    content: Text('Apakah Anda yakin ingin menghapus task ini?'),
+                                    content: Text(
+                                      'Apakah Anda yakin ingin menghapus task ini?',
+                                    ),
                                     actions: [
                                       TextButton(
                                         child: Text('Batal'),
@@ -847,12 +929,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                               );
                               return confirmDelete;
                             },
-                            
+
                             // Yang terjadi setelah dismissal dikonfirmasi
                             onDismissed: (direction) {
                               _deleteTask(task['id']);
                             },
-                            
+
                             // Card task yang sebenarnya
                             child: GestureDetector(
                               onTap: () {
@@ -860,18 +942,19 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => AddTaskPage(
-                                      todoId: widget.todoId,
-                                      taskId: task['id'],
-                                      initialData: task,
-                                      onTaskAdded: () {
-                                        _fetchTodoTasks();
-                                        // Also update the parent todo list
-                                        if (widget.onTodoUpdated != null) {
-                                          widget.onTodoUpdated!();
-                                        }
-                                      },
-                                    ),
+                                    builder:
+                                        (context) => AddTaskPage(
+                                          todoId: widget.todoId,
+                                          taskId: task['id'],
+                                          initialData: task,
+                                          onTaskAdded: () {
+                                            _fetchTodoTasks();
+                                            // Also update the parent todo list
+                                            if (widget.onTodoUpdated != null) {
+                                              widget.onTodoUpdated!();
+                                            }
+                                          },
+                                        ),
                                   ),
                                 ).then((_) {
                                   // Refresh tasks when returning from edit screen
@@ -898,7 +981,8 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                 child: Row(
                                   children: [
                                     GestureDetector(
-                                      onTap: () => _toggleTaskCompletion(
+                                      onTap:
+                                          () => _toggleTaskCompletion(
                                             task['id'],
                                             task['is_complete'],
                                           ),
@@ -927,7 +1011,8 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                             style: TextStyle(
                                               decoration:
                                                   task['is_complete']
-                                                      ? TextDecoration.lineThrough
+                                                      ? TextDecoration
+                                                          .lineThrough
                                                       : null,
                                             ),
                                           ),
@@ -941,16 +1026,20 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                                     vertical: 4,
                                                   ),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.pink.shade100,
+                                                    color: _getDeadlineColor(
+                                                      task['deadline'],
+                                                    ),
                                                     borderRadius:
-                                                        BorderRadius.circular(20),
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
                                                   ),
                                                   child: Text(
                                                     _formatDeadline(
                                                       task['deadline'],
                                                     ),
                                                     style: TextStyle(
-                                                      color: Colors.pink,
+                                                      color: Colors.white,
                                                       fontSize: 12,
                                                     ),
                                                   ),
