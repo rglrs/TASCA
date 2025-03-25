@@ -84,35 +84,25 @@ class _RegisterPageState extends State<RegisterPage> {
       print('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
-        // Status berhasil sesuai backend (201 Created)
-        final Map<String, dynamic> data = jsonDecode(response.body);
+        // Custom success message
         _showDialog(
           context,
           'Registrasi Berhasil',
-          data['message'] ?? 'Registrasi berhasil',
+          'Akun Anda telah berhasil didaftarkan. Silakan masuk.',
         );
       } else {
-        // Handle error dengan informasi lebih detail
-        try {
-          final Map<String, dynamic> errorData = jsonDecode(response.body);
-          _showDialog(
-            context,
-            'Registrasi Gagal',
-            errorData['error'] ?? 'Kesalahan tidak diketahui',
-          );
-        } catch (e) {
-          _showDialog(
-            context,
-            'Registrasi Gagal',
-            'Kesalahan: ${response.body}',
-          );
-        }
+        // Custom error message
+        _showDialog(
+          context,
+          'Registrasi Gagal',
+          'Terjadi kesalahan saat mendaftarkan akun. Silakan coba lagi.',
+        );
       }
     } catch (e) {
       _showDialog(
         context,
         'Kesalahan Koneksi',
-        'Gagal terhubung ke server: $e',
+        'Gagal terhubung ke server. Silakan periksa koneksi internet Anda.',
       );
     } finally {
       setState(() => _isLoading = false);
@@ -139,7 +129,9 @@ class _RegisterPageState extends State<RegisterPage> {
               onPressed: () {
                 Navigator.of(context).pop();
                 if (title == 'Registrasi Berhasil') {
-                  Navigator.of(context).pop(LoginPage()); // Kembali ke halaman login
+                  Navigator.of(
+                    context,
+                  ).pop(LoginPage()); // Kembali ke halaman login
                 }
               },
             ),

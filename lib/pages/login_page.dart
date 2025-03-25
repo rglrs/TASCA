@@ -52,8 +52,6 @@ class _LoginPageState extends State<LoginPage> {
         requestBody['username'] = identifier;
       }
 
-      print('Request body: $requestBody'); // Debug
-
       final response = await http.post(
         Uri.parse('https://api.tascaid.com/api/login'),
         headers: <String, String>{
@@ -61,9 +59,6 @@ class _LoginPageState extends State<LoginPage> {
         },
         body: jsonEncode(requestBody),
       );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -76,7 +71,8 @@ class _LoginPageState extends State<LoginPage> {
           token,
         ); // Gunakan key 'auth_token' konsisten
 
-        print('Login successful with token: $token');
+        // Custom success message
+        _showSuccessMessage('Login berhasil! Selamat datang kembali.');
 
         // PERBAIKAN: Pass token ke SettingsScreen saat navigasi
         Navigator.pushReplacement(
@@ -84,26 +80,13 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
-        // Parsing error message from server
-        try {
-          final Map<String, dynamic> errorData = jsonDecode(response.body);
-          final String errorMessage = errorData['error'] ?? 'Login gagal';
-
-          // Menampilkan pesan error yang spesifik
-          if (errorMessage.contains('tidak ditemukan')) {
-            _showErrorMessage('Email atau username tidak terdaftar');
-          } else if (errorMessage.contains('Password salah') ||
-              errorMessage.contains('password salah')) {
-            _showErrorMessage('Password yang Anda masukkan salah');
-          } else {
-            _showErrorMessage(errorMessage);
-          }
-        } catch (e) {
-          _showErrorMessage('Login gagal: Coba lagi nanti');
-        }
+        // Custom error message
+        _showErrorMessage(
+          'Login gagal: Periksa kembali email/username dan password Anda.',
+        );
       }
     } catch (e) {
-      _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
+      _showErrorMessage('Terjadi kesalahan: Silakan coba lagi nanti.');
     } finally {
       setState(() {
         _isLoading = false;
@@ -120,6 +103,17 @@ class _LoginPageState extends State<LoginPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 3),
       ),

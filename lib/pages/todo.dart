@@ -66,7 +66,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       if (token == null) {
         throw Exception('No JWT token found');
       }
-      
+
       final response = await http.get(
         Uri.parse('https://api.tascaid.com/api/todos/'),
         headers: {
@@ -74,22 +74,27 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           'Content-Type': 'application/json',
         },
       );
-      
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
         final List<dynamic> todosData = responseBody['data'];
-        
+
         if (mounted) {
           setState(() {
-            tasks = todosData.map((todo) => {
-              'id': todo['id'],
-              'title': todo['title'] ?? 'Unnamed Todo',
-              'urgency': todo['urgency'],
-              'importance': todo['importance'],
-              'progress': todo['progress'] ?? 0,
-              // Use the same key as API
-              'taskCount': todo['task_count'] ?? 0,
-            }).toList();
+            tasks =
+                todosData
+                    .map(
+                      (todo) => {
+                        'id': todo['id'],
+                        'title': todo['title'] ?? 'Unnamed Todo',
+                        'urgency': todo['urgency'],
+                        'importance': todo['importance'],
+                        'progress': todo['progress'] ?? 0,
+                        // Use the same key as API
+                        'taskCount': todo['task_count'] ?? 0,
+                      },
+                    )
+                    .toList();
             _isLoading = false;
           });
         }
@@ -113,42 +118,43 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => AddTodoPage(
-        onTaskAdded: (task) async {
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final token = prefs.getString('auth_token');
+      builder:
+          (context) => AddTodoPage(
+            onTaskAdded: (task) async {
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final token = prefs.getString('auth_token');
 
-            if (token == null) {
-              throw Exception('No JWT token found');
-            }
+                if (token == null) {
+                  throw Exception('No JWT token found');
+                }
 
-            final response = await http.post(
-              Uri.parse('https://api.tascaid.com/api/todos/'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-              body: json.encode({
-                'title': task['title'],
-                'urgency': task['urgency'],
-                'importance': task['importance'],
-              }),
-            );
+                final response = await http.post(
+                  Uri.parse('https://api.tascaid.com/api/todos/'),
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                    'Content-Type': 'application/json',
+                  },
+                  body: json.encode({
+                    'title': task['title'],
+                    'urgency': task['urgency'],
+                    'importance': task['importance'],
+                  }),
+                );
 
-            if (response.statusCode == 201) {
-              await _fetchTodos();
-              Navigator.pop(context);
-            } else {
-              throw Exception('Failed to create todo: ${response.body}');
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to add todo: $e')),
-            );
-          }
-        },
-      ),
+                if (response.statusCode == 201) {
+                  await _fetchTodos();
+                  Navigator.pop(context);
+                } else {
+                  throw Exception('Failed to create todo: ${response.body}');
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to add todo: $e')),
+                );
+              }
+            },
+          ),
     );
   }
 
@@ -167,22 +173,25 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 
       try {
         // Create DELETE request
-        final request = http.Request('DELETE', Uri.parse('https://api.tascaid.com/api/todos/$todoId/'));
+        final request = http.Request(
+          'DELETE',
+          Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
+        );
         request.headers['Authorization'] = 'Bearer $token';
         request.headers['Content-Type'] = 'application/json';
 
         // Send request and get stream response
         final streamedResponse = await client.send(request);
-        
+
         // Get full response
         final response = await http.Response.fromStream(streamedResponse);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
           // Refresh todo list
           await _fetchTodos();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Todo successfully deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Todo successfully deleted')));
         } else {
           // Try alternative method if first method fails
           // Try URL without trailing slash
@@ -193,14 +202,17 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               'Content-Type': 'application/json',
             },
           );
-          
-          if (alternativeResponse.statusCode >= 200 && alternativeResponse.statusCode < 300) {
+
+          if (alternativeResponse.statusCode >= 200 &&
+              alternativeResponse.statusCode < 300) {
             await _fetchTodos();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Todo successfully deleted')),
             );
           } else {
-            throw Exception('Failed to delete todo: Status ${response.statusCode}');
+            throw Exception(
+              'Failed to delete todo: Status ${response.statusCode}',
+            );
           }
         }
       } finally {
@@ -208,9 +220,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         client.close();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting todo: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error deleting todo: $e')));
     }
   }
 
@@ -221,49 +233,59 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Delete Todo', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet
-                // Show confirmation dialog
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('Delete Todo'),
-                    content: Text('Are you sure you want to delete this todo?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _deleteTodo(todoId);
-                        },
-                        child: Text('Delete', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text(
+                    'Delete Todo',
+                    style: TextStyle(color: Colors.red),
                   ),
-                );
-              },
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                    // Show confirmation dialog
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text('Delete Todo'),
+                            content: Text(
+                              'Are you sure you want to delete this todo?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteTodo(todoId);
+                                },
+                                child: Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.cancel),
+                  title: Text('Cancel'),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.cancel),
-              title: Text('Cancel'),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -277,34 +299,33 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: _showAddTodoBottomSheet,
-          ),
+          IconButton(icon: Icon(Icons.add), onPressed: _showAddTodoBottomSheet),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _fetchTodos,
-        child: _isLoading 
-          ? Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-            ? Center(child: Text('Error: $_errorMessage'))
-            : tasks.isEmpty 
-              ? _EmptyStateView()
-              : _TodoListView(
+        child:
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                ? Center(child: Text('Error: $_errorMessage'))
+                : tasks.isEmpty
+                ? _EmptyStateView()
+                : _TodoListView(
                   tasks: tasks,
                   onTodoTap: (todoId, todoTitle) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetailTodoPage(
-                          todoId: todoId,
-                          todoTitle: todoTitle,
-                          onTodoUpdated: () {
-                            // Refresh todo list when detail page updates something
-                            _fetchTodos();
-                          },
-                        ),
+                        builder:
+                            (context) => DetailTodoPage(
+                              todoId: todoId,
+                              todoTitle: todoTitle,
+                              onTodoUpdated: () {
+                                // Refresh todo list when detail page updates something
+                                _fetchTodos();
+                              },
+                            ),
                       ),
                     ).then((_) {
                       // Also refresh after returning from detail page
@@ -314,7 +335,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                   onMorePressed: _showTodoOptions,
                 ),
       ),
-      bottomNavigationBar: Navbar(initialActiveIndex: 1),
     );
   }
 }
@@ -322,34 +342,37 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 class _EmptyStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'images/empty.png',
-            width: 200,
-            height: 200,
-          ),
-          SizedBox(height: 20),
-          Text(
-            'There are no scheduled tasks.',
-            style: TextStyle(
-              fontSize: 16, 
-              color: Colors.grey.shade700,
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('images/empty.png', width: 200, height: 200),
+                SizedBox(height: 20),
+                Text(
+                  'There are no scheduled tasks.',
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Create a new task or activity to ensure it is always scheduled.',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 10),
-          Text(
-            'Create a new task or activity to ensure it is always scheduled.',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        ), // Add space above the Navbar
+        SizedBox(
+          width: MediaQuery.of(context).size.width * 0.9,
+          child: Navbar(
+            initialActiveIndex: 1,
+          ), // Set the active index for Settings
+        ),
+        SizedBox(height: 20),
+      ],
     );
   }
 }
@@ -360,7 +383,7 @@ class _TodoListView extends StatelessWidget {
   final Function(int) onMorePressed;
 
   const _TodoListView({
-    Key? key, 
+    Key? key,
     required this.tasks,
     required this.onTodoTap,
     required this.onMorePressed,
@@ -375,7 +398,7 @@ class _TodoListView extends StatelessWidget {
         itemBuilder: (context, index) {
           final task = tasks[index];
           final int taskCount = task['taskCount'] ?? 0;
-          
+
           return Card(
             color: Colors.red,
             shape: RoundedRectangleBorder(
@@ -401,20 +424,14 @@ class _TodoListView extends StatelessWidget {
                         ),
                         InkWell(
                           onTap: () => onMorePressed(task['id']),
-                          child: Icon(
-                            Icons.more_horiz,
-                            color: Colors.white,
-                          ),
+                          child: Icon(Icons.more_horiz, color: Colors.white),
                         ),
                       ],
                     ),
                     SizedBox(height: 8),
                     Text(
                       '$taskCount ${taskCount == 1 ? "task" : "tasks"}',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),

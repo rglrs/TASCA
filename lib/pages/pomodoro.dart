@@ -95,10 +95,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   void resetTimer() {
     timer?.cancel();
     setState(() {
-      timeLeft =
-          isFocusSession
-              ? focusDuration
-              : restDuration; // Reset based on session type
+      switchSession(); // Switch session when skip button is pressed
       isRunning = false;
       isMuted = true; // Ensure sound is off when timer is reset
       currentSoundTitle = ''; // Reset sound title
