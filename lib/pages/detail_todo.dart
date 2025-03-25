@@ -9,6 +9,7 @@ class DetailTodoPage extends StatefulWidget {
   final int todoId;
   final String todoTitle;
   final int taskCount;
+  final String todoColor;
   final Function? onTodoUpdated; // Callback untuk ketika todo diperbarui
 
   const DetailTodoPage({
@@ -16,6 +17,7 @@ class DetailTodoPage extends StatefulWidget {
     required this.todoId,
     required this.todoTitle,
     required this.taskCount,
+    required this.todoColor,
     this.onTodoUpdated,
   }) : super(key: key);
 
@@ -32,6 +34,19 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   bool _isEditingTitle = false;
   bool _isSavingTitle = false;
   final TextEditingController _titleController = TextEditingController();
+
+  Color _getColorFromString(String colorString) {
+    switch (colorString) {
+      case "#FC0101":
+        return const Color(0xFFFC0101); // Red
+      case "#007BFF":
+        return const Color(0xFF007BFF); // Blue
+      case "#FFC107":
+        return const Color(0xFFFFC107); // Yellow
+      default:
+        return const Color(0xFF808080); // Default gray
+    }
+  }
 
   @override
   void initState() {
@@ -702,17 +717,18 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Hitung persentase penyelesaian dengan aman
     double completionPercentage = 0;
     if (tasks.isNotEmpty) {
       completionPercentage = (_completedTasks / tasks.length) * 100;
     }
 
+    final Color backgroundColor = _getColorFromString(widget.todoColor);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.red,
+            backgroundColor: backgroundColor,
             pinned: true,
             expandedHeight: 150,
             flexibleSpace: FlexibleSpaceBar(

@@ -73,8 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      print('Token for profile request: $token');
-
       if (token.isEmpty) {
         setState(() {
           isLoading = false;
@@ -95,17 +93,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final data = json.decode(response.body);
 
         setState(() {
+          // Existing text field updates
           usernameController.text = data['username'] ?? '';
           emailController.text = data['email'] ?? '';
           nameController.text = data['name'] ?? '';
           phoneController.text = data['phone'] ?? '';
 
+          // Store original values
           originalUsername = data['username'];
           originalName = data['name'];
           originalPhone = data['phone'];
-          originalPicture = data['picture'];
 
-          profileImageUrl = data['picture'];
+          // Handle profile picture URL
+          // Ensure the picture URL is fully qualified
+          if (data['picture'] != null && data['picture'] is String) {
+            // If the URL doesn't start with http, prepend the base URL
+            profileImageUrl =
+                data['picture'].startsWith('http')
+                    ? data['picture']
+                    : 'https://api.tascaid.com/storage/upload/${data['picture']}';
+          } else {
+            profileImageUrl = null;
+          }
+
+          originalPicture = profileImageUrl;
 
           isLoading = false;
         });
@@ -337,13 +348,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               width: 60,
                                               height: 60,
                                               decoration: const BoxDecoration(
-                                                color: Colors.red,
+                                                color: Colors.grey,
                                                 shape: BoxShape.circle,
                                               ),
                                               child: const Icon(
-                                                Icons.mood,
+                                                Icons.person,
                                                 color: Colors.white,
                                                 size: 38,
+                                              ),
+                                            );
+                                          },
+                                          loadingBuilder: (
+                                            context,
+                                            child,
+                                            loadingProgress,
+                                          ) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return Center(
+                                              child: CircularProgressIndicator(
+                                                value:
+                                                    loadingProgress
+                                                                .expectedTotalBytes !=
+                                                            null
+                                                        ? loadingProgress
+                                                                .cumulativeBytesLoaded /
+                                                            loadingProgress
+                                                                .expectedTotalBytes!
+                                                        : null,
                                               ),
                                             );
                                           },
@@ -353,11 +385,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         width: 60,
                                         height: 60,
                                         decoration: const BoxDecoration(
-                                          color: Colors.red,
+                                          color: Colors.grey,
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Icon(
-                                          Icons.mood,
+                                          Icons.person,
                                           color: Colors.white,
                                           size: 38,
                                         ),

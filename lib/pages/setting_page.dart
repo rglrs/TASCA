@@ -24,12 +24,20 @@ class UserProfile {
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    String pictureUrl = json['picture'] ?? '';
+
+    if (pictureUrl.isEmpty ||
+        pictureUrl.contains('storage/upload/storage/upload') ||
+        !pictureUrl.startsWith('https://')) {
+      pictureUrl = '';
+    }
+
     return UserProfile(
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       username: json['username'] ?? '',
       phone: json['phone'] ?? '',
-      picture: json['picture'] ?? '',
+      picture: pictureUrl,
     );
   }
 }
@@ -96,6 +104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _fetchUserProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
     try {
       final response = await http.get(
         Uri.parse('https://api.tascaid.com/api/profile'),
@@ -113,7 +126,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _userProfile = UserProfile.fromJson(data);
           _isLoading = false;
-          _errorMessage = '';
         });
       } else {
         setState(() {
@@ -127,6 +139,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // In your build method or widget tree
+  Widget _buildProfileAvatar() {
+    final defaultAvatar = CircleAvatar(
+      backgroundColor: Colors.red.withOpacity(0.2),
+      child: const Icon(Icons.person, color: Colors.red),
+    );
+
+    // If no picture or invalid picture URL
+    if (_userProfile?.picture == null || _userProfile!.picture.isEmpty) {
+      return defaultAvatar;
+    }
+
+    return CircleAvatar(
+      backgroundColor: Colors.red.withOpacity(0.2),
+      backgroundImage: NetworkImage(_userProfile!.picture),
+      onBackgroundImageError: (exception, stackTrace) {
+        // Log the error or handle it as needed
+        print('Image load error: $exception');
+      },
+      child:
+          _userProfile!.picture.isEmpty
+              ? const Icon(Icons.person, color: Colors.red)
+              : null,
+    );
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -221,11 +259,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.red.withOpacity(0.2),
-                                backgroundImage:
-                                    _userProfile?.picture != null &&
-                                            _userProfile!.picture.isNotEmpty
-                                        ? NetworkImage(_userProfile!.picture)
-                                        : null,
                                 child:
                                     _userProfile?.picture == null ||
                                             _userProfile!.picture.isEmpty
@@ -233,7 +266,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           Icons.person,
                                           color: Colors.red,
                                         )
-                                        : null,
+                                        : ClipOval(
+                                          child: Image.network(
+                                            _userProfile!.picture,
+                                            width: 56,
+                                            height: 56,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) {
+                                              print('Image load error: $error');
+                                              return Icon(
+                                                Icons.person,
+                                                color: Colors.red,
+                                              );
+                                            },
+                                            loadingBuilder: (
+                                              context,
+                                              child,
+                                              loadingProgress,
+                                            ) {
+                                              if (loadingProgress == null)
+                                                return child;
+                                              return CircularProgressIndicator(
+                                                value:
+                                                    loadingProgress
+                                                                .expectedTotalBytes !=
+                                                            null
+                                                        ? loadingProgress
+                                                                .cumulativeBytesLoaded /
+                                                            loadingProgress
+                                                                .expectedTotalBytes!
+                                                        : null,
+                                              );
+                                            },
+                                          ),
+                                        ),
                               ),
                               title: Text(
                                 _userProfile?.name ?? '',
