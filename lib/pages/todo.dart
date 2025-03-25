@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'detail_todo.dart';
 import 'add_todo.dart';
+import 'edit_todo.dart';
 import '../widgets/navbar.dart';
 
 class TodoPage extends StatefulWidget {
@@ -31,7 +33,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Force refresh when returning to this screen
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -39,7 +40,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     }
   }
 
-  // Force refresh when focused again
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -50,8 +50,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchTodos() async {
-    // Don't show loading if refreshing after returning from another page
-    // to avoid UI flicker
     if (mounted) {
       setState(() {
         _isLoading = tasks.isEmpty;
@@ -81,14 +79,14 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 
         if (mounted) {
           setState(() {
-            tasks =
-                todosData.map((todo) {
-                  return {
-                    'id': todo['id'],
-                    'title': todo['title'] ?? 'Unnamed Todo',
-                    'taskCount': todo['task_count'] ?? 0,
-                  };
-                }).toList();
+            tasks = todosData.map((todo) {
+              return {
+                'id': todo['id'],
+                'title': todo['title'] ?? 'Unnamed Todo',
+                'taskCount': todo['task_count'] ?? 0,
+                'color': _getColorForTodo(todo['id']), // Added color
+              };
+            }).toList();
             _isLoading = false;
           });
         }
@@ -105,16 +103,46 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     }
   }
 
-  void _showAddTodoBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  // Helper method to assign consistent colors to todos
+  String _getColorForTodo(int todoId) {
+    final colors = ["#FC0101", "#007BFF", "#FFC107"];
+    return colors[todoId % colors.length];
+  }
+
+  void _editTodo(Map<String, dynamic> todo) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTodoScreen(
+          todoToEdit: {
+            'id': todo['id'],
+            'title': todo['title'],
+            'color': todo['color'],
+          },
+        ),
       ),
-      builder:
-          (context) => AddTodoPage(
-            onTodoAdded: (task) async {
+    );
+
+    if (result != null) {
+      // Refresh todos after editing
+      _fetchTodos();
+    }
+  }
+
+  void _deleteTodo(int todoId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Todo'),
+        content: Text('Are you sure you want to delete this todo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
               try {
                 final prefs = await SharedPreferences.getInstance();
                 final token = prefs.getString('auth_token');
@@ -123,313 +151,289 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                   throw Exception('No JWT token found');
                 }
 
-                final response = await http.post(
-                  Uri.parse('https://api.tascaid.com/api/todos/'),
+                final response = await http.delete(
+                  Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
                   headers: {
                     'Authorization': 'Bearer $token',
                     'Content-Type': 'application/json',
                   },
-                  body: json.encode({
-                    'title': task['title'],
-                    'urgency': task['urgency'],
-                    'importance': task['importance'],
-                  }),
                 );
 
-                if (response.statusCode == 201) {
+                if (response.statusCode >= 200 && response.statusCode < 300) {
                   await _fetchTodos();
-                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Todo successfully deleted')),
+                  );
                 } else {
-                  throw Exception('Failed to create todo: ${response.body}');
+                  throw Exception('Failed to delete todo');
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to add todo: $e')),
+                  SnackBar(content: Text('Error deleting todo: $e')),
                 );
               }
             },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
           ),
-    );
-  }
-
-  // Improved delete todo function
-  Future<void> _deleteTodo(int todoId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      // Create a client instance that will be closed later
-      final client = http.Client();
-
-      try {
-        // Create DELETE request
-        final request = http.Request(
-          'DELETE',
-          Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
-        );
-        request.headers['Authorization'] = 'Bearer $token';
-        request.headers['Content-Type'] = 'application/json';
-
-        // Send request and get stream response
-        final streamedResponse = await client.send(request);
-
-        // Get full response
-        final response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // Refresh todo list
-          await _fetchTodos();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Todo successfully deleted')));
-        } else {
-          // Try alternative method if first method fails
-          // Try URL without trailing slash
-          final alternativeResponse = await http.delete(
-            Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          );
-
-          if (alternativeResponse.statusCode >= 200 &&
-              alternativeResponse.statusCode < 300) {
-            await _fetchTodos();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Todo successfully deleted')),
-            );
-          } else {
-            throw Exception(
-              'Failed to delete todo: Status ${response.statusCode}',
-            );
-          }
-        }
-      } finally {
-        // Always close client when done
-        client.close();
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting todo: $e')));
-    }
-  }
-
-  // Show options when three dots clicked
-  void _showTodoOptions(int todoId) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ],
       ),
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text(
-                    'Delete Todo',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close bottom sheet
-                    // Show confirmation dialog
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: Text('Delete Todo'),
-                            content: Text(
-                              'Are you sure you want to delete this todo?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _deleteTodo(todoId);
-                                },
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.cancel),
-                  title: Text('Cancel'),
-                  onTap: () {
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                ),
-              ],
-            ),
-          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('To Do'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(icon: Icon(Icons.add), onPressed: _showAddTodoBottomSheet),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _fetchTodos,
-              child:
-                  _isLoading
-                      ? Center(child: CircularProgressIndicator())
-                      : _errorMessage != null
+      backgroundColor: const Color(0xFFF7F1FE),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 15.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'To Do',
+                    style: GoogleFonts.poppins(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _showAddTodoBottomSheet,
+                    child: const Icon(Icons.add, size: 30, weight: 700),
+                  ),
+                ],
+              ),
+            ),
+
+            // Main Content
+            Expanded(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
                       ? Center(child: Text('Error: $_errorMessage'))
                       : tasks.isEmpty
-                      ? _EmptyStateView()
-                      : _TodoListView(
-                        tasks: tasks,
-                        onTodoTap: (todoId, todoTitle, taskCount) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => DetailTodoPage(
-                                    todoId: todoId,
-                                    todoTitle: todoTitle,
-                                    taskCount: taskCount,
-                                    onTodoUpdated: () {
-                                      // Refresh todo list when detail page updates something
-                                      _fetchTodos();
-                                    },
-                                  ),
-                            ),
-                          ).then((_) {
-                            // Also refresh after returning from detail page
-                            _fetchTodos();
-                          });
-                        },
-                        onMorePressed: _showTodoOptions,
-                      ),
+                          ? _buildEmptyState()
+                          : _buildTodoGrid(),
+            ),
+
+            // Bottom Navigation Bar
+            Navbar(initialActiveIndex: 1),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddTodoBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AddTodoPage(
+        onTodoAdded: (task) async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('auth_token');
+
+            if (token == null) {
+              throw Exception('No JWT token found');
+            }
+
+            final response = await http.post(
+              Uri.parse('https://api.tascaid.com/api/todos/'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: json.encode({
+                'title': task['title'],
+                'urgency': task['urgency'],
+                'importance': task['importance'],
+              }),
+            );
+
+            if (response.statusCode == 201) {
+              await _fetchTodos();
+              Navigator.pop(context);
+            } else {
+              throw Exception('Failed to create todo: ${response.body}');
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to add todo: $e')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset(
+          'assets/1.png',
+          width: 250,
+          height: 250,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'There are no scheduled tasks.',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF6A6A6A),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
+          child: Text(
+            'Create a new task or activity to ensure it is always scheduled.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.normal,
+              color: const Color(0xFF6A6A6A),
             ),
           ),
-          // Always show the navbar at the bottom
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.9,
-            child: Navbar(initialActiveIndex: 1),
-          ),
-          SizedBox(height: 20),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
 
-class _EmptyStateView extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset('images/empty.png', width: 200, height: 200),
-          SizedBox(height: 20),
-          Text(
-            'There are no scheduled tasks.',
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Create a new task or activity to ensure it is always scheduled.',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TodoListView extends StatelessWidget {
-  final List<Map<String, dynamic>> tasks;
-  final Function(int, String, int) onTodoTap;
-  final Function(int) onMorePressed;
-
-  const _TodoListView({
-    Key? key,
-    required this.tasks,
-    required this.onTodoTap,
-    required this.onMorePressed,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTodoGrid() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1,
+        ),
         itemCount: tasks.length,
         itemBuilder: (context, index) {
-          final task = tasks[index];
-          final int taskCount = task['taskCount'] ?? 0;
+          final todo = tasks[index];
 
-          return Card(
-            color: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              onTap: () => onTodoTap(task['id'], task['title'], taskCount),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Convert color string to Color
+          Color cardColor;
+          switch (todo['color']) {
+            case "#FC0101":
+              cardColor = const Color(0xFFFC0101);
+              break;
+            case "#007BFF":
+              cardColor = const Color(0xFF007BFF);
+              break;
+            case "#FFC107":
+              cardColor = const Color(0xFFFFC107);
+              break;
+            default:
+              cardColor = const Color(0xFF808080);
+          }
+
+          return GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DetailTodoPage(
+                    todoId: todo['id'],
+                    todoTitle: todo['title'],
+                    taskCount: todo['taskCount'],
+                    onTodoUpdated: _fetchTodos,
+                  ),
+                ),
+              );
+            },
+            child: Card(
+              color: cardColor,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Spacer(),
                         Text(
-                          task['title'] ?? 'Unnamed Task',
-                          style: TextStyle(
-                            color: Colors.white,
+                          todo['title'],
+                          style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        InkWell(
-                          onTap: () => onMorePressed(task['id']),
-                          child: Icon(Icons.more_horiz, color: Colors.white),
+                        Text(
+                          '${todo['taskCount']} ${todo['taskCount'] == 1 ? 'task' : 'tasks'}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    SizedBox(height: 8),
-                    Text(
-                      '$taskCount ${taskCount == 1 ? "task" : "tasks"}',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      iconSize: 24,
+                      icon: Icon(
+                        Icons.more_horiz,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      onSelected: (String choice) {
+                        if (choice == 'Edit') {
+                          _editTodo(todo);
+                        } else if (choice == 'Delete') {
+                          _deleteTodo(todo['id']);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) {
+                        return [
+                          const PopupMenuItem<String>(
+                            value: 'Edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text('Edit'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'Delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete'),
+                              ],
+                            ),
+                          ),
+                        ];
+                      },
+                      color: Colors.white,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
