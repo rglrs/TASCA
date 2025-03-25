@@ -41,6 +41,36 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     _fetchTodoTasks();
   }
 
+  List<dynamic> _sortTasks(List<dynamic> tasks) {
+    // Pisahkan tasks menjadi yang sudah selesai dan belum selesai
+    final incompleteTasks =
+        tasks.where((task) => !task['is_complete']).toList();
+    final completeTasks = tasks.where((task) => task['is_complete']).toList();
+
+    // Urutkan tasks yang belum selesai berdasarkan deadline
+    incompleteTasks.sort((a, b) {
+      // Prioritaskan tasks dengan deadline terdekat
+      final deadlineA =
+          a['deadline'] != null
+              ? DateTime.parse(a['deadline'].toString()).toLocal()
+              : DateTime.now().add(
+                Duration(days: 365),
+              ); // Beri deadline jauh ke depan jika null
+
+      final deadlineB =
+          b['deadline'] != null
+              ? DateTime.parse(b['deadline'].toString()).toLocal()
+              : DateTime.now().add(
+                Duration(days: 365),
+              ); // Beri deadline jauh ke depan jika null
+
+      return deadlineA.compareTo(deadlineB);
+    });
+
+    // Gabungkan kembali tasks yang belum selesai di atas, tasks yang selesai di bawah
+    return [...incompleteTasks, ...completeTasks];
+  }
+
   Future<void> _fetchTodoTasks() async {
     setState(() {
       _isLoading = true;
@@ -71,8 +101,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
         final Map<String, dynamic> responseBody = json.decode(response.body);
         debugPrint('Tasks API response: $responseBody');
 
+        // Ambil data tasks dan urutkan
+        final fetchedTasks = responseBody['data'] ?? [];
+        final sortedTasks = _sortTasks(fetchedTasks);
+
         setState(() {
-          tasks = responseBody['data'] ?? [];
+          tasks = sortedTasks;
           _completedTasks =
               tasks.where((task) => task['is_complete'] == true).length;
           _isLoading = false;
@@ -821,241 +855,324 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  GestureDetector(
-                    onTap: _navigateToAddTask,
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.shade200,
-                            blurRadius: 5,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.add, color: Colors.grey),
-                          SizedBox(width: 10),
-                          Text(
-                            'Add New Task...',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  _isLoading
-                      ? Center(child: CircularProgressIndicator())
-                      : _errorMessage != null
-                      ? Center(child: Text('Error: $_errorMessage'))
-                      : tasks.isEmpty
-                      ? Center(child: Text('No tasks yet'))
-                      : ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: tasks.length,
-                        itemBuilder: (context, index) {
-                          final task = tasks[index];
-                          return Dismissible(
-                            // Key unik untuk Dismissible
-                            key: Key('task-${task['id']}'),
-
-                            // Hanya izinkan swipe dari kanan ke kiri (untuk delete)
-                            direction: DismissDirection.endToStart,
-
-                            // Background yang tampil saat swipe
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: EdgeInsets.only(right: 20.0),
-                              decoration: BoxDecoration(
-                                color: _getDeleteBackgroundColor(),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.delete, color: Colors.white),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Delete',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                  // Modified task list rendering
+                  if (_isLoading)
+                    Center(child: CircularProgressIndicator())
+                  else if (_errorMessage != null)
+                    Center(child: Text('Error: $_errorMessage'))
+                  else if (tasks.isEmpty)
+                    // When no tasks, show "Add New Task" at the top
+                    GestureDetector(
+                      onTap: _navigateToAddTask,
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.shade200,
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
                             ),
-
-                            // Yang terjadi saat dismissed (diswipe)
-                            confirmDismiss: (direction) async {
-                              // Tampilkan dialog konfirmasi sebelum menghapus
-                              bool confirmDelete = false;
-                              await showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: Text('Hapus Task'),
-                                    content: Text(
-                                      'Apakah Anda yakin ingin menghapus task ini?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        child: Text('Batal'),
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                          confirmDelete = false;
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: Text(
-                                          'Hapus',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                        onPressed: () {
-                                          confirmDelete = true;
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                              return confirmDelete;
-                            },
-
-                            // Yang terjadi setelah dismissal dikonfirmasi
-                            onDismissed: (direction) {
-                              _deleteTask(task['id']);
-                            },
-
-                            // Card task yang sebenarnya
-                            child: GestureDetector(
-                              onTap: () {
-                                // Navigate to edit task
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => AddTaskPage(
-                                          todoId: widget.todoId,
-                                          taskId: task['id'],
-                                          initialData: task,
-                                          onTaskAdded: () {
-                                            _fetchTodoTasks();
-                                            // Also update the parent todo list
-                                            if (widget.onTodoUpdated != null) {
-                                              widget.onTodoUpdated!();
-                                            }
-                                          },
-                                        ),
-                                  ),
-                                ).then((_) {
-                                  // Refresh tasks when returning from edit screen
-                                  _fetchTodoTasks();
-                                  // Juga refresh parent list
-                                  if (widget.onTodoUpdated != null) {
-                                    widget.onTodoUpdated!();
-                                  }
-                                });
-                              },
-                              child: Container(
-                                margin: EdgeInsets.only(bottom: 16),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, color: Colors.grey),
+                            SizedBox(width: 10),
+                            Text(
+                              'Add New Task...',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: [
+                        // Task list with new design
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: tasks.length,
+                          itemBuilder: (context, index) {
+                            final task = tasks[index];
+                            return Dismissible(
+                              key: Key('task-${task['id']}'),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: EdgeInsets.only(right: 20.0),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: _getDeleteBackgroundColor(),
                                   borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.shade200,
-                                      blurRadius: 5,
-                                      offset: Offset(0, 2),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.white),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap:
-                                          () => _toggleTaskCompletion(
-                                            task['id'],
-                                            task['is_complete'],
+                              ),
+                              confirmDismiss: (direction) async {
+                                // Existing confirmation dialog code
+                                bool confirmDelete = false;
+                                await showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Text('Hapus Task'),
+                                      content: Text(
+                                        'Apakah Anda yakin ingin menghapus task ini?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          child: Text('Batal'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            confirmDelete = false;
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: Text(
+                                            'Hapus',
+                                            style: TextStyle(color: Colors.red),
                                           ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Container(
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color:
+                                          onPressed: () {
+                                            confirmDelete = true;
+                                            Navigator.of(context).pop();
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                                return confirmDelete;
+                              },
+                              onDismissed: (direction) {
+                                _deleteTask(task['id']);
+                              },
+                              child: GestureDetector(
+                                onTap: () {
+                                  // Navigate to edit task
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => AddTaskPage(
+                                            todoId: widget.todoId,
+                                            taskId: task['id'],
+                                            initialData: task,
+                                            onTaskAdded: () {
+                                              _fetchTodoTasks();
+                                              // Also update the parent todo list
+                                              if (widget.onTodoUpdated !=
+                                                  null) {
+                                                widget.onTodoUpdated!();
+                                              }
+                                            },
+                                          ),
+                                    ),
+                                  ).then((_) {
+                                    // Refresh tasks when returning from edit screen
+                                    _fetchTodoTasks();
+                                    // Juga refresh parent list
+                                    if (widget.onTodoUpdated != null) {
+                                      widget.onTodoUpdated!();
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        task['is_complete']
+                                            ? Colors.grey.shade100
+                                            : Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.shade200,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Move is_complete button to the left
+                                      GestureDetector(
+                                        onTap:
+                                            () => _toggleTaskCompletion(
+                                              task['id'],
+                                              task['is_complete'],
+                                            ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color:
+                                                    task['is_complete']
+                                                        ? Colors.green
+                                                        : Colors.grey.shade300,
+                                                width: 2,
+                                              ),
+                                              color:
+                                                  task['is_complete']
+                                                      ? Colors.green
+                                                          .withOpacity(0.2)
+                                                      : Colors.transparent,
+                                            ),
+                                            child:
                                                 task['is_complete']
-                                                    ? Colors.green
-                                                    : Colors.grey.shade300,
+                                                    ? Center(
+                                                      child: Icon(
+                                                        Icons.check,
+                                                        color: Colors.green,
+                                                        size: 16,
+                                                      ),
+                                                    )
+                                                    : null,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            task['title'] ?? 'Unnamed Task',
-                                            style: TextStyle(
-                                              decoration:
-                                                  task['is_complete']
-                                                      ? TextDecoration
-                                                          .lineThrough
-                                                      : null,
-                                            ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0,
+                                            vertical: 12.0,
                                           ),
-                                          SizedBox(height: 4),
-                                          Row(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              if (task['deadline'] != null)
-                                                Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: _getDeadlineColor(
-                                                      task['deadline'],
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          20,
-                                                        ),
-                                                  ),
+                                              Text(
+                                                task['title'] ?? 'Unnamed Task',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color:
+                                                      task['is_complete']
+                                                          ? Colors.grey
+                                                          : Colors.black,
+                                                ),
+                                              ),
+                                              // Description section
+                                              if (task['description'] != null &&
+                                                  task['description']
+                                                      .toString()
+                                                      .isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4,
+                                                      ),
                                                   child: Text(
-                                                    _formatDeadline(
-                                                      task['deadline'],
-                                                    ),
+                                                    task['description'],
                                                     style: TextStyle(
-                                                      color: Colors.white,
+                                                      color:
+                                                          task['is_complete']
+                                                              ? Colors
+                                                                  .grey
+                                                                  .shade500
+                                                              : Colors
+                                                                  .grey
+                                                                  .shade600,
                                                       fontSize: 12,
                                                     ),
                                                   ),
                                                 ),
+                                              SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  // Deadline container
+                                                  if (task['deadline'] != null)
+                                                    Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            _getDeadlineColor(
+                                                              task['deadline'],
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              20,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        _formatDeadline(
+                                                          task['deadline'],
+                                                        ),
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
                                             ],
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
+                            );
+                          },
+                        ),
+                        // "Add New Task" at the bottom
+                        SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: _navigateToAddTask,
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.shade200,
+                                  blurRadius: 5,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.add, color: Colors.grey),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Add New Task...',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
