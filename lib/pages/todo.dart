@@ -331,13 +331,13 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => DetailTodoPage(
-                        todoId: todo['id'],
-                        todoTitle: todo['title'],
-                        taskCount: todo['taskCount'],
-                        onTodoUpdated: _fetchTodos,
-                      ),
+                  builder: (context) => DetailTodoPage(
+                    todoId: todo['id'],
+                    todoTitle: todo['title'],
+                    taskCount: todo['taskCount'],
+                    todoColor: todo['color'],
+                    onTodoUpdated: _fetchTodos,
+                  ),
                 ),
               );
             },
@@ -410,7 +410,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                               children: [
                                 Icon(Icons.delete, color: Colors.red),
                                 SizedBox(width: 8),
-                                Text('Delete'),
+                                Text('Hapus'),
                               ],
                             ),
                           ),
