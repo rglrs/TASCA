@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
         ); // Gunakan key 'auth_token' konsisten
 
         // Custom success message
-        _showSuccessMessage('Login berhasil! Selamat datang kembali.');
+        _showSuccessMessage('Login berhasil!');
 
         // PERBAIKAN: Pass token ke SettingsScreen saat navigasi
         Navigator.pushReplacement(

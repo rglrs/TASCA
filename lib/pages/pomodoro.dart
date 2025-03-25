@@ -471,12 +471,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                 ],
               ),
             ),
-            SizedBox(
-              width:
-                  MediaQuery.of(context).size.width *
-                  0.9, // Set width to 80% of the screen width
-              child: Navbar(), // Add the Navbar widget here
-            ),
+            Navbar(initialActiveIndex: 0),
           ],
         ),
       ),

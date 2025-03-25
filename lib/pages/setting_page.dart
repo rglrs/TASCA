@@ -460,12 +460,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              child: Navbar(
-                initialActiveIndex: 4,
-              ), // Set the active index for Settings
-            ),
+            Navbar(initialActiveIndex: 2),
           ],
         ),
       ),
