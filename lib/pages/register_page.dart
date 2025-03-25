@@ -171,13 +171,16 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Ternyata akun kamu belum terdaftar.',
+                    'Ternyata akun kamu sudah terdaftar.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14),
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginPage()),
+                      );
                     },
                     child: const Text(
                       'Masuk di sini',
