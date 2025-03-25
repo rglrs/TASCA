@@ -84,6 +84,7 @@ class _NavbarState extends State<Navbar> {
     }
 
     return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
       margin: EdgeInsets.only(bottom: 20),
       padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       decoration: BoxDecoration(
