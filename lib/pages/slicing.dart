@@ -179,7 +179,7 @@ class _SlicingScreenState extends State<SlicingScreen> {
                     ),
                     
                     // Semua Feature Chips dalam satu gambar
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 100),
                     
                     // Image chip.png yang berisi semua fitur
                     Center(
@@ -189,7 +189,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 280),
+                    // MENAMBAH JARAK UNTUK MENURUNKAN BUTTON
+                    const SizedBox(height: 300),
                     
                     // Continue Button dengan shadow ungu yang lebih terlihat
                     Stack(
@@ -313,7 +314,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 60),
+                  // MENAMBAH JARAK UNTUK MENURUNKAN BUTTON
+                  const SizedBox(height: 120),
                   
                   // Continue Button dengan shadow
                   Stack(
@@ -449,8 +451,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                     ),
                   ),
                   
-                  // Meningkatkan nilai dari 50 menjadi 90 untuk menurunkan tombol
-                  const SizedBox(height: 90),
+                  // MENAMBAH JARAK UNTUK MENURUNKAN BUTTON
+                  const SizedBox(height: 150),
                   
                   // Continue Button dengan shadow
                   Stack(
@@ -551,7 +553,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                   ),
                 ),
                 
-                const Spacer(flex: 1),
+                // MENAMBAH JARAK UNTUK MENURUNKAN CARD
+                const Spacer(flex: 2),
                 
                 // Card Welcome
                 Container(
