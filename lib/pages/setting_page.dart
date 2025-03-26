@@ -26,10 +26,8 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     String pictureUrl = json['picture'] ?? '';
 
-    if (pictureUrl.isEmpty ||
-        pictureUrl.contains('storage/upload/storage/upload') ||
-        !pictureUrl.startsWith('https://')) {
-      pictureUrl = '';
+    if (pictureUrl.isNotEmpty && !pictureUrl.startsWith('http')) {
+      pictureUrl = 'https://api.tascaid.com/storage/upload/$pictureUrl';
     }
 
     return UserProfile(
