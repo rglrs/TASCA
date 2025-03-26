@@ -596,34 +596,6 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     }
   }
 
-  // Tampilkan dialog konfirmasi hapus task
-  void _showDeleteTaskConfirmation(int taskId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Hapus Task'),
-          content: Text('Apakah Anda yakin ingin menghapus task ini?'),
-          actions: [
-            TextButton(
-              child: Text('Batal'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Hapus', style: TextStyle(color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteTask(taskId);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   String _formatDeadline(String? deadlineStr) {
     if (deadlineStr == null) return '';
 

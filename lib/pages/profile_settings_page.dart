@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProfile {
@@ -171,6 +172,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (_selectedImage != null) {
+        // Additional validation before upload
+        int fileSizeInBytes = await _selectedImage!.length();
+        double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+
+        if (fileSizeInMB > 3) {
+          setState(() {
+            isLoading = false;
+          });
+          _showErrorDialog(
+            'Ukuran file tidak boleh lebih dari 3MB. Ukuran file Anda: ${fileSizeInMB.toStringAsFixed(2)} MB',
+          );
+          return;
+        }
+
+        // Validate file type before upload
+        String extension = _selectedImage!.path.split('.').last.toLowerCase();
+        final allowedExtensions = [
+          'jpg',
+          'jpeg',
+          'png',
+          'heic',
+          'webp',
+          'bmp',
+          'tiff',
+        ];
+
+        if (!allowedExtensions.contains(extension)) {
+          setState(() {
+            isLoading = false;
+          });
+          _showErrorDialog(
+            'Format file tidak didukung. Gunakan format: ${allowedExtensions.join(", ")}',
+          );
+          return;
+        }
+
         request.files.add(
           await http.MultipartFile.fromPath('picture', _selectedImage!.path),
         );
@@ -204,7 +241,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       } else {
         final errorData = json.decode(response.body);
-        _showErrorDialog(errorData['error'] ?? 'Failed to update profile');
+        _showErrorDialog(
+          errorData['error'] ??
+              'Gagal memperbarui profil. Status: ${response.statusCode}',
+        );
       }
     } catch (e) {
       setState(() {
@@ -235,14 +275,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        // Add these iOS-specific parameters
+        preferredCameraDevice: CameraDevice.front,
+        maxWidth: 1024, // Limit image width
+        maxHeight: 1024, // Limit image height
+        imageQuality: 80, // Compress image quality
+      );
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-        isEdited = true;
-      });
+      if (image != null) {
+        File file = File(image.path);
+
+        // Existing size and type validation
+        int fileSizeInBytes = await file.length();
+        double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+
+        if (fileSizeInMB > 3) {
+          _showErrorDialog(
+            'Ukuran file tidak boleh lebih dari 3MB. Ukuran file Anda: ${fileSizeInMB.toStringAsFixed(2)} MB',
+          );
+          return;
+        }
+
+        // Check file type
+        String extension = file.path.split('.').last.toLowerCase();
+        final allowedExtensions = [
+          'jpg',
+          'jpeg',
+          'png',
+          'heic',
+          'webp',
+          'bmp',
+          'tiff',
+        ];
+
+        if (!allowedExtensions.contains(extension)) {
+          _showErrorDialog(
+            'Format file tidak didukung. Gunakan format: ${allowedExtensions.join(", ")}',
+          );
+          return;
+        }
+
+        setState(() {
+          _selectedImage = file;
+          isEdited = true;
+        });
+      }
+    } on PlatformException catch (e) {
+      // More detailed error handling for iOS
+      if (e.code == 'photo_access_denied') {
+        _showErrorDialog(
+          'Akses galeri ditolak. Silakan izinkan akses foto di pengaturan.',
+        );
+      } else {
+        _showErrorDialog('Gagal memilih gambar: ${e.message}');
+      }
+    } catch (e) {
+      _showErrorDialog('Gagal memilih gambar: ${e.toString()}');
     }
   }
 

@@ -139,32 +139,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // In your build method or widget tree
-  Widget _buildProfileAvatar() {
-    final defaultAvatar = CircleAvatar(
-      backgroundColor: Colors.red.withOpacity(0.2),
-      child: const Icon(Icons.person, color: Colors.red),
-    );
-
-    // If no picture or invalid picture URL
-    if (_userProfile?.picture == null || _userProfile!.picture.isEmpty) {
-      return defaultAvatar;
-    }
-
-    return CircleAvatar(
-      backgroundColor: Colors.red.withOpacity(0.2),
-      backgroundImage: NetworkImage(_userProfile!.picture),
-      onBackgroundImageError: (exception, stackTrace) {
-        // Log the error or handle it as needed
-        print('Image load error: $exception');
-      },
-      child:
-          _userProfile!.picture.isEmpty
-              ? const Icon(Icons.person, color: Colors.red)
-              : null,
-    );
-  }
-
   Future<void> _logout(BuildContext context) async {
     try {
       setState(() {
