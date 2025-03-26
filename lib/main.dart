@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tasca_mobile1/pages/sliding_pages.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasca_mobile1/pages/todo.dart'; // Pastikan path ini benar
 
 void main() {
   runApp(MyApp());
@@ -15,8 +17,64 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TASCA',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: StartScreen(),
+      home: AuthCheckScreen(),
     );
+  }
+}
+
+class AuthCheckScreen extends StatefulWidget {
+  const AuthCheckScreen({Key? key}) : super(key: key);
+
+  @override
+  _AuthCheckScreenState createState() => _AuthCheckScreenState();
+}
+
+class _AuthCheckScreenState extends State<AuthCheckScreen> {
+  bool _isLoading = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      setState(() {
+        _isLoggedIn = token != null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    } else if (_isLoggedIn) {
+      // Jika sudah login, langsung menuju TodoPage
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => TodoPage()),
+        );
+      });
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    } else {
+      // Jika belum login, tampilkan StartScreen
+      return StartScreen();
+    }
   }
 }
 
@@ -30,8 +88,8 @@ class StartScreen extends StatelessWidget {
         // Menggunakan animasi slide dari slicing.dart
         navigateWithSlide(context, const SlicingScreen(initialPage: 0));
       },
-      child: // Gunakan implementasi StartScreen yang sudah ada sebelumnya
-        Scaffold(
+      child: Scaffold(
+        // [Kode StartScreen tetap sama seperti sebelumnya]
         body: Stack(
           children: [
             // Background gradient

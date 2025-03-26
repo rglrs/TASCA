@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'detail_todo.dart';
 import 'add_todo.dart';
-import 'edit_todo.dart';
 import '../widgets/navbar.dart';
 
 class TodoPage extends StatefulWidget {
@@ -109,78 +108,119 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     return colors[todoId % colors.length];
   }
 
-  void _editTodo(Map<String, dynamic> todo) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => EditTodoScreen(
-              todoToEdit: {
-                'id': todo['id'],
-                'title': todo['title'],
-                'color': todo['color'],
-              },
-            ),
-      ),
-    );
-
-    if (result != null) {
-      _fetchTodos();
-    }
-  }
-
-  void _deleteTodo(int todoId) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Delete Todo'),
-            content: Text('Are you sure you want to delete this todo?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  try {
-                    final prefs = await SharedPreferences.getInstance();
-                    final token = prefs.getString('auth_token');
-
-                    if (token == null) {
-                      throw Exception('No JWT token found');
-                    }
-
-                    final response = await http.delete(
-                      Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
-                      headers: {
-                        'Authorization': 'Bearer $token',
-                        'Content-Type': 'application/json',
-                      },
-                    );
-
-                    if (response.statusCode >= 200 &&
-                        response.statusCode < 300) {
-                      await _fetchTodos();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Todo successfully deleted')),
-                      );
-                    } else {
-                      throw Exception('Failed to delete todo');
-                    }
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error deleting todo: $e')),
-                    );
-                  }
-                },
-                child: Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-    );
-  }
+  Future<void> _deleteTodo(int todoId) async {
+     try {
+       final prefs = await SharedPreferences.getInstance();
+       final token = prefs.getString('auth_token');
+ 
+       if (token == null) {
+         throw Exception('No JWT token found');
+       }
+ 
+       // Create a client instance that will be closed later
+       final client = http.Client();
+ 
+       try {
+         // Create DELETE request
+         final request = http.Request('DELETE', Uri.parse('https://api.tascaid.com/api/todos/$todoId/'));
+         request.headers['Authorization'] = 'Bearer $token';
+         request.headers['Content-Type'] = 'application/json';
+ 
+         // Send request and get stream response
+         final streamedResponse = await client.send(request);
+         
+         // Get full response
+         final response = await http.Response.fromStream(streamedResponse);
+ 
+         if (response.statusCode >= 200 && response.statusCode < 300) {
+           // Refresh todo list
+           await _fetchTodos();
+                        ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Todo berhasil dihapus')),
+           );
+         } else {
+           // Try alternative method if first method fails
+           // Try URL without trailing slash
+           final alternativeResponse = await http.delete(
+             Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
+             headers: {
+               'Authorization': 'Bearer $token',
+               'Content-Type': 'application/json',
+             },
+           );
+           
+           if (alternativeResponse.statusCode >= 200 && alternativeResponse.statusCode < 300) {
+             await _fetchTodos();
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Todo berhasil dihapus')),
+             );
+           } else {
+             throw Exception('Failed to delete todo: Status ${response.statusCode}');
+           }
+         }
+       } finally {
+         // Always close client when done
+         client.close();
+       }
+     } catch (e) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text('Error menghapus todo: $e')),
+       );
+     }
+   }
+ 
+   // Show options when three dots clicked
+   void _showTodoOptions(int todoId) {
+     showModalBottomSheet(
+       context: context,
+       shape: RoundedRectangleBorder(
+         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+       ),
+       builder: (context) => Container(
+         padding: EdgeInsets.all(16),
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             ListTile(
+               leading: Icon(Icons.delete, color: Colors.red),
+               title: Text('Hapus Todo', style: TextStyle(color: Colors.red)),
+               onTap: () {
+                 Navigator.pop(context); // Close bottom sheet
+                 // Show confirmation dialog
+                 showDialog(
+                   context: context,
+                   builder: (context) => AlertDialog(
+                     title: Text('Hapus Todo'),
+                     content: Text('Apakah Anda yakin ingin menghapus todo ini?'),
+                     actions: [
+                       TextButton(
+                         onPressed: () => Navigator.pop(context),
+                         child: Text('Batal'),
+                       ),
+                       TextButton(
+                         onPressed: () {
+                           Navigator.pop(context);
+                           _deleteTodo(todoId);
+                         },
+                         child: Text('Hapus', style: TextStyle(color: Colors.red)),
+                       ),
+                     ],
+                   ),
+                 );
+               },
+             ),
+             ListTile(
+               leading: Icon(Icons.cancel),
+               title: Text('Batal'),
+               onTap: () {
+                 Navigator.pop(context); // Close bottom sheet
+               },
+             ),
+           ],
+         ),
+       ),
+     );
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -386,31 +426,19 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                         color: Colors.white.withOpacity(0.8),
                       ),
                       onSelected: (String choice) {
-                        if (choice == 'Edit') {
-                          _editTodo(todo);
-                        } else if (choice == 'Delete') {
-                          _deleteTodo(todo['id']);
+                        if (choice == 'Options') {
+                          _showTodoOptions(todo['id']);
                         }
                       },
                       itemBuilder: (BuildContext context) {
                         return [
                           const PopupMenuItem<String>(
-                            value: 'Edit',
+                            value: 'Options',
                             child: Row(
                               children: [
-                                Icon(Icons.edit, color: Colors.blue),
+                                Icon(Icons.more_vert, color: Colors.black87),
                                 SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'Delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Hapus'),
+                                Text('Opsi'),
                               ],
                             ),
                           ),
