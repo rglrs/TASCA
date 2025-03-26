@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tasca_mobile1/pages/sliding_pages.dart';
-import 'package:tasca_mobile1/pages/start.dart';
 
 void main() {
   runApp(MyApp());

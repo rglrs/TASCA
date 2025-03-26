@@ -3,7 +3,6 @@ import 'register_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'pomodoro.dart';
-// import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_pw.dart';
 
@@ -20,6 +19,28 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkToken();
+  }
+
+  Future<void> _checkToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final expirationTime = prefs.getInt('token_expiration');
+
+    if (token != null && expirationTime != null) {
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      if (currentTime < expirationTime) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PomodoroTimer()),
+        );
+      }
+    }
+  }
 
   Future<void> _login(BuildContext context) async {
     setState(() {
@@ -40,12 +61,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Menentukan apakah input adalah email atau username berdasarkan format
       final bool isEmail = identifier.contains('@');
-
       final Map<String, String> requestBody = {'password': password};
 
-      // Mengisi field yang sesuai berdasarkan input
       if (isEmail) {
         requestBody['email'] = identifier;
       } else {
@@ -62,25 +80,20 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final String token = data['token']; // JWT token
+        final String token = data['token'];
 
-        // PERBAIKAN: Simpan token dengan nama key yang konsisten
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-          'auth_token',
-          token,
-        ); // Gunakan key 'auth_token' konsisten
+        final expirationTime =
+            DateTime.now().add(Duration(days: 1)).millisecondsSinceEpoch;
+        await prefs.setString('auth_token', token);
+        await prefs.setInt('token_expiration', expirationTime);
 
-        // Custom success message
         _showSuccessMessage('Login berhasil!');
-
-        // PERBAIKAN: Pass token ke SettingsScreen saat navigasi
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
-        // Custom error message
         _showErrorMessage(
           'Login gagal: Periksa kembali email/username dan password Anda.',
         );
@@ -119,39 +132,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
-  // Future<void> _loginWithGoogle() async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-
-  //   try {
-  //     final String backendUrl = 'https://api.tascaid.com/api/google/login';
-  //     final String callbackUrlScheme = 'com.example.tasca';
-
-  //     final result = await FlutterWebAuth2.authenticate(
-  //       url: backendUrl,
-  //       callbackUrlScheme: callbackUrlScheme,
-  //     );
-
-  //     final token = Uri.parse(result).queryParameters['token'];
-
-  //     if (token != null) {
-  //       final prefs = await SharedPreferences.getInstance();
-  //       await prefs.setString('auth_token', token);
-
-  //       Navigator.of(context).pushReplacementNamed('/home');
-  //     } else {
-  //       _showErrorMessage('Login gagal: Token tidak diterima');
-  //     }
-  //   } catch (e) {
-  //     _showErrorMessage('Login dengan Google gagal: ${e.toString()}');
-  //   } finally {
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
