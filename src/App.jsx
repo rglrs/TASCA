@@ -8,7 +8,7 @@ const routes = [
   { path: '/', element: <Dashboard /> },
   { path: '*', element: <NotFound /> },
   { path: '/not-found', element: <NotFound /> },
-  { path: 'forgot-password', element: <ForgotPasswordConfirm/>},
+  { path: '/forgot-password', element: <ForgotPasswordConfirm/>},
   { path: 'Pomodoro', element: <Pomodoro />},
 ];
 
