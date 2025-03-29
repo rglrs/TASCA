@@ -42,13 +42,17 @@ class _RegisterPageState extends State<RegisterPage> {
     final String confirmPassword = confirmPasswordController.text;
 
     // Validasi input
-    if (username.length < 4) {
-      _showError('Username harus minimal 4 karakter');
+    if (!_isValidUsername(username)) {
+      _showError(
+        'Username harus minimal 4 huruf dan tidak boleh mengandung spasi atau simbol',
+      );
       return;
     }
 
-    if (password.length < 8) {
-      _showError('Password harus minimal 8 karakter');
+    if (!_isValidPassword(password)) {
+      _showError(
+        'Password harus minimal 8 karakter dan terdiri dari huruf kecil, huruf besar, dan angka',
+      );
       return;
     }
 
@@ -107,6 +111,18 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  bool _isValidUsername(String username) {
+    final RegExp usernameRegExp = RegExp(r'^[a-zA-Z]{4,}$');
+    return usernameRegExp.hasMatch(username);
+  }
+
+  bool _isValidPassword(String password) {
+    final RegExp passwordRegExp = RegExp(
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$',
+    );
+    return passwordRegExp.hasMatch(password);
   }
 
   void _showError(String message) {
@@ -213,7 +229,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 16),
                         _buildTextField(
                           'Username*',
-                          'Masukkan username min. 4 karakter',
+                          'Masukkan username min. 4 huruf tanpa spasi atau simbol',
                           usernameController,
                         ),
                         const SizedBox(height: 16),
@@ -227,7 +243,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 16),
                         _buildPasswordField(
                           'Password*',
-                          'Password minimum 8 karakter',
+                          'Password minimal 8 karakter, terdiri dari huruf kecil, huruf besar, dan angka',
                           passwordController,
                         ),
                         const SizedBox(height: 16),

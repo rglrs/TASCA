@@ -84,6 +84,18 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     }
   }
 
+  void endCurrentSession() {
+    timer?.cancel();
+    setState(() {
+      isRunning = false;
+      isMuted = true; // Ensure sound is off when session ends
+      currentSoundTitle = ''; // Reset sound title
+      currentSoundPath = ''; // Reset sound path
+      audioPlayer.stop(); // Stop sound when session ends
+      timeLeft = isFocusSession ? focusDuration : restDuration; // Reset time
+    });
+  }
+
   void pauseTimer() {
     timer?.cancel();
     setState(() {
@@ -440,7 +452,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                       ),
                       const SizedBox(width: 10),
                       GestureDetector(
-                        onTap: resetTimer,
+                        onTap: endCurrentSession,
                         child: Container(
                           width: 55, // Increased size
                           height: 55, // Increased size
