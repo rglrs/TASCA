@@ -1,4 +1,4 @@
-package com.example.tasca_mobile
+package com.tasca.app
 
 import io.flutter.embedding.android.FlutterActivity
 

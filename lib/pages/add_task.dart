@@ -11,12 +11,12 @@ class AddTaskPage extends StatefulWidget {
   final VoidCallback onTaskAdded;
 
   const AddTaskPage({
-    Key? key,
+    super.key,
     required this.todoId,
     this.taskId,
     this.initialData,
     required this.onTaskAdded,
-  }) : super(key: key);
+  });
 
   @override
   _AddTaskPageState createState() => _AddTaskPageState();
@@ -414,7 +414,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
               onPressed:
                   _isTaskReady()
                       ? _addOrUpdateTask
-                      : null, // Disable jika belum siap
+                      : null,
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    _isTaskReady()
+                        ? Colors.green
+                        : Colors.grey.shade300, // Background button
+              ), // Disable jika belum siap
               child: Text(
                 widget.taskId == null ? 'Add' : 'Save',
                 style: TextStyle(
@@ -423,12 +429,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           ? Colors.white
                           : Colors.grey, // Warna berubah sesuai kesiapan
                 ),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor:
-                    _isTaskReady()
-                        ? Colors.green
-                        : Colors.grey.shade300, // Background button
               ),
             ),
         ],

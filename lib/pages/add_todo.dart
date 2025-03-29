@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AddTodoPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onTodoAdded;
 
-  const AddTodoPage({Key? key, required this.onTodoAdded}) : super(key: key);
+  const AddTodoPage({super.key, required this.onTodoAdded});
 
   @override
   _AddTodoPageState createState() => _AddTodoPageState();
@@ -109,7 +109,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _addTodo,
-            child: Text('Add Task'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepPurple,
               foregroundColor: Colors.white,
@@ -118,6 +117,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
+            child: Text('Add Task'),
           ),
           SizedBox(height: 20),
         ],
@@ -132,11 +132,11 @@ class _PriorityChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   const _PriorityChip({
-    Key? key,
+    super.key,
     required this.label,
     required this.isSelected,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

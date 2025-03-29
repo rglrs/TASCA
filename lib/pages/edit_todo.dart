@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class EditTodoScreen extends StatefulWidget {
   final Map<String, dynamic> todoToEdit;
 
-  const EditTodoScreen({Key? key, required this.todoToEdit}) : super(key: key);
+  const EditTodoScreen({super.key, required this.todoToEdit});
 
   @override
   _EditTodoScreenState createState() => _EditTodoScreenState();

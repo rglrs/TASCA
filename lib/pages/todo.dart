@@ -8,7 +8,7 @@ import 'add_todo.dart';
 import '../widgets/navbar.dart';
 
 class TodoPage extends StatefulWidget {
-  const TodoPage({Key? key}) : super(key: key);
+  const TodoPage({super.key});
 
   @override
   _TodoPageState createState() => _TodoPageState();

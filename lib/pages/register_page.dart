@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:tasca_mobile1/pages/login_page.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -18,9 +21,113 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  
+  // Error text states
+  String? usernameError;
+  String? nameError;
+  String? emailError;
+  String? phoneError;
+  String? passwordError;
+  String? confirmPasswordError;
+  
   bool _isPasswordVisible = false;
   bool _isCheckboxChecked = false;
   bool _isLoading = false;
+
+  // Clear all form errors
+  void _clearErrors() {
+    setState(() {
+      usernameError = null;
+      nameError = null;
+      emailError = null;
+      phoneError = null;
+      passwordError = null;
+      confirmPasswordError = null;
+    });
+  }
+
+  // Launch URL function
+  void _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tidak dapat membuka $url')),
+      );
+    }
+  }
+
+  // Validate the form
+  bool _validateForm() {
+    bool isValid = true;
+    _clearErrors();
+    
+    // Name validation
+    if (nameController.text.isEmpty) {
+      setState(() {
+        nameError = 'Nama lengkap tidak boleh kosong';
+      });
+      isValid = false;
+    }
+    
+    // Username validation
+    if (usernameController.text.isEmpty) {
+      setState(() {
+        usernameError = 'Username tidak boleh kosong';
+      });
+      isValid = false;
+    } else if (usernameController.text.length < 4) {
+      setState(() {
+        usernameError = 'Username harus minimal 4 karakter';
+      });
+      isValid = false;
+    } else if (!RegExp(r'^[a-zA-Z]+$').hasMatch(usernameController.text)) {
+      setState(() {
+        usernameError = 'Username hanya boleh mengandung huruf';
+      });
+      isValid = false;
+    }
+    
+    // Email validation
+    if (emailController.text.isEmpty) {
+      setState(() {
+        emailError = 'Email tidak boleh kosong';
+      });
+      isValid = false;
+    } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailController.text)) {
+      setState(() {
+        emailError = 'Format email tidak valid';
+      });
+      isValid = false;
+    }
+    
+    // Password validation
+    if (passwordController.text.isEmpty) {
+      setState(() {
+        passwordError = 'Password tidak boleh kosong';
+      });
+      isValid = false;
+    } else if (passwordController.text.length < 8) {
+      setState(() {
+        passwordError = 'Password harus minimal 8 karakter';
+      });
+      isValid = false;
+    }
+    
+    // Confirm password validation
+    if (confirmPasswordController.text.isEmpty) {
+      setState(() {
+        confirmPasswordError = 'Konfirmasi password tidak boleh kosong';
+      });
+      isValid = false;
+    } else if (passwordController.text != confirmPasswordController.text) {
+      setState(() {
+        confirmPasswordError = 'Password tidak cocok';
+      });
+      isValid = false;
+    }
+    
+    return isValid;
+  }
 
   Future<void> _register(BuildContext context) async {
     if (!_isCheckboxChecked) {
@@ -29,6 +136,11 @@ class _RegisterPageState extends State<RegisterPage> {
           content: Text('Anda harus menyetujui syarat dan ketentuan'),
         ),
       );
+      return;
+    }
+    
+    // Validate form before proceeding
+    if (!_validateForm()) {
       return;
     }
 
@@ -40,22 +152,6 @@ class _RegisterPageState extends State<RegisterPage> {
     final String phoneRaw = phoneController.text.trim();
     final String password = passwordController.text;
     final String confirmPassword = confirmPasswordController.text;
-
-    // Validasi input
-    if (username.length < 4) {
-      _showError('Username harus minimal 4 karakter');
-      return;
-    }
-
-    if (password.length < 8) {
-      _showError('Password harus minimal 8 karakter');
-      return;
-    }
-
-    if (password != confirmPassword) {
-      _showError('Passwords tidak cocok');
-      return;
-    }
 
     // Proses nomor telepon - kirim null jika kosong
     String? phone;
@@ -82,6 +178,10 @@ class _RegisterPageState extends State<RegisterPage> {
       // Debug response
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
+      
+      // Tambahkan log raw response
+      String rawResponse = response.body;
+      print('Raw response body: $rawResponse');
 
       if (response.statusCode == 201) {
         // Custom success message
@@ -91,14 +191,117 @@ class _RegisterPageState extends State<RegisterPage> {
           'Akun Anda telah berhasil didaftarkan. Silakan masuk.',
         );
       } else {
-        // Custom error message
-        _showDialog(
-          context,
-          'Registrasi Gagal',
-          'Terjadi kesalahan saat mendaftarkan akun. Silakan coba lagi.',
-        );
+        // Cek dulu untuk pesan SQL error langsung
+        if (rawResponse.contains("idx_users_email") || 
+            rawResponse.contains("duplicate key") && rawResponse.contains("email")) {
+          setState(() {
+            emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+          });
+        } else if (rawResponse.contains("idx_users_username") || 
+                  (rawResponse.contains("duplicate key") && rawResponse.contains("username"))) {
+          setState(() {
+            usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+          });
+        } else {
+          // Jika bukan error SQL langsung, coba parse sebagai JSON
+          try {
+            final Map<String, dynamic> errorResponse = jsonDecode(response.body);
+            
+            // Log the full error response untuk debugging
+            print('Full error response: $errorResponse');
+            
+            // Check for specific error messages in the top-level response
+            if (errorResponse.containsKey('message')) {
+              String message = errorResponse['message'].toString().toLowerCase();
+              
+              // Check if the error message directly indicates username or email already exists
+              if (message.contains('username') && 
+                  (message.contains('sudah ada') || message.contains('exists') || 
+                   message.contains('taken') || message.contains('duplicate'))) {
+                setState(() {
+                  usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+                });
+                return;
+              }
+              
+              if (message.contains('email') && 
+                  (message.contains('sudah ada') || message.contains('exists') || 
+                   message.contains('taken') || message.contains('duplicate'))) {
+                setState(() {
+                  emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+                });
+                return;
+              }
+            }
+            
+            // Continue with normal error handling
+            if (errorResponse.containsKey('errors')) {
+              _handleServerValidationErrors(errorResponse['errors']);
+            } else if (errorResponse.containsKey('message') && errorResponse.containsKey('errors')) {
+              _handleServerValidationErrors(errorResponse['errors']);
+            } else if (errorResponse.containsKey('error')) {
+              Map<String, dynamic> errors = {};
+              final errorMap = errorResponse['error'];
+              if (errorMap is Map) {
+                errorMap.forEach((key, value) {
+                  errors[key] = [value];
+                });
+                _handleServerValidationErrors(errors);
+              } else {
+                _showDialog(
+                  context,
+                  'Registrasi Gagal',
+                  errorMap.toString(),
+                );
+              }
+            } else if (errorResponse.containsKey('message')) {
+              _showDialog(
+                context,
+                'Registrasi Gagal',
+                errorResponse['message'],
+              );
+            } else {
+              _showDialog(
+                context,
+                'Registrasi Gagal',
+                'Terjadi kesalahan saat mendaftarkan akun. Silakan coba lagi.',
+              );
+            }
+          } catch (e) {
+            print('Error parsing response: $e');
+            
+            // Jika gagal parse JSON, periksa string mentah sekali lagi
+            String responseBody = response.body.toLowerCase();
+            if (responseBody.contains("email") && 
+                (responseBody.contains("sudah") || responseBody.contains("duplicate") || 
+                 responseBody.contains("exist") || responseBody.contains("taken"))) {
+              setState(() {
+                emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+              });
+            } else if (responseBody.contains("username") && 
+                      (responseBody.contains("sudah") || responseBody.contains("duplicate") || 
+                       responseBody.contains("exist") || responseBody.contains("taken"))) {
+              setState(() {
+                usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+              });
+            } else {
+              _showDialog(
+                context,
+                'Registrasi Gagal',
+                'Terjadi kesalahan saat mendaftarkan akun. Silakan coba lagi.',
+              );
+            }
+          }
+        }
       }
+    } on SocketException catch (_) {
+      _showDialog(
+        context,
+        'Kesalahan Koneksi',
+        'Gagal terhubung ke server. Silakan periksa koneksi internet Anda.',
+      );
     } catch (e) {
+      print('Exception during registration: $e');
       _showDialog(
         context,
         'Kesalahan Koneksi',
@@ -107,6 +310,115 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+  
+  // Improved error handling for server validation
+  void _handleServerValidationErrors(Map<String, dynamic> errors) {
+    print('Processing server validation errors: $errors');
+    
+    setState(() {
+      // Handle username errors
+      if (errors.containsKey('username')) {
+        var usernameErrors = errors['username'];
+        if (usernameErrors is List) {
+          usernameError = usernameErrors.isNotEmpty ? usernameErrors[0].toString() : null;
+          
+          // Check for common username exists error patterns
+          for (var error in usernameErrors) {
+            if (error.toString().toLowerCase().contains('sudah diambil') || 
+                error.toString().toLowerCase().contains('sudah ada') ||
+                error.toString().toLowerCase().contains('already') ||
+                error.toString().toLowerCase().contains('taken') ||
+                error.toString().toLowerCase().contains('exists')) {
+              usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+              break;
+            }
+          }
+        } else {
+          usernameError = usernameErrors.toString();
+          
+          // Check string directly
+          if (usernameErrors.toString().toLowerCase().contains('sudah diambil') || 
+              usernameErrors.toString().toLowerCase().contains('sudah ada') ||
+              usernameErrors.toString().toLowerCase().contains('already') ||
+              usernameErrors.toString().toLowerCase().contains('taken') ||
+              usernameErrors.toString().toLowerCase().contains('exists')) {
+            usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+          }
+        }
+      }
+      
+      // Handle email errors
+      if (errors.containsKey('email')) {
+        var emailErrors = errors['email'];
+        if (emailErrors is List) {
+          emailError = emailErrors.isNotEmpty ? emailErrors[0].toString() : null;
+          
+          // Check for common email exists error patterns
+          for (var error in emailErrors) {
+            if (error.toString().toLowerCase().contains('sudah diambil') || 
+                error.toString().toLowerCase().contains('sudah ada') ||
+                error.toString().toLowerCase().contains('already') ||
+                error.toString().toLowerCase().contains('taken') ||
+                error.toString().toLowerCase().contains('exists')) {
+              emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+              break;
+            }
+          }
+        } else {
+          emailError = emailErrors.toString();
+          
+          // Check string directly
+          if (emailErrors.toString().toLowerCase().contains('sudah diambil') || 
+              emailErrors.toString().toLowerCase().contains('sudah ada') ||
+              emailErrors.toString().toLowerCase().contains('already') ||
+              emailErrors.toString().toLowerCase().contains('taken') ||
+              emailErrors.toString().toLowerCase().contains('exists')) {
+            emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+          }
+        }
+      }
+      
+      // Handle other fields normally
+      if (errors.containsKey('name')) {
+        var nameErrors = errors['name'];
+        if (nameErrors is List) {
+          nameError = nameErrors.isNotEmpty ? nameErrors[0].toString() : null;
+        } else {
+          nameError = nameErrors.toString();
+        }
+      }
+      
+      if (errors.containsKey('phone')) {
+        var phoneErrors = errors['phone'];
+        if (phoneErrors is List) {
+          phoneError = phoneErrors.isNotEmpty ? phoneErrors[0].toString() : null;
+        } else {
+          phoneError = phoneErrors.toString();
+        }
+      }
+      
+      if (errors.containsKey('password')) {
+        var passwordErrors = errors['password'];
+        if (passwordErrors is List) {
+          passwordError = passwordErrors.isNotEmpty ? passwordErrors[0].toString() : null;
+        } else {
+          passwordError = passwordErrors.toString();
+        }
+      }
+      
+      if (errors.containsKey('confirm_password')) {
+        var confirmPasswordErrors = errors['confirm_password'];
+        if (confirmPasswordErrors is List) {
+          confirmPasswordError = confirmPasswordErrors.isNotEmpty ? confirmPasswordErrors[0].toString() : null;
+        } else {
+          confirmPasswordError = confirmPasswordErrors.toString();
+        }
+      }
+    });
+    
+    // Log final error states for debugging
+    print('Final error states - Username: $usernameError, Email: $emailError');
   }
 
   void _showError(String message) {
@@ -209,18 +521,21 @@ class _RegisterPageState extends State<RegisterPage> {
                           'Nama Lengkap*',
                           'Masukkan nama lengkap',
                           nameController,
+                          errorText: nameError,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           'Username*',
                           'Masukkan username min. 4 karakter',
                           usernameController,
+                          errorText: usernameError,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           'Email*',
                           'alexantos@gmail.com',
                           emailController,
+                          errorText: emailError,
                         ),
                         const SizedBox(height: 16),
                         _buildWhatsAppField(),
@@ -229,12 +544,14 @@ class _RegisterPageState extends State<RegisterPage> {
                           'Password*',
                           'Password minimum 8 karakter',
                           passwordController,
+                          errorText: passwordError,
                         ),
                         const SizedBox(height: 16),
                         _buildPasswordField(
                           'Konfirmasi Password*',
                           'Harus sama dengan password di atas',
                           confirmPasswordController,
+                          errorText: confirmPasswordError,
                         ),
                         const SizedBox(height: 16),
                         Row(
@@ -247,10 +564,32 @@ class _RegisterPageState extends State<RegisterPage> {
                                 });
                               },
                             ),
-                            const Expanded(
-                              child: Text(
-                                'Saya Menyetujui Kebijakan Privasi serta Kondisi dan Ketentuan oleh Tim Tasca',
-                                style: TextStyle(fontSize: 12),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                                  children: [
+                                    const TextSpan(text: 'Saya Menyetujui '),
+                                    TextSpan(
+                                      text: 'Kebijakan Privasi',
+                                      style: const TextStyle(color: Colors.blue),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          _launchURL('https://tascaid.site/privacypolicy');
+                                        },
+                                    ),
+                                    const TextSpan(text: ' serta '),
+                                    TextSpan(
+                                      text: 'Kondisi dan Ketentuan',
+                                      style: const TextStyle(color: Colors.blue),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          _launchURL('https://tascaid.site/terms');
+                                        },
+                                    ),
+                                    const TextSpan(text: ' oleh Tim Tasca'),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -295,6 +634,7 @@ class _RegisterPageState extends State<RegisterPage> {
     String label,
     String placeholder,
     TextEditingController controller,
+    {String? errorText}
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,6 +653,14 @@ class _RegisterPageState extends State<RegisterPage> {
               vertical: 12,
               horizontal: 16,
             ),
+            errorText: errorText,
+            // Add red border if there's an error
+            enabledBorder: errorText != null 
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  )
+                : null,
           ),
         ),
       ],
@@ -329,6 +677,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         const SizedBox(height: 8),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 60,
@@ -345,6 +694,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     vertical: 12,
                     horizontal: 12,
                   ),
+                  // Update border color if phone error exists
+                  enabledBorder: phoneError != null 
+                      ? const OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            bottomLeft: Radius.circular(8),
+                          ),
+                          borderSide: BorderSide(color: Colors.red),
+                        )
+                      : null,
                 ),
                 readOnly: true,
               ),
@@ -364,6 +723,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     vertical: 12,
                     horizontal: 16,
                   ),
+                  errorText: phoneError,
+                  errorStyle: const TextStyle(height: 0.5),
+                  // Update border color if phone error exists
+                  enabledBorder: phoneError != null 
+                      ? const OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(8),
+                            bottomRight: Radius.circular(8),
+                          ),
+                          borderSide: BorderSide(color: Colors.red),
+                        )
+                      : null,
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -378,6 +749,7 @@ class _RegisterPageState extends State<RegisterPage> {
     String label,
     String placeholder,
     TextEditingController controller,
+    {String? errorText}
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,6 +779,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 });
               },
             ),
+            errorText: errorText,
+            enabledBorder: errorText != null 
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  )
+                : null,
           ),
         ),
       ],
