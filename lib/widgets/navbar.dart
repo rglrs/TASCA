@@ -67,7 +67,7 @@ class _NavbarState extends State<Navbar> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(
             5,
-            (index) => Container(
+            (index) => SizedBox(
               width: 40,
               child: Column(
                 mainAxisSize: MainAxisSize.min,

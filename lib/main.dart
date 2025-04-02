@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthCheckScreen extends StatefulWidget {
-  const AuthCheckScreen({Key? key}) : super(key: key);
+  const AuthCheckScreen({super.key});
 
   @override
   _AuthCheckScreenState createState() => _AuthCheckScreenState();
@@ -79,7 +79,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
 }
 
 class StartScreen extends StatelessWidget {
-  const StartScreen({Key? key}) : super(key: key);
+  const StartScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

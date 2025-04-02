@@ -13,13 +13,13 @@ class DetailTodoPage extends StatefulWidget {
   final Function? onTodoUpdated; // Callback untuk ketika todo diperbarui
 
   const DetailTodoPage({
-    Key? key,
+    super.key,
     required this.todoId,
     required this.todoTitle,
     required this.taskCount,
     required this.todoColor,
     this.onTodoUpdated,
-  }) : super(key: key);
+  });
 
   @override
   _DetailTodoPageState createState() => _DetailTodoPageState();
@@ -725,7 +725,7 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                     },
                     child:
                         _isEditingTitle
-                            ? Container(
+                            ? SizedBox(
                               width: MediaQuery.of(context).size.width * 0.7,
                               height: 40,
                               child: Row(

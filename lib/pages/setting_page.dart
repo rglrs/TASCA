@@ -260,8 +260,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               child,
                                               loadingProgress,
                                             ) {
-                                              if (loadingProgress == null)
+                                              if (loadingProgress == null) {
                                                 return child;
+                                              }
                                               return CircularProgressIndicator(
                                                 value:
                                                     loadingProgress

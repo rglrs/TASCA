@@ -64,9 +64,9 @@ class SlicingScreen extends StatefulWidget {
   final int initialPage;
   
   const SlicingScreen({
-    Key? key, 
+    super.key, 
     this.initialPage = 0,
-  }) : super(key: key);
+  });
 
   @override
   State<SlicingScreen> createState() => _SlicingScreenState();
@@ -610,7 +610,7 @@ class _SlicingScreenState extends State<SlicingScreen> {
                         const SizedBox(height: 20),
                         
                         // Button Get Started
-                        Container(
+                        SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
