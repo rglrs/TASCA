@@ -21,7 +21,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
-  
+
   // Error text states
   String? usernameError;
   String? nameError;
@@ -29,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? phoneError;
   String? passwordError;
   String? confirmPasswordError;
-  
+
   bool _isPasswordVisible = false;
   bool _isCheckboxChecked = false;
   bool _isLoading = false;
@@ -50,9 +50,9 @@ class _RegisterPageState extends State<RegisterPage> {
   void _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak dapat membuka $url')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Tidak dapat membuka $url')));
     }
   }
 
@@ -60,7 +60,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _validateForm() {
     bool isValid = true;
     _clearErrors();
-    
+
     // Name validation
     if (nameController.text.isEmpty) {
       setState(() {
@@ -68,7 +68,7 @@ class _RegisterPageState extends State<RegisterPage> {
       });
       isValid = false;
     }
-    
+
     // Username validation
     if (usernameController.text.isEmpty) {
       setState(() {
@@ -86,20 +86,22 @@ class _RegisterPageState extends State<RegisterPage> {
       });
       isValid = false;
     }
-    
+
     // Email validation
     if (emailController.text.isEmpty) {
       setState(() {
         emailError = 'Email tidak boleh kosong';
       });
       isValid = false;
-    } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailController.text)) {
+    } else if (!RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    ).hasMatch(emailController.text)) {
       setState(() {
         emailError = 'Format email tidak valid';
       });
       isValid = false;
     }
-    
+
     // Password validation
     if (passwordController.text.isEmpty) {
       setState(() {
@@ -112,7 +114,7 @@ class _RegisterPageState extends State<RegisterPage> {
       });
       isValid = false;
     }
-    
+
     // Confirm password validation
     if (confirmPasswordController.text.isEmpty) {
       setState(() {
@@ -125,7 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
       });
       isValid = false;
     }
-    
+
     return isValid;
   }
 
@@ -138,7 +140,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
-    
+
     // Validate form before proceeding
     if (!_validateForm()) {
       return;
@@ -152,26 +154,6 @@ class _RegisterPageState extends State<RegisterPage> {
     final String phoneRaw = phoneController.text.trim();
     final String password = passwordController.text;
     final String confirmPassword = confirmPasswordController.text;
-
-    // Validasi input
-    if (!_isValidUsername(username)) {
-      _showError(
-        'Username harus minimal 4 huruf dan tidak boleh mengandung spasi atau simbol',
-      );
-      return;
-    }
-
-    if (!_isValidPassword(password)) {
-      _showError(
-        'Password harus minimal 8 karakter dan terdiri dari huruf kecil, huruf besar, dan angka',
-      );
-      return;
-    }
-
-    if (password != confirmPassword) {
-      _showError('Passwords tidak cocok');
-      return;
-    }
 
     // Proses nomor telepon - kirim null jika kosong
     String? phone;
@@ -198,7 +180,7 @@ class _RegisterPageState extends State<RegisterPage> {
       // Debug response
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-      
+
       // Tambahkan log raw response
       String rawResponse = response.body;
       print('Raw response body: $rawResponse');
@@ -212,52 +194,65 @@ class _RegisterPageState extends State<RegisterPage> {
         );
       } else {
         // Cek dulu untuk pesan SQL error langsung
-        if (rawResponse.contains("idx_users_email") || 
-            rawResponse.contains("duplicate key") && rawResponse.contains("email")) {
+        if (rawResponse.contains("idx_users_email") ||
+            rawResponse.contains("duplicate key") &&
+                rawResponse.contains("email")) {
           setState(() {
             emailError = 'Email sudah terdaftar, silakan gunakan email lain';
           });
-        } else if (rawResponse.contains("idx_users_username") || 
-                  (rawResponse.contains("duplicate key") && rawResponse.contains("username"))) {
+        } else if (rawResponse.contains("idx_users_username") ||
+            (rawResponse.contains("duplicate key") &&
+                rawResponse.contains("username"))) {
           setState(() {
-            usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+            usernameError =
+                'Username sudah terdaftar, silakan gunakan username lain';
           });
         } else {
           // Jika bukan error SQL langsung, coba parse sebagai JSON
           try {
-            final Map<String, dynamic> errorResponse = jsonDecode(response.body);
-            
+            final Map<String, dynamic> errorResponse = jsonDecode(
+              response.body,
+            );
+
             // Log the full error response untuk debugging
             print('Full error response: $errorResponse');
-            
+
             // Check for specific error messages in the top-level response
             if (errorResponse.containsKey('message')) {
-              String message = errorResponse['message'].toString().toLowerCase();
-              
+              String message =
+                  errorResponse['message'].toString().toLowerCase();
+
               // Check if the error message directly indicates username or email already exists
-              if (message.contains('username') && 
-                  (message.contains('sudah ada') || message.contains('exists') || 
-                   message.contains('taken') || message.contains('duplicate'))) {
+              if (message.contains('username') &&
+                  (message.contains('sudah ada') ||
+                      message.contains('exists') ||
+                      message.contains('taken') ||
+                      message.contains('duplicate'))) {
                 setState(() {
-                  usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+                  usernameError =
+                      'Username sudah terdaftar, silakan gunakan username lain';
                 });
                 return;
               }
-              
-              if (message.contains('email') && 
-                  (message.contains('sudah ada') || message.contains('exists') || 
-                   message.contains('taken') || message.contains('duplicate'))) {
+
+              if (message.contains('email') &&
+                  (message.contains('sudah ada') ||
+                      message.contains('exists') ||
+                      message.contains('taken') ||
+                      message.contains('duplicate'))) {
                 setState(() {
-                  emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+                  emailError =
+                      'Email sudah terdaftar, silakan gunakan email lain';
                 });
                 return;
               }
             }
-            
+
             // Continue with normal error handling
             if (errorResponse.containsKey('errors')) {
               _handleServerValidationErrors(errorResponse['errors']);
-            } else if (errorResponse.containsKey('message') && errorResponse.containsKey('errors')) {
+            } else if (errorResponse.containsKey('message') &&
+                errorResponse.containsKey('errors')) {
               _handleServerValidationErrors(errorResponse['errors']);
             } else if (errorResponse.containsKey('error')) {
               Map<String, dynamic> errors = {};
@@ -268,11 +263,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 });
                 _handleServerValidationErrors(errors);
               } else {
-                _showDialog(
-                  context,
-                  'Registrasi Gagal',
-                  errorMap.toString(),
-                );
+                _showDialog(context, 'Registrasi Gagal', errorMap.toString());
               }
             } else if (errorResponse.containsKey('message')) {
               _showDialog(
@@ -289,20 +280,26 @@ class _RegisterPageState extends State<RegisterPage> {
             }
           } catch (e) {
             print('Error parsing response: $e');
-            
+
             // Jika gagal parse JSON, periksa string mentah sekali lagi
             String responseBody = response.body.toLowerCase();
-            if (responseBody.contains("email") && 
-                (responseBody.contains("sudah") || responseBody.contains("duplicate") || 
-                 responseBody.contains("exist") || responseBody.contains("taken"))) {
+            if (responseBody.contains("email") &&
+                (responseBody.contains("sudah") ||
+                    responseBody.contains("duplicate") ||
+                    responseBody.contains("exist") ||
+                    responseBody.contains("taken"))) {
               setState(() {
-                emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+                emailError =
+                    'Email sudah terdaftar, silakan gunakan email lain';
               });
-            } else if (responseBody.contains("username") && 
-                      (responseBody.contains("sudah") || responseBody.contains("duplicate") || 
-                       responseBody.contains("exist") || responseBody.contains("taken"))) {
+            } else if (responseBody.contains("username") &&
+                (responseBody.contains("sudah") ||
+                    responseBody.contains("duplicate") ||
+                    responseBody.contains("exist") ||
+                    responseBody.contains("taken"))) {
               setState(() {
-                usernameError = 'Username sudah terdaftar, silakan gunakan username lain';
+                usernameError =
+                    'Username sudah terdaftar, silakan gunakan username lain';
               });
             } else {
               _showDialog(
@@ -332,16 +329,124 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  bool _isValidUsername(String username) {
-    final RegExp usernameRegExp = RegExp(r'^[a-zA-Z]{4,}$');
-    return usernameRegExp.hasMatch(username);
-  }
+  // Improved error handling for server validation
+  void _handleServerValidationErrors(Map<String, dynamic> errors) {
+    print('Processing server validation errors: $errors');
 
-  bool _isValidPassword(String password) {
-    final RegExp passwordRegExp = RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$',
-    );
-    return passwordRegExp.hasMatch(password);
+    setState(() {
+      // Handle username errors
+      if (errors.containsKey('username')) {
+        var usernameErrors = errors['username'];
+        if (usernameErrors is List) {
+          usernameError =
+              usernameErrors.isNotEmpty ? usernameErrors[0].toString() : null;
+
+          // Check for common username exists error patterns
+          for (var error in usernameErrors) {
+            if (error.toString().toLowerCase().contains('sudah diambil') ||
+                error.toString().toLowerCase().contains('sudah ada') ||
+                error.toString().toLowerCase().contains('already') ||
+                error.toString().toLowerCase().contains('taken') ||
+                error.toString().toLowerCase().contains('exists')) {
+              usernameError =
+                  'Username sudah terdaftar, silakan gunakan username lain';
+              break;
+            }
+          }
+        } else {
+          usernameError = usernameErrors.toString();
+
+          // Check string directly
+          if (usernameErrors.toString().toLowerCase().contains(
+                'sudah diambil',
+              ) ||
+              usernameErrors.toString().toLowerCase().contains('sudah ada') ||
+              usernameErrors.toString().toLowerCase().contains('already') ||
+              usernameErrors.toString().toLowerCase().contains('taken') ||
+              usernameErrors.toString().toLowerCase().contains('exists')) {
+            usernameError =
+                'Username sudah terdaftar, silakan gunakan username lain';
+          }
+        }
+      }
+
+      // Handle email errors
+      if (errors.containsKey('email')) {
+        var emailErrors = errors['email'];
+        if (emailErrors is List) {
+          emailError =
+              emailErrors.isNotEmpty ? emailErrors[0].toString() : null;
+
+          // Check for common email exists error patterns
+          for (var error in emailErrors) {
+            if (error.toString().toLowerCase().contains('sudah diambil') ||
+                error.toString().toLowerCase().contains('sudah ada') ||
+                error.toString().toLowerCase().contains('already') ||
+                error.toString().toLowerCase().contains('taken') ||
+                error.toString().toLowerCase().contains('exists')) {
+              emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+              break;
+            }
+          }
+        } else {
+          emailError = emailErrors.toString();
+
+          // Check string directly
+          if (emailErrors.toString().toLowerCase().contains('sudah diambil') ||
+              emailErrors.toString().toLowerCase().contains('sudah ada') ||
+              emailErrors.toString().toLowerCase().contains('already') ||
+              emailErrors.toString().toLowerCase().contains('taken') ||
+              emailErrors.toString().toLowerCase().contains('exists')) {
+            emailError = 'Email sudah terdaftar, silakan gunakan email lain';
+          }
+        }
+      }
+
+      // Handle other fields normally
+      if (errors.containsKey('name')) {
+        var nameErrors = errors['name'];
+        if (nameErrors is List) {
+          nameError = nameErrors.isNotEmpty ? nameErrors[0].toString() : null;
+        } else {
+          nameError = nameErrors.toString();
+        }
+      }
+
+      if (errors.containsKey('phone')) {
+        var phoneErrors = errors['phone'];
+        if (phoneErrors is List) {
+          phoneError =
+              phoneErrors.isNotEmpty ? phoneErrors[0].toString() : null;
+        } else {
+          phoneError = phoneErrors.toString();
+        }
+      }
+
+      if (errors.containsKey('password')) {
+        var passwordErrors = errors['password'];
+        if (passwordErrors is List) {
+          passwordError =
+              passwordErrors.isNotEmpty ? passwordErrors[0].toString() : null;
+        } else {
+          passwordError = passwordErrors.toString();
+        }
+      }
+
+      if (errors.containsKey('confirm_password')) {
+        var confirmPasswordErrors = errors['confirm_password'];
+        if (confirmPasswordErrors is List) {
+          confirmPasswordError =
+              confirmPasswordErrors.isNotEmpty
+                  ? confirmPasswordErrors[0].toString()
+                  : null;
+        } else {
+          confirmPasswordError = confirmPasswordErrors.toString();
+        }
+      }
+    });
+
+    // Log final error states for debugging
+    print('Final error states - Username: $usernameError, Email: $emailError');
   }
 
   void _showError(String message) {
@@ -449,7 +554,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 16),
                         _buildTextField(
                           'Username*',
-                          'Masukkan username min. 4 huruf tanpa spasi atau simbol',
+                          'Masukkan username min. 4 karakter',
                           usernameController,
                           errorText: usernameError,
                         ),
@@ -465,7 +570,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 16),
                         _buildPasswordField(
                           'Password*',
-                          'Password minimal 8 karakter, terdiri dari huruf kecil, huruf besar, dan angka',
+                          'Password minimum 8 karakter',
                           passwordController,
                           errorText: passwordError,
                         ),
@@ -490,25 +595,38 @@ class _RegisterPageState extends State<RegisterPage> {
                             Expanded(
                               child: RichText(
                                 text: TextSpan(
-                                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black,
+                                  ),
                                   children: [
                                     const TextSpan(text: 'Saya Menyetujui '),
                                     TextSpan(
                                       text: 'Kebijakan Privasi',
-                                      style: const TextStyle(color: Colors.blue),
-                                      recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          _launchURL('https://tascaid.site/privacypolicy');
-                                        },
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                      ),
+                                      recognizer:
+                                          TapGestureRecognizer()
+                                            ..onTap = () {
+                                              _launchURL(
+                                                'https://tascaid.site/privacypolicy',
+                                              );
+                                            },
                                     ),
                                     const TextSpan(text: ' serta '),
                                     TextSpan(
                                       text: 'Kondisi dan Ketentuan',
-                                      style: const TextStyle(color: Colors.blue),
-                                      recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          _launchURL('https://tascaid.site/terms');
-                                        },
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                      ),
+                                      recognizer:
+                                          TapGestureRecognizer()
+                                            ..onTap = () {
+                                              _launchURL(
+                                                'https://tascaid.site/terms',
+                                              );
+                                            },
                                     ),
                                     const TextSpan(text: ' oleh Tim Tasca'),
                                   ],
@@ -556,9 +674,9 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildTextField(
     String label,
     String placeholder,
-    TextEditingController controller,
-    {String? errorText}
-  ) {
+    TextEditingController controller, {
+    String? errorText,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -578,12 +696,13 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             errorText: errorText,
             // Add red border if there's an error
-            enabledBorder: errorText != null 
-                ? OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
-                  )
-                : null,
+            enabledBorder:
+                errorText != null
+                    ? OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.red),
+                    )
+                    : null,
           ),
         ),
       ],
@@ -618,15 +737,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     horizontal: 12,
                   ),
                   // Update border color if phone error exists
-                  enabledBorder: phoneError != null 
-                      ? const OutlineInputBorder(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            bottomLeft: Radius.circular(8),
-                          ),
-                          borderSide: BorderSide(color: Colors.red),
-                        )
-                      : null,
+                  enabledBorder:
+                      phoneError != null
+                          ? const OutlineInputBorder(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              bottomLeft: Radius.circular(8),
+                            ),
+                            borderSide: BorderSide(color: Colors.red),
+                          )
+                          : null,
                 ),
                 readOnly: true,
               ),
@@ -649,15 +769,16 @@ class _RegisterPageState extends State<RegisterPage> {
                   errorText: phoneError,
                   errorStyle: const TextStyle(height: 0.5),
                   // Update border color if phone error exists
-                  enabledBorder: phoneError != null 
-                      ? const OutlineInputBorder(
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(8),
-                            bottomRight: Radius.circular(8),
-                          ),
-                          borderSide: BorderSide(color: Colors.red),
-                        )
-                      : null,
+                  enabledBorder:
+                      phoneError != null
+                          ? const OutlineInputBorder(
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(8),
+                              bottomRight: Radius.circular(8),
+                            ),
+                            borderSide: BorderSide(color: Colors.red),
+                          )
+                          : null,
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -671,9 +792,9 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildPasswordField(
     String label,
     String placeholder,
-    TextEditingController controller,
-    {String? errorText}
-  ) {
+    TextEditingController controller, {
+    String? errorText,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -703,12 +824,13 @@ class _RegisterPageState extends State<RegisterPage> {
               },
             ),
             errorText: errorText,
-            enabledBorder: errorText != null 
-                ? OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
-                  )
-                : null,
+            enabledBorder:
+                errorText != null
+                    ? OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.red),
+                    )
+                    : null,
           ),
         ),
       ],
