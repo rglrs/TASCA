@@ -1,9 +1,9 @@
 import React from "react";
-import clockIcon from "../assets/image/clock.svg";
-import musicIcon from "../assets/image/music.svg";
-import notesIcon from "../assets/image/notes.svg";
-import calendarIcon from "../assets/image/calendar.svg";
-import mockupImage from "../assets/image/tes.svg";
+import clockIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365468/clock_repk51.svg";
+import musicIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/music_nq0dkx.svg";
+import notesIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/notes_oblq9j.svg";
+import calendarIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365469/calendar_b14spl.svg";
+import mockupImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/tes_xjz7ih.svg";
 import { motion } from "framer-motion";
 
 const features = [

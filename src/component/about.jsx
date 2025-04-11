@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import TascaLogo from "./TascaLogo";
+import TascaLogo from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg";
 
 const About = () => {
   const ref = useRef(null);
@@ -33,7 +33,6 @@ const About = () => {
         "Organize your assignments, projects, and daily to-dos with our intuitive task management system.",
       icon: (
         <svg
-          xmlns="http://www.w3.org/2000/svg"
           className="h-12 w-12 text-[#007BFF]"
           fill="none"
           viewBox="0 0 24 24"

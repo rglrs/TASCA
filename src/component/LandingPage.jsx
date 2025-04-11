@@ -1,10 +1,10 @@
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Clock, Check, Zap, BarChart } from "lucide-react";
-import heroImage from "../assets/image/pict_home.svg";
-import mockupImage from "../assets/image/mockup.svg";
-import gpImage from "../assets/image/gp.png";
-import bgImage from "../assets/image/bgweb3.svg";
+import heroImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/pict_home_ndnx8c.svg";
+import mockupImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/mockup_louo4h.svg";
+import gpImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/gp_ouu6d0.png";
+import bgImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/bgweb3_ok2bco.svg";
 
 const LandingPage = () => {
   const heroRef = useRef(null);
@@ -56,8 +56,7 @@ const LandingPage = () => {
             alt="Google Play"
             onClick={() =>
               window.open(
-                "https://play.google.com/store/apps/details?id=YOUR_APP_PACKAGE_ID",
-                "_blank"
+                "https://play.google.com/store/apps/details?id=com.tascaid.app",
               )
             }
             initial={{ opacity: 0, y: 20 }}

@@ -1,14 +1,14 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import ragil from "../assets/image/ragil.png";
-import fani from "../assets/image/fani.png";
-import hana from "../assets/image/hana.png";
-import yafi from "../assets/image/yafi.png";
-import vonda from "../assets/image/vonda.png";
-import fahril from "../assets/image/fahril.png";
-import rafif from "../assets/image/rafif.png";
-import bgOurteam from "../assets/image/bg_ourteam.svg";
+import ragil from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365474/ragil_x9vaqd.png";
+import fani from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/fani_mkkqik.png";
+import hana from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365448/hana_zabczh.png";
+import yafi from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/yafi_ewevim.png";
+import vonda from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365471/vonda_l8dmn3.png";
+import fahril from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/fahril_bh7yd1.png";
+import rafif from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png";
+import bgOurteam from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg";
 
 const teamMembers = [
   {

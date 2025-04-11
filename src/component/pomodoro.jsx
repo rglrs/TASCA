@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Pause, ChevronUp, ChevronDown, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import TomatoIcon from "../assets/image/tomat.svg";
-import logo from "../assets/image/logo.svg";
+import TomatoIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg";
+import logo from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg";
 import Ambience from "../component/Ambience.jsx";
-import BgPomodoro from "../assets/image/bg_pomodoro.png";
+import BgPomodoro from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365475/bg_pomodoro_t87usq.png";
 
 const Pomodoro = () => {
   const defaultFocusMinutes = 25;

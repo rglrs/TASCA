@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
-import SongIcon from "../assets/image/non_song.svg";
-import ActiveSongIcon from "../assets/image/song.svg";
+import SongIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365446/non_song_iqvdxh.svg";
+import ActiveSongIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365472/song_nbcrx3.svg";
 import birdAudio from "../assets/audio/bird_ambience.mp3";
 import fireAudio from "../assets/audio/fire_ambience.mp3";
 import forestAudio from "../assets/audio/forest_ambience.mp3";
@@ -9,14 +9,14 @@ import nightAudio from "../assets/audio/night_ambience.mp3";
 import rainAudio from "../assets/audio/rain_ambience.mp3";
 import waveAudio from "../assets/audio/wave_ambience.mp3";
 import windAudio from "../assets/audio/wind_ambience.mp3";
-import nonmusicIcon from "../assets/image/non_music.svg";
-import birdIcon from "../assets/image/bird.svg";
-import fireIcon from "../assets/image/fire.svg";
-import forestIcon from "../assets/image/forest.svg";
-import nightIcon from "../assets/image/night.svg";
-import rainIcon from "../assets/image/rain.svg";
-import waveIcon from "../assets/image/wave.svg";
-import windIcon from "../assets/image/wind.svg";
+import nonmusicIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365420/non_music_unn7cx.svg";
+import birdIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/bird_z4bd0o.svg";
+import fireIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365424/fire_n8jw4v.svg";
+import forestIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365421/forest_mnnfvg.svg";
+import nightIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365460/night_bmtt1x.svg";
+import rainIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/rain_idbsuh.svg";
+import waveIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365452/wave_wj9nl0.svg";
+import windIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365454/wind_elkxgk.svg";
 
 const Ambience = ({ isRunning }) => {
   const [isAmbienceMenuOpen, setIsAmbienceMenuOpen] = useState(false);

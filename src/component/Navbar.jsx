@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "../assets/image/logo.svg";
+import logo from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {

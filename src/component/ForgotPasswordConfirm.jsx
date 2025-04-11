@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import Lottie from "lottie-react";
-import forgotImage from "../assets/image/forgot.svg";
+import forgotImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365445/forgot_orkdnz.svg";
 import successAnimation from "../assets/animation/success.json";
 import axios from "axios";
 

@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import heroImage from "../assets/image/1.svg";
+import heroImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365450/1_fk65lm.svg";
 
 const HeroSection = () => {
   const heroRef = useRef(null);
