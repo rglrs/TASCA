@@ -29,7 +29,7 @@ const teamMembers = [
     role: "UI/UX Designer",
   },
   {
-    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png",
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/fahril_bh7yd1.png",
     name: "Mochammad Fahril Rizal",
     role: "Backend Developer & DevOps",
   },
