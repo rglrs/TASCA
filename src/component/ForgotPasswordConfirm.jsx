@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import Lottie from "lottie-react";
-import forgotImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365445/forgot_orkdnz.svg";
 import successAnimation from "../assets/animation/success.json";
 import axios from "axios";
 
@@ -129,7 +128,7 @@ export default function ResetPassword() {
         {/* Image */}
         <div className="w-full md:w-1/2 flex items-center justify-center bg-blue-50 p-6">
           <img
-            src={forgotImage}
+            src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365445/forgot_orkdnz.svg"
             alt="Forgot Password"
             className="max-w-40 md:max-w-full h-auto"
           />

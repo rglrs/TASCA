@@ -1,7 +1,6 @@
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import heroImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365450/1_fk65lm.svg";
 
 const HeroSection = () => {
   const heroRef = useRef(null);
@@ -50,7 +49,7 @@ const HeroSection = () => {
         whileHover={{ scale: 1.1 }}
         className="md:w-1/2 order-1 md:order-2 flex justify-end"
       >
-        <img src={heroImage} alt="Hero TASCA" className="w-full max-w-md rounded-xl" />
+        <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365450/1_fk65lm.svg" alt="Hero TASCA" className="w-full max-w-md rounded-xl" />
       </motion.div>
     </motion.section>
   );

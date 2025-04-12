@@ -2,10 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Pause, ChevronUp, ChevronDown, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import TomatoIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg";
-import logo from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg";
 import Ambience from "../component/Ambience.jsx";
-import BgPomodoro from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365475/bg_pomodoro_t87usq.png";
 
 const Pomodoro = () => {
   const defaultFocusMinutes = 25;
@@ -126,7 +123,7 @@ const Pomodoro = () => {
             onClick={handleBack}
             className="flex items-center bg-white rounded-xl px-4 py-2 shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
           >
-            <img src={logo} alt="Logo" className="h-8" />
+            <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg" alt="Logo" className="h-8" />
             <h1 className="text-2xl font-bold font-poppins ml-2">
               <span className="text-[#007BFF]">T</span>
               <span className="text-[#007BFF]">a</span>
@@ -190,9 +187,9 @@ const Pomodoro = () => {
           <div className="flex flex-col items-center mb-4">
             <p className="text-md font-semibold">Stay Focused</p>
             <div className="flex gap-1 mt-1">
-              <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
-              <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
-              <img src={TomatoIcon} alt="Tomato" className="w-5 h-5" />
+              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
+              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
+              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
             </div>
           </div>
           <div className="text-6xl font-poppins font-semibold mb-4">
@@ -249,7 +246,7 @@ const Pomodoro = () => {
       {/* bg bawah */}
       <motion.div
         className="absolute bottom-[-20px] md:bottom-[-50px] w-full h-40 md:h-70 bg-no-repeat bg-cover"
-        style={{ backgroundImage: `url(${BgPomodoro})` }}
+        style={{ backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365475/bg_pomodoro_t87usq.png)` }}
         animate={{ opacity: [0, 1], y: [50, 0] }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       ></motion.div>

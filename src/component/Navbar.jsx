@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
@@ -43,7 +42,7 @@ export default function Navbar() {
     >
       {/* Logo */}
       <div className="flex items-center space-x-2">
-        <img src={logo} alt="Logo" className="h-13" />
+        <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg" alt="Logo" className="h-13" />
         <h1 className="text-2xl font-bold font-poppins">
           <span className="text-[#007BFF]">T</span>
           <span className="text-[#007BFF]">a</span>

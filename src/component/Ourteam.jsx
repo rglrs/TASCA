@@ -1,40 +1,40 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import ragil from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365474/ragil_x9vaqd.png";
-import fani from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/fani_mkkqik.png";
-import hana from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365448/hana_zabczh.png";
-import yafi from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/yafi_ewevim.png";
-import vonda from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365471/vonda_l8dmn3.png";
-import fahril from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/fahril_bh7yd1.png";
-import rafif from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png";
-import bgOurteam from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg";
 
 const teamMembers = [
   {
-    img: ragil,
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365474/ragil_x9vaqd.png",
     name: "Ragil Ridho Saputra",
     role: "Product Owner & Mobile Developer",
   },
   {
-    img: fani,
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/fani_mkkqik.png",
     name: "Marieta Nona Alfani",
     role: "UI/UX Designer & Frontend Developer",
   },
-  { img: hana, name: "Roihanah Inayati Bashiroh", role: "Frontend Developer" },
   {
-    img: yafi,
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365448/hana_zabczh.png",
+    name: "Roihanah Inayati Bashiroh",
+    role: "Frontend Developer",
+  },
+  {
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/yafi_ewevim.png",
     name: "Muhammad Yafi Rifdah",
     role: "Assistant Scrum Master, Frontend Developer & Mobile Developer",
   },
-  { img: vonda, name: "Bayu Ariyo Vonda Wicaksono", role: "UI/UX Designer" },
   {
-    img: fahril,
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365471/vonda_l8dmn3.png",
+    name: "Bayu Ariyo Vonda Wicaksono",
+    role: "UI/UX Designer",
+  },
+  {
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png",
     name: "Mochammad Fahril Rizal",
     role: "Backend Developer & DevOps",
   },
   {
-    img: rafif,
+    img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png",
     name: "Muhammad Rasyid Rafif",
     role: "Mobile Developer",
   },
@@ -45,9 +45,8 @@ const OurTeam = () => {
     <div
       className="pt-36 pb-36 py-10 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-cover bg-top bg-no-repeat"
       style={{
-        backgroundImage: `url(${bgOurteam})`,
-      }}
-    >
+        backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg)`,
+      }}>
       <h2 className="text-3xl font-bold text-white mb-10">Our Team</h2>
 
       <div className="max-w-5xl mx-auto space-y-8 px-4 sm:px-0">
@@ -65,13 +64,11 @@ const OurTeam = () => {
                 className="flex flex-col items-center"
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
+                transition={{ duration: 0.5, delay: index * 0.1 }}>
                 <motion.div
                   className="w-32 h-32 sm:w-40 sm:h-40"
                   whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.3 }}
-                >
+                  transition={{ duration: 0.3 }}>
                   <img
                     src={member.img}
                     alt={member.name}
@@ -105,13 +102,11 @@ const OurTeam = () => {
                 }`}
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                transition={{ duration: 0.5, delay: (index + 4) * 0.1 }}
-              >
+                transition={{ duration: 0.5, delay: (index + 4) * 0.1 }}>
                 <motion.div
                   className="w-32 h-32 sm:w-40 sm:h-40"
                   whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.3 }}
-                >
+                  transition={{ duration: 0.3 }}>
                   <img
                     src={member.img}
                     alt={member.name}

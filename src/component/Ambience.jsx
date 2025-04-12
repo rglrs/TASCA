@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
-import SongIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365446/non_song_iqvdxh.svg";
-import ActiveSongIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365472/song_nbcrx3.svg";
 import birdAudio from "../assets/audio/bird_ambience.mp3";
 import fireAudio from "../assets/audio/fire_ambience.mp3";
 import forestAudio from "../assets/audio/forest_ambience.mp3";
@@ -9,14 +7,6 @@ import nightAudio from "../assets/audio/night_ambience.mp3";
 import rainAudio from "../assets/audio/rain_ambience.mp3";
 import waveAudio from "../assets/audio/wave_ambience.mp3";
 import windAudio from "../assets/audio/wind_ambience.mp3";
-import nonmusicIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365420/non_music_unn7cx.svg";
-import birdIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/bird_z4bd0o.svg";
-import fireIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365424/fire_n8jw4v.svg";
-import forestIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365421/forest_mnnfvg.svg";
-import nightIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365460/night_bmtt1x.svg";
-import rainIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/rain_idbsuh.svg";
-import waveIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365452/wave_wj9nl0.svg";
-import windIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365454/wind_elkxgk.svg";
 
 const Ambience = ({ isRunning }) => {
   const [isAmbienceMenuOpen, setIsAmbienceMenuOpen] = useState(false);
@@ -25,14 +15,14 @@ const Ambience = ({ isRunning }) => {
   const buttonRef = useRef(null);
 
   const ambienceSounds = [
-    { name: "None", audio: null, icon: nonmusicIcon },
-    { name: "Forest", audio: forestAudio, icon: forestIcon },
-    { name: "Rain", audio: rainAudio, icon: rainIcon },
-    { name: "Wave", audio: waveAudio, icon: waveIcon },
-    { name: "Fire", audio: fireAudio, icon: fireIcon },
-    { name: "Bird", audio: birdAudio, icon: birdIcon },
-    { name: "Wind", audio: windAudio, icon: windIcon },
-    { name: "Night", audio: nightAudio, icon: nightIcon },
+    { name: "None", audio: null, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365420/non_music_unn7cx.svg' },
+    { name: "Forest", audio: forestAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365421/forest_mnnfvg.svg' },
+    { name: "Rain", audio: rainAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/rain_idbsuh.svg' },
+    { name: "Wave", audio: waveAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365452/wave_wj9nl0.svg' },
+    { name: "Fire", audio: fireAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365424/fire_n8jw4v.svg' },
+    { name: "Bird", audio: birdAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/bird_z4bd0o.svg' },
+    { name: "Wind", audio: windAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365454/wind_elkxgk.svg' },
+    { name: "Night", audio: nightAudio, icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365460/night_bmtt1x.svg' },
   ];
 
   // Determine if sound is currently playing
@@ -89,7 +79,7 @@ const Ambience = ({ isRunning }) => {
   // Determine the icon to display based on selected ambience
   const currentIcon = selectedAmbience 
     ? ambienceSounds.find(sound => sound.name === selectedAmbience)?.icon 
-    : SongIcon;
+    : 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365446/non_song_iqvdxh.svg';
 
   return (
     <div className="relative" ref={buttonRef}>
@@ -98,7 +88,7 @@ const Ambience = ({ isRunning }) => {
         className="flex items-center gap-2 font-semibold text-black hover:text-gray-700"
       >
         <img 
-          src={isSoundPlaying ? ActiveSongIcon : currentIcon} 
+          src={isSoundPlaying ? 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365472/song_nbcrx3.svg' : currentIcon} 
           alt="Sound" 
           className="w-5 h-5" 
         />

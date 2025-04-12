@@ -1,10 +1,6 @@
 import React, { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Clock, Check, Zap, BarChart } from "lucide-react";
-import heroImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/pict_home_ndnx8c.svg";
-import mockupImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/mockup_louo4h.svg";
-import gpImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/gp_ouu6d0.png";
-import bgImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/bgweb3_ok2bco.svg";
 
 const LandingPage = () => {
   const heroRef = useRef(null);
@@ -19,7 +15,7 @@ const LandingPage = () => {
     <div
       className="min-h-screen flex flex-col items-center text-center scroll-smooth pt-60 w-full px-6 md:px-16 lg:px-32"
       style={{
-        backgroundImage: `url(${bgImage})`,
+        backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/bgweb3_ok2bco.svg)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}>
@@ -52,7 +48,7 @@ const LandingPage = () => {
             structured and technology-based approach.
           </motion.p>
           <motion.img
-            src={gpImage}
+            src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/gp_ouu6d0.png"
             alt="Google Play"
             onClick={() =>
               window.open(
@@ -72,7 +68,7 @@ const LandingPage = () => {
           whileHover={{ scale: 1.1 }}
           className="md:w-1/2 order-1 md:order-2 flex justify-center md:justify-end">
           <img
-            src={heroImage}
+            src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/pict_home_ndnx8c.svg"
             alt="Hero TASCA"
             className="w-2/3 sm:w-3/4 md:w-3/4 max-w-sm rounded-xl"
           />
@@ -89,7 +85,7 @@ const LandingPage = () => {
           whileHover={{ scale: 1.1 }}
           className="md:w-1/2 flex justify-center mt-4">
           <img
-            src={mockupImage}
+            src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/mockup_louo4h.svg"
             alt="Mockup TASCA"
             className="w-auto max-w-xl sm:max-w-2xl md:max-w-3xl h-auto rounded-xl mx-auto"
           />

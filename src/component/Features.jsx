@@ -1,30 +1,25 @@
 import React from "react";
-import clockIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365468/clock_repk51.svg";
-import musicIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/music_nq0dkx.svg";
-import notesIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/notes_oblq9j.svg";
-import calendarIcon from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365469/calendar_b14spl.svg";
-import mockupImage from "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/tes_xjz7ih.svg";
 import { motion } from "framer-motion";
 
 const features = [
   {
-    icon: clockIcon,
+    icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365468/clock_repk51.svg',
     title: "Pomodoro",
     description:
       "Organize your study time more efficiently with the Pomodoro technique",
   },
   {
-    icon: musicIcon,
+    icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365443/music_nq0dkx.svg',
     title: "Music Relaxation",
     description: "Improve concentration with relaxing music",
   },
   {
-    icon: notesIcon,
+    icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365442/notes_oblq9j.svg',
     title: "Todolist",
     description: "Manage your tasks to be more structured and organized",
   },
   {
-    icon: calendarIcon,
+    icon: 'https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365469/calendar_b14spl.svg',
     title: "Calendar",
     description: "No need to worry about missing assignment deadlines",
   },
@@ -55,7 +50,7 @@ const Features = () => {
       <div className="flex flex-col md:flex-row items-center justify-between w-full">
         {/* Kanan - Mockup Image (Dibuat Order 1 di Mobile) */}
         <motion.img
-          src={mockupImage}
+          src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/tes_xjz7ih.svg"
           alt="Mockup"
           className="w-[180px] md:w-[250px] lg:w-[300px] xl:max-w-[280px] h-auto"
           whileHover={{ scale: 1.1 }}
