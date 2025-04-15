@@ -1,4 +1,4 @@
-package com.tasca.app
+package com.tascaid.app
 
 import io.flutter.embedding.android.FlutterActivity
 

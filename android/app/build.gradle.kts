@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.tasca.app"
+    namespace = "com.tascaid.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.13113456"
 
@@ -30,13 +30,16 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.tasca.app"
+        applicationId = "com.tascaid.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 4
+        versionName = "1.0.3"
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
     }
 
 signingConfigs {
