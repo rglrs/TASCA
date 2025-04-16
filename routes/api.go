@@ -2,6 +2,7 @@ package routes
 
 import (
 	"tasca/controllers"
+	"tasca/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/swaggo/files"
@@ -30,6 +31,48 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		api.POST("/login", controllers.LoginUser)
 		api.GET("/google/login", controllers.GoogleLogin)
 		api.GET("/google/callback", controllers.GoogleCallback)
+		api.POST("/forgot-password", controllers.ForgotPassword)
+		api.POST("/reset-password", controllers.ResetPassword)
+		api.POST("/validate-token", controllers.ValidateToken)
+
+		auth := api.Group("/")
+		auth.Use(middleware.AuthMiddleware())
+		{
+			auth.POST("/logout", controllers.LogoutUser)
+
+			profile := auth.Group("/profile")
+			{
+				profile.GET("/", controllers.GetUserProfile)
+				profile.POST("/link-google", controllers.LinkGoogleAccount)
+				profile.PATCH("/unlink-google", controllers.UnlinkGoogleAccount)
+				profile.PATCH("/change-password", controllers.ChangePassword)
+				profile.PATCH("/update", controllers.UpdateProfile)
+				profile.DELETE("/delete-picture", controllers.DeleteProfilePicture)
+				profile.DELETE("/", controllers.DeleteAccount)
+			}
+
+			// Todo
+			todo := auth.Group("/todos")
+			{
+				todo.GET("/", controllers.GetTodos)
+				todo.GET("/:id", controllers.GetTodoByID)
+				todo.POST("/", controllers.CreateTodo)
+				todo.PATCH("/:id", controllers.UpdateTodo)
+				todo.DELETE("/:id", controllers.DeleteTodo)
+
+				// Task
+				task := todo.Group("/:id/tasks")
+				{
+					task.GET("/", controllers.GetTasksByTodoID)
+					task.GET("/incomplete", controllers.GetIncompleteTasks)
+					task.GET("/:task_id", controllers.GetTaskByID)
+					task.PATCH("/:task_id/complete", controllers.TaskComplete)
+					task.POST("/", controllers.CreateTask)
+					task.PATCH("/:task_id", controllers.UpdateTask)
+					task.DELETE("/:task_id", controllers.DeleteTask)
+				}
+			}
+		}
 	}
 	return r
 }

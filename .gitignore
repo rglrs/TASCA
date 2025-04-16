@@ -1,7 +1,5 @@
 go*
 .env.*
 .env
-Dockerfile
-dockercompose.yaml
 .dockerignore
 .DS_Store

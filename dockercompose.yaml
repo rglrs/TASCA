@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pg-container
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - backend
+
+  api:
+    build: .
+    container_name: project-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    env_file:
+      - .env.prod 
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+    driver: bridge

@@ -12,6 +12,7 @@ type User struct {
 	GoogleID         *string    `gorm:"uniqueIndex;type:text;default:null" json:"google_id,omitempty"`
 	Picture          *string    `gorm:"type:text;default:null" json:"picture,omitempty"`
 	Provider         string     `gorm:"type:text;default:'local'" json:"provider"`
+	Todos            []Todo     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"todos"`
 	ResetToken       *string    `gorm:"type:text;default:null" json:"-"` //untuk reset password
 	ResetTokenExpiry *time.Time `gorm:"default:null" json:"-"`           //untuk reset password
 	CreatedAt        time.Time  `gorm:"autoCreateTime" json:"created_at"`

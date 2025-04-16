@@ -52,7 +52,7 @@ func RegisterUser(c *gin.Context) {
 		Provider: "local",
 	}
 
-	defaultPic := "storage/upload/profile_picture/default.jpg"
+	defaultPic := "storage/upload/default.jpg"
 	user.Picture = &defaultPic
 
 	if err := services.RegisterUser(db, &user); err != nil {
