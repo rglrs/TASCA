@@ -446,31 +446,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Crop Foto Profil Bulat',
+            toolbarTitle: 'Crop Foto Profil',
             toolbarColor: const Color(0xFF8B7DFA),
             toolbarWidgetColor: Colors.white,
             backgroundColor: Colors.black,
-            cropFrameColor: const Color(0xFF8B7DFA),
-            cropFrameStrokeWidth: 4,
-            cropGridColor: Colors.transparent,
-            cropGridStrokeWidth: 0,
-            cropGridRowCount: 0,
-            cropGridColumnCount: 0,
             activeControlsWidgetColor: const Color(0xFF8B7DFA),
-            dimmedLayerColor: Colors.black.withOpacity(0.8),
-            statusBarColor: const Color(0xFF8B7DFA),
-            lockAspectRatio: true,
-            showCropGrid: false,
+            lockAspectRatio: false,
+            showCropGrid: true, 
           ),
           IOSUiSettings(
-            title: 'Crop Foto Profil Bulat',
+            title: 'Crop Foto Profil',
             doneButtonTitle: 'Selesai',
             cancelButtonTitle: 'Batal',
-            aspectRatioLockEnabled: true,
-            rotateButtonsHidden: true,
-            resetButtonHidden: true,
-            aspectRatioPickerButtonHidden: true,
-            minimumAspectRatio: 1,
+            aspectRatioLockEnabled: false,
+            rotateButtonsHidden: false,
+            resetButtonHidden: false,
+            aspectRatioPickerButtonHidden: false, 
           ),
         ],
         compressQuality: 85,
@@ -478,7 +469,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxHeight: 1024,
       );
     } catch (e) {
-      developer.log('Error in _safeCropImage: $e');
       throw Exception('Gagal melakukan crop gambar: $e');
     }
   }
@@ -917,8 +907,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: TextField(
                     controller: controller,
                     readOnly: !editable,
-                    enabled:
-                        editable, // Tambahkan ini agar benar-benar tidak bisa diklik
+                    enabled: editable,
                     onChanged: onChanged,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
@@ -926,7 +915,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     style: TextStyle(
                       fontSize: 15,
-                      // Warna teks berbeda untuk yang tidak bisa diedit
                       color: editable ? Colors.black : Colors.grey.shade700,
                     ),
                   ),

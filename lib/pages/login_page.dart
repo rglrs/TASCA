@@ -34,13 +34,11 @@ class _LoginPageState extends State<LoginPage> {
     if (token != null && expirationTime != null) {
       final currentTime = DateTime.now().millisecondsSinceEpoch;
       if (currentTime < expirationTime) {
-        // Token is still valid, redirect to PomodoroTimer
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
-        // Token is expired, clear the token and stay on the login page
         await prefs.remove('auth_token');
         await prefs.remove('token_expiration');
       }
