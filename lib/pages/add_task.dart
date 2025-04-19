@@ -42,9 +42,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       // Parse deadline if exists
       if (widget.initialData!['deadline'] != null) {
-        DateTime deadline = DateTime.parse(widget.initialData!['deadline']);
+        // Parse the deadline and convert to local time
+        DateTime deadline =
+            DateTime.parse(widget.initialData!['deadline']).toLocal();
         _selectedDate = DateTime(deadline.year, deadline.month, deadline.day);
-        _selectedTime = TimeOfDay.fromDateTime(deadline);
+        _selectedTime = TimeOfDay(hour: deadline.hour, minute: deadline.minute);
       }
     }
   }
@@ -411,10 +413,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             )
           else
             TextButton(
-              onPressed:
-                  _isTaskReady()
-                      ? _addOrUpdateTask
-                      : null,
+              onPressed: _isTaskReady() ? _addOrUpdateTask : null,
               style: TextButton.styleFrom(
                 backgroundColor:
                     _isTaskReady()

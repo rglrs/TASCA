@@ -10,7 +10,7 @@ class DetailTodoPage extends StatefulWidget {
   final String todoTitle;
   final int taskCount;
   final String todoColor;
-  final Function? onTodoUpdated; // Callback untuk ketika todo diperbarui
+  final Function? onTodoUpdated;
 
   const DetailTodoPage({
     super.key,
@@ -57,32 +57,39 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   }
 
   List<dynamic> _sortTasks(List<dynamic> tasks) {
-    // Pisahkan tasks menjadi yang sudah selesai dan belum selesai
+    // Separate complete and incomplete tasks
     final incompleteTasks =
         tasks.where((task) => !task['is_complete']).toList();
     final completeTasks = tasks.where((task) => task['is_complete']).toList();
 
-    // Urutkan tasks yang belum selesai berdasarkan deadline
+    // Sort incomplete tasks by priority first, then by deadline
     incompleteTasks.sort((a, b) {
-      // Prioritaskan tasks dengan deadline terdekat
+      // First compare by priority (higher priority comes first)
+      final priorityA = a['priority'] ?? 0;
+      final priorityB = b['priority'] ?? 0;
+
+      // Reverse comparison for priority (3 comes before 0)
+      final priorityComparison = priorityB.compareTo(priorityA);
+
+      // If priorities are different, return that comparison
+      if (priorityComparison != 0) {
+        return priorityComparison;
+      }
+
+      // If priorities are the same, sort by deadline
       final deadlineA =
           a['deadline'] != null
               ? DateTime.parse(a['deadline'].toString()).toLocal()
-              : DateTime.now().add(
-                Duration(days: 365),
-              ); // Beri deadline jauh ke depan jika null
+              : DateTime.now().add(Duration(days: 365));
 
       final deadlineB =
           b['deadline'] != null
               ? DateTime.parse(b['deadline'].toString()).toLocal()
-              : DateTime.now().add(
-                Duration(days: 365),
-              ); // Beri deadline jauh ke depan jika null
+              : DateTime.now().add(Duration(days: 365));
 
       return deadlineA.compareTo(deadlineB);
     });
 
-    // Gabungkan kembali tasks yang belum selesai di atas, tasks yang selesai di bawah
     return [...incompleteTasks, ...completeTasks];
   }
 
@@ -345,7 +352,6 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
               context,
             ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
 
-            // Trigger callback untuk update parent jika ada
             if (widget.onTodoUpdated != null) {
               widget.onTodoUpdated!();
             }
@@ -359,7 +365,6 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
           }
         }
       } finally {
-        // Selalu tutup client setelah selesai
         client.close();
       }
     } catch (e) {
@@ -644,7 +649,6 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
         }
       }
     } catch (e) {
-      debugPrint('Error parsing deadline: $e');
       return deadlineStr; // Return original string if parsing fails
     }
   }
@@ -652,6 +656,36 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   // Warna background untuk action hapus dalam swipe
   Color _getDeleteBackgroundColor() {
     return Colors.red;
+  }
+
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 0:
+        return Colors.blue.shade300; // Low
+      case 1:
+        return Colors.green.shade400; // Medium
+      case 2:
+        return Colors.orange.shade400; // High
+      case 3:
+        return Colors.red.shade400; // Highest
+      default:
+        return Colors.blue.shade300;
+    }
+  }
+
+  String _getPriorityShortText(int priority) {
+    switch (priority) {
+      case 0:
+        return 'Rendah';
+      case 1:
+        return 'Sedang';
+      case 2:
+        return 'Tinggi';
+      case 3:
+        return 'Paling Tinggi';
+      default:
+        return 'L';
+    }
   }
 
   Color _getDeadlineColor(String? deadlineStr) {
@@ -1088,7 +1122,39 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                               SizedBox(height: 8),
                                               Row(
                                                 children: [
-                                                  // Deadline container
+                                                  // Priority indicator
+                                                  Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: _getPriorityColor(
+                                                        task['priority'] ?? 0,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      _getPriorityShortText(
+                                                        task['priority'] ?? 0,
+                                                      ),
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  // Small spacing between priority and deadline
+                                                  SizedBox(width: 8),
+
+                                                  // Deadline container (your existing code)
                                                   if (task['deadline'] != null)
                                                     Container(
                                                       padding:
