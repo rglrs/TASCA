@@ -163,7 +163,6 @@ class _PriorityChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   const _PriorityChip({
-    super.key,
     required this.label,
     required this.isSelected,
     required this.onSelected,

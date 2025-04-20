@@ -45,10 +45,10 @@ android {
 
 signingConfigs {
     create("release") {
-        keyAlias = keystoreProperties["keyAlias"]?.toString() ?: throw IllegalArgumentException("Key alias is missing")
-        keyPassword = keystoreProperties["keyPassword"]?.toString() ?: throw IllegalArgumentException("Key password is missing")
-        storePassword = keystoreProperties["storePassword"]?.toString() ?: throw IllegalArgumentException("Keystore password is missing")
-        storeFile = keystoreProperties["storeFile"]?.let { file(it) } ?: throw IllegalArgumentException("Keystore file is missing")
+        keyAlias = keystoreProperties["keyAlias"]?.toString() ?: ""
+        keyPassword = keystoreProperties["keyPassword"]?.toString() ?: ""
+        storeFile = keystoreProperties["storeFile"]?.toString()?.let { file(it) }
+        storePassword = keystoreProperties["storePassword"]?.toString() ?: ""
     }
 }
 

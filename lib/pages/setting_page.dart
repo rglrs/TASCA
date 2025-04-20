@@ -242,11 +242,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _initializeScreen,
-            child: Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple,
               foregroundColor: Colors.white,
             ),
+            child: Text('Coba Lagi'),
           ),
         ],
       ),
@@ -272,11 +272,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _initializeScreen,
-            child: Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple,
               foregroundColor: Colors.white,
             ),
+            child: Text('Coba Lagi'),
           ),
         ],
       ),

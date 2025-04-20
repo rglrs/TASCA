@@ -245,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (pictureUrl.startsWith('http')) {
               profileImageUrl = pictureUrl;
             } else {
-              profileImageUrl = 'https://api.tascaid.com/storage/${pictureUrl}';
+              profileImageUrl = 'https://api.tascaid.com/storage/$pictureUrl';
             }
             originalPicture = profileImageUrl;
           }
