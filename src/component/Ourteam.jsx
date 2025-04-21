@@ -31,7 +31,7 @@ const teamMembers = [
   {
     img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/fahril_bh7yd1.png",
     name: "Mochammad Fahril Rizal",
-    role: "Backend Developer & DevOps",
+    role: "Backend Developer & Mobile Developer",
   },
   {
     img: "https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365481/rafif_vz6l7t.png",
@@ -50,7 +50,7 @@ const OurTeam = () => {
       <h2 className="text-3xl font-bold text-white mb-10">Our Team</h2>
 
       <div className="max-w-5xl mx-auto space-y-8 px-4 sm:px-0">
-        {/* Baris pertama (4 gambar) */}
+        {/* Baris pertama */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
           {teamMembers.slice(0, 4).map((member, index) => {
             const { ref, inView } = useInView({
@@ -86,7 +86,7 @@ const OurTeam = () => {
           })}
         </div>
 
-        {/* Baris kedua (3 gambar) */}
+        {/* Baris kedua */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {teamMembers.slice(4, 7).map((member, index) => {
             const { ref, inView } = useInView({

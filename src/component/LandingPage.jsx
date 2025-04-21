@@ -18,20 +18,23 @@ const LandingPage = () => {
         backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365473/bgweb3_ok2bco.svg)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-      }}>
+      }}
+    >
       {/* Hero Section */}
       <motion.section
         ref={heroRef}
         initial={{ opacity: 0, y: -50 }}
         animate={isHeroInView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.5 }}
-        className="mt-2 max-w-6xl flex flex-col md:flex-row items-center text-center md:text-left">
+        className="mt-2 max-w-6xl flex flex-col md:flex-row items-center text-center md:text-left"
+      >
         <div className="md:w-1/2 order-2 md:order-1">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isHeroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-4xl sm:text-5xl font-bold leading-snug">
+            className="text-4xl sm:text-5xl font-bold leading-snug"
+          >
             <span style={{ color: "#007BFF" }}>Master</span> Your{" "}
             <span style={{ color: "#007BFF" }}>Time</span>
             <br />
@@ -43,7 +46,8 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isHeroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
-            className="text-lg text-gray-600 mt-4">
+            className="text-lg text-gray-600 mt-4"
+          >
             Helping you to be productive and healthy in your learning, through a
             structured and technology-based approach.
           </motion.p>
@@ -52,7 +56,7 @@ const LandingPage = () => {
             alt="Google Play"
             onClick={() =>
               window.open(
-                "https://play.google.com/store/apps/details?id=com.tascaid.app",
+                "https://play.google.com/store/apps/details?id=com.tascaid.app"
               )
             }
             initial={{ opacity: 0, y: 20 }}
@@ -61,18 +65,13 @@ const LandingPage = () => {
             className="mt-6 w-48 cursor-pointer shadow-md rounded-xl mx-auto md:mx-0"
           />
         </div>
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={isHeroInView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          whileHover={{ scale: 1.1 }}
-          className="md:w-1/2 order-1 md:order-2 flex justify-center md:justify-end">
+        <div className="md:w-1/2 order-1 md:order-2 flex justify-center md:justify-end">
           <img
             src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365480/pict_home_ndnx8c.svg"
             alt="Hero TASCA"
             className="w-2/3 sm:w-3/4 md:w-3/4 max-w-sm rounded-xl"
           />
-        </motion.div>
+        </div>
       </motion.section>
 
       {/* Penjelasan Pomodoro */}
@@ -82,8 +81,8 @@ const LandingPage = () => {
           initial={{ opacity: 0, x: -50 }}
           animate={isMockupInView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.5 }}
-          whileHover={{ scale: 1.1 }}
-          className="md:w-1/2 flex justify-center mt-4">
+          className="md:w-1/2 flex justify-center mt-4"
+        >
           <img
             src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365441/mockup_louo4h.svg"
             alt="Mockup TASCA"
@@ -96,19 +95,22 @@ const LandingPage = () => {
           initial={{ opacity: 0, y: 50 }}
           animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="md:w-1/2 md:pl-16 mt-12 md:mt-24 mx-auto text-center md:text-left">
+          className="md:w-1/2 md:pl-14 mt-12 md:mt-24 mx-auto text-center md:text-left"
+        >
           <motion.h3
             initial={{ opacity: 0, y: 20 }}
             animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-2xl font-semibold text-gray-700">
+            className="text-2xl font-semibold text-gray-700"
+          >
             Why Pomodoro?
           </motion.h3>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isFeaturesInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
-            className="text-gray-600 mt-2 px-4 md:px-0">
+            className="text-gray-600 mt-2 px-4 md:px-0 text-center md:text-justify"
+          >
             The Pomodoro method helps improve focus and productivity by working
             in 25-minute intervals, followed by short breaks. This is effective
             for avoiding fatigue and maintaining concentration for longer.
@@ -157,11 +159,16 @@ const LandingPage = () => {
                 animate={isFeaturesInView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 whileHover={{ scale: 1.1, backgroundColor: item.bgHover }}
-                className="flex gap-4 p-4 rounded-lg transition-colors justify-center md:justify-start">
+                className="flex gap-4 p-4 rounded-lg transition-colors justify-center md:justify-start overflow-hidden"
+              >
                 <div className="flex-shrink-0 mt-1">{item.icon}</div>
-                <div>
-                  <h3 className="font-semibold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.description}</p>
+                <div className="overflow-hidden">
+                  <h3 className="font-semibold mb-1 text-justify md:text-left">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 text-justify md:text-left break-words">
+                    {item.description}
+                  </p>
                 </div>
               </motion.div>
             ))}

@@ -48,13 +48,10 @@ const Pomodoro = () => {
   const handleSkip = () => {
     setIsRunning(false);
 
-    // Toggle between focus and relax mode
     if (isFocusMode) {
-      // Switch to relax mode
       setIsFocusMode(false);
       setTime(relaxTime * 60);
     } else {
-      // Switch to focus mode
       setIsFocusMode(true);
       setTime(focusTime * 60);
     }
@@ -71,7 +68,6 @@ const Pomodoro = () => {
       setRelaxTime(longRelaxMinutes);
     }
 
-    // Reset to focus mode when changing timer settings
     setIsFocusMode(true);
     setTime(minutes * 60);
     setIsDropdownOpen(false);
@@ -81,7 +77,6 @@ const Pomodoro = () => {
     navigate("/");
   };
 
-  // Animation variants for dropdown
   const dropdownVariants = {
     hidden: {
       opacity: 0,
@@ -109,22 +104,26 @@ const Pomodoro = () => {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white text-black pb-40">
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white text-black pb-38 md:pb-66 overflow-x-hidden">
       {/* Navbar */}
-      <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4">
+      <div className="sticky top-0 z-10 w-full flex justify-between items-center p-4 sm:p-4 bg-white shadow-sm">
         <div className="flex items-center">
           <button
             onClick={handleBack}
-            className="mr-3 text-gray-600 hover:text-gray-800"
+            className="mr-1 sm:mr-3 text-gray-600 hover:text-gray-800"
           >
-            <ChevronLeft size={28} />
+            <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
           </button>
           <div
             onClick={handleBack}
-            className="flex items-center bg-white rounded-xl px-4 py-2 shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+            className="flex items-center bg-white rounded-xl px-2 sm:px-4 py-1 sm:py-2 shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
           >
-            <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg" alt="Logo" className="h-8" />
-            <h1 className="text-2xl font-bold font-poppins ml-2">
+            <img
+              src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg"
+              alt="Logo"
+              className="h-5 sm:h-8"
+            />
+            <h1 className="text-base sm:text-2xl font-bold font-poppins ml-1 sm:ml-2">
               <span className="text-[#007BFF]">T</span>
               <span className="text-[#007BFF]">a</span>
               <span className="text-[#28A745]">s</span>
@@ -136,19 +135,19 @@ const Pomodoro = () => {
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 transition-colors"
+            className="flex items-center bg-blue-500 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-base rounded-lg shadow-md hover:bg-blue-600 transition-colors whitespace-nowrap"
           >
             Focus Timer{" "}
             {isDropdownOpen ? (
-              <ChevronUp className="ml-2" size={16} />
+              <ChevronUp className="ml-1 sm:ml-2" size={12} />
             ) : (
-              <ChevronDown className="ml-2" size={16} />
+              <ChevronDown className="ml-1 sm:ml-2" size={12} />
             )}
           </button>
           <AnimatePresence>
             {isDropdownOpen && (
               <motion.div
-                className="absolute right-0 mt-2 w-64 bg-blue-500 text-white rounded-lg shadow-lg z-10 overflow-hidden"
+                className="absolute right-0 mt-2 w-40 sm:w-64 bg-blue-500 text-white rounded-lg shadow-lg z-10 overflow-hidden"
                 variants={dropdownVariants}
                 initial="hidden"
                 animate="visible"
@@ -156,13 +155,13 @@ const Pomodoro = () => {
               >
                 <button
                   onClick={() => setCustomTime(25)}
-                  className="block w-full text-left px-4 py-2 hover:bg-blue-600 transition-colors duration-200"
+                  className="block w-full text-left px-2 sm:px-4 py-2 text-xs sm:text-base hover:bg-blue-600 transition-colors duration-200"
                 >
                   25min Focus, 5min relax
                 </button>
                 <button
                   onClick={() => setCustomTime(50)}
-                  className="block w-full text-left px-4 py-2 hover:bg-blue-600 transition-colors duration-200"
+                  className="block w-full text-left px-2 sm:px-4 py-2 text-xs sm:text-base hover:bg-blue-600 transition-colors duration-200"
                 >
                   50min Focus, 10min relax
                 </button>
@@ -173,55 +172,69 @@ const Pomodoro = () => {
       </div>
 
       {/* Kontainer Timer */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-20 mt-7">
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-20 mt-8 md:mt-14 w-full px-4">
         {/* Timer Section */}
         <div
-          className="relative w-64 h-64 md:w-80 md:h-80 flex flex-col justify-center items-center 
-  rounded-full border-4 border-gray-300 
-  bg-[radial-gradient(circle,_rgba(0,123,255,0.5)_0%,_rgba(255,255,255,1)_70%)]
-  shadow-lg p-6 mt-28 md:mt-0"
+          className="relative w-56 h-56 sm:w-64 sm:h-64 md:w-80 md:h-80 flex flex-col justify-center items-center 
+rounded-full border-4 border-gray-300 
+bg-[radial-gradient(circle,_rgba(0,123,255,0.5)_0%,_rgba(255,255,255,1)_70%)]
+shadow-lg p-4 md:p-6 mt-4 md:mt-0"
         >
           {isRunning && (
             <div className="absolute inset-0 rounded-full border-8 border-transparent animate-outline"></div>
           )}
-          <div className="flex flex-col items-center mb-4">
-            <p className="text-md font-semibold">Stay Focused</p>
+          <div className="flex flex-col items-center mb-2 md:mb-4">
+            <p className="text-sm md:text-md font-semibold">Stay Focused</p>
             <div className="flex gap-1 mt-1">
-              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
-              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
-              <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg" alt="Tomato" className="w-5 h-5" />
+              <img
+                src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg"
+                alt="Tomato"
+                className="w-4 h-4 md:w-5 md:h-5"
+              />
+              <img
+                src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg"
+                alt="Tomato"
+                className="w-4 h-4 md:w-5 md:h-5"
+              />
+              <img
+                src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365463/tomat_bzl4aw.svg"
+                alt="Tomato"
+                className="w-4 h-4 md:w-5 md:h-5"
+              />
             </div>
           </div>
-          <div className="text-6xl font-poppins font-semibold mb-4">
+          <div className="text-4xl sm:text-5xl md:text-6xl font-poppins font-semibold mb-2 md:mb-4">
             {formatTime(time)}
           </div>
           <Ambience isRunning={isRunning} />
         </div>
 
         {/* Tombol & Judul */}
-        <div className="flex flex-col items-center gap-4 px-6 md:px-0 md:ml-32">
-          <h2 className="text-3xl font-bold text-center">Pomodoro</h2>
-          <div className="flex justify-center items-center gap-4 md:gap-6 mt-2 w-full max-w-[350px]">
+        <div className="flex flex-col items-center gap-3 md:gap-4 px-4 md:px-0 md:ml-10 lg:ml-32">
+          <h2 className="text-2xl md:text-3xl font-bold text-center">
+            Pomodoro
+          </h2>
+          <div className="flex justify-center items-center gap-3 md:gap-6 mt-1 md:mt-2 w-full max-w-[300px] md:max-w-[350px]">
             <button
               onClick={handleSkip}
-              className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-sm font-bold"
+              className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-xs sm:text-sm font-bold"
             >
               Skip
             </button>
             <button
               onClick={() => setIsRunning(!isRunning)}
-              className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-[#EF894F] outline-[#EF894F] outline-offset-2 outline-2 rounded-full shadow-lg hover:bg-orange-500 text-white relative"
+              className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-[#EF894F] outline-[#EF894F] outline-offset-2 outline-2 rounded-full shadow-lg hover:bg-orange-500 text-white relative"
             >
               {isRunning ? (
                 <Pause
-                  size={28}
+                  size={24}
                   className="text-white"
                   stroke="none"
                   fill="white"
                 />
               ) : (
                 <Play
-                  size={28}
+                  size={24}
                   className="text-white"
                   stroke="none"
                   fill="white"
@@ -230,12 +243,12 @@ const Pomodoro = () => {
             </button>
             <button
               onClick={resetTimer}
-              className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-sm font-bold"
+              className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white rounded-full shadow-md hover:bg-gray-100 text-black text-xs sm:text-sm font-bold"
             >
               End
             </button>
           </div>
-          <p className="mt-4 px-4 py-2 bg-white shadow-md rounded-lg text-center text-gray-700 font-medium w-full max-w-[350px]">
+          <p className="mt-2 md:mt-4 px-3 md:px-4 py-2 bg-white shadow-md rounded-lg text-center text-gray-700 text-sm md:text-base font-medium w-full max-w-[300px] md:max-w-[350px]">
             {isFocusMode
               ? `Start now, don't wait for later! These ${focusTime} minutes are yours!`
               : `Time to recharge! Enjoy your ${relaxTime} minute break.`}
@@ -245,9 +258,11 @@ const Pomodoro = () => {
 
       {/* bg bawah */}
       <motion.div
-        className="absolute bottom-[-20px] md:bottom-[-50px] w-full h-40 md:h-70 bg-no-repeat bg-cover"
-        style={{ backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365475/bg_pomodoro_t87usq.png)` }}
-        animate={{ opacity: [0, 1], y: [50, 0] }}
+        className="absolute bottom-0 w-full h-24 sm:h-32 md:h-40 lg:h-70 bg-no-repeat bg-cover"
+        style={{
+          backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365475/bg_pomodoro_t87usq.png)`,
+        }}
+        animate={{ opacity: [0, 1], y: [20, 0] }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       ></motion.div>
     </div>

@@ -1,15 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("home");
   const navigate = useNavigate();
   const { ref, inView } = useInView({
     triggerOnce: false,
     threshold: 0.1,
   });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ["home", "about", "features", "ourteams"];
+      const scrollPosition = window.scrollY + 200; 
+
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const offsetTop = element.offsetTop;
+          const offsetHeight = element.offsetHeight;
+
+          if (
+            scrollPosition >= offsetTop &&
+            scrollPosition < offsetTop + offsetHeight
+          ) {
+            setActiveSection(section);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const scrollToSection = (id) => {
     const offsets = {
@@ -26,11 +53,12 @@ export default function Navbar() {
       const sectionPosition =
         section.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top: sectionPosition, behavior: "smooth" });
+      setActiveSection(id); 
     }
   };
 
   const handleDemoAppsClick = () => {
-    navigate("/pomodoro"); // Navigate to the pomodoro page
+    navigate("/pomodoro"); 
   };
 
   return (
@@ -42,8 +70,12 @@ export default function Navbar() {
     >
       {/* Logo */}
       <div className="flex items-center space-x-2">
-        <img src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg" alt="Logo" className="h-13" />
-        <h1 className="text-2xl font-bold font-poppins">
+        <img
+          src="https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365464/logo_vzaawb.svg"
+          alt="Logo"
+          className="h-10 md:h-13" 
+        />
+        <h1 className="text-xl md:text-2xl font-bold font-poppins">
           <span className="text-[#007BFF]">T</span>
           <span className="text-[#007BFF]">a</span>
           <span className="text-[#28A745]">s</span>
@@ -55,16 +87,26 @@ export default function Navbar() {
       {/* Menu Navbar */}
       <div className="hidden md:flex flex-1 justify-center">
         <div className="flex space-x-8 font-poppins font-semibold">
-          {["Home", "About", "Features", "Our Teams"].map((item, index) => (
+          {[
+            { label: "Home", id: "home" },
+            { label: "About", id: "about" },
+            { label: "Features", id: "features" },
+            { label: "Our Teams", id: "ourteams" },
+          ].map((item) => (
             <button
-              key={index}
-              onClick={() =>
-                scrollToSection(item.toLowerCase().replace(/\s/g, ""))
-              }
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
               className="text-blue-600 relative group transition-transform duration-500 hover:scale-110"
             >
-              {item}
-              <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-blue-600 transition-all duration-500 group-hover:w-full"></span>
+              {item.label}
+              <span
+                className={`absolute -bottom-1 left-0 h-[2px] bg-blue-600 transition-all duration-500 
+                ${
+                  activeSection === item.id
+                    ? "w-full"
+                    : "w-0 group-hover:w-full"
+                }`}
+              ></span>
             </button>
           ))}
         </div>
@@ -87,7 +129,7 @@ export default function Navbar() {
         >
           Demo Apps
         </button>
-        
+
         {/* Hamburger Menu */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -126,16 +168,26 @@ export default function Navbar() {
             className="absolute top-16 right-0 w-[80%] bg-white border border-gray-100 rounded-lg shadow-lg z-40 overflow-hidden"
           >
             <ul className="flex flex-col p-4 space-y-2">
-              {["Home", "About", "Features", "Our Teams"].map((item, index) => (
-                <li key={index}>
+              {[
+                { label: "Home", id: "home" },
+                { label: "About", id: "about" },
+                { label: "Features", id: "features" },
+                { label: "Our Teams", id: "ourteams" },
+              ].map((item) => (
+                <li key={item.id}>
                   <button
                     onClick={() => {
-                      scrollToSection(item.toLowerCase().replace(/\s/g, ""));
+                      scrollToSection(item.id);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="block py-2 px-3 text-blue-600 hover:bg-gray-100 rounded w-full text-left transition-all duration-300"
+                    className={`block py-2 px-3 hover:bg-gray-100 rounded w-full text-left transition-all duration-300
+                    ${
+                      activeSection === item.id
+                        ? "text-blue-600 font-bold"
+                        : "text-gray-600"
+                    }`}
                   >
-                    {item}
+                    {item.label}
                   </button>
                 </li>
               ))}

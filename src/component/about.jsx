@@ -4,7 +4,7 @@ import TascaLogo from "./TascaLogo";
 
 const About = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: false, amount: 0.3 });
+  const isInView = useInView(ref, { once: false, amount: 0.2 });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -22,7 +22,7 @@ const About = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.8, ease: "easeOut" },
+      transition: { duration: 0.4, ease: "easeOut" },
     },
   };
 
@@ -106,7 +106,7 @@ const About = () => {
         <motion.div
           className="text-center max-w-3xl mx-auto mb-16"
           initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-5 flex flex-col sm:flex-row items-center justify-center px-4 sm:px-0">
@@ -139,16 +139,18 @@ const About = () => {
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
-                  className="feature-card p-6 flex flex-col md:flex-row items-start gap-4 bg-white/80 rounded-xl hover:shadow-lg transition-shadow"
+                  className="feature-card p-6 flex flex-col gap-4 bg-white/80 rounded-xl hover:shadow-lg transition-shadow"
                   variants={itemVariants}
                   whileHover={{ y: -5 }}
                 >
-                  <div className="flex-shrink-0">{feature.icon}</div>
-                  <div>
-                    <h4 className="text-xl font-semibold mb-2 text-center md:text-left">
+                  <div className="flex flex-row items-center gap-4">
+                    <div className="flex-shrink-0">{feature.icon}</div>
+                    <h4 className="text-xl font-semibold text-justify md:text-left">
                       {feature.title}
                     </h4>
-                    <p className="text-gray-600 text-center md:text-left">
+                  </div>
+                  <div className="pl-16">
+                    <p className="text-gray-600 text-left md:text-left">
                       {feature.description}
                     </p>
                   </div>
@@ -160,32 +162,51 @@ const About = () => {
           {/* Right side - Dashboard Preview */}
           <motion.div
             className="relative px-4"
-            initial={{ opacity: 0, x: 50 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0, y: 50 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8 }}
           >
             <div className="relative">
               <motion.div
                 className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border-2 border-white max-w-md mx-auto aspect-square"
-                animate={{ y: [0, -15, 0] }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 6,
-                  ease: "easeInOut",
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 },
                 }}
+                initial="hidden"
+                animate={isInView ? "visible" : "hidden"}
+                transition={{ duration: 0.5 }}
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-2xl text-gray-800 flex items-center">
+                <motion.div
+                  className="flex justify-between items-center mb-6"
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  initial="hidden"
+                  animate={isInView ? "visible" : "hidden"}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <h3 className="font-bold text-lg md:text-2xl text-gray-800 flex items-center">
                     <TascaLogo size="md" />
                     <span className="ml-2">Dashboard</span>
                   </h3>
                   <div className="w-10 h-10 bg-[#007BFF]/10 rounded-full flex items-center justify-center">
                     <span className="text-[#007BFF] font-semibold">85%</span>
                   </div>
-                </div>
+                </motion.div>
 
                 <div className="space-y-4">
-                  <div className="bg-[#F7F1FE] p-4 rounded-lg">
+                  <motion.div
+                    className="bg-[#F7F1FE] p-4 rounded-lg"
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                    initial="hidden"
+                    animate={isInView ? "visible" : "hidden"}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
                     <h4 className="font-semibold mb-2 flex items-center">
                       <span className="w-3 h-3 bg-[#28A745] rounded-full mr-2"></span>
                       Semester Project
@@ -199,9 +220,18 @@ const About = () => {
                     <div className="text-sm text-gray-500 mt-1">
                       Due in 5 days
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <div className="bg-[#F7F1FE] p-4 rounded-lg">
+                  <motion.div
+                    className="bg-[#F7F1FE] p-4 rounded-lg"
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                    initial="hidden"
+                    animate={isInView ? "visible" : "hidden"}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                  >
                     <h4 className="font-semibold mb-2 flex items-center">
                       <span className="w-3 h-3 bg-[#FD7E14] rounded-full mr-2"></span>
                       Study for Finals
@@ -215,9 +245,18 @@ const About = () => {
                     <div className="text-sm text-gray-500 mt-1">
                       4 pomodoros today
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <div className="bg-[#F7F1FE] p-4 rounded-lg">
+                  <motion.div
+                    className="bg-[#F7F1FE] p-4 rounded-lg"
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                    initial="hidden"
+                    animate={isInView ? "visible" : "hidden"}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                  >
                     <h4 className="font-semibold mb-2 flex items-center">
                       <span className="w-3 h-3 bg-[#007BFF] rounded-full mr-2"></span>
                       Reading Assignment
@@ -231,27 +270,45 @@ const About = () => {
                     <div className="text-sm text-gray-500 mt-1">
                       Almost complete!
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
 
-                <div className="mt-6 p-4 bg-[#007BFF]/10 rounded-lg flex items-center justify-between">
+                <motion.div
+                  className="mt-6 p-4 bg-[#007BFF]/10 rounded-lg flex items-center justify-between"
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  initial="hidden"
+                  animate={isInView ? "visible" : "hidden"}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                >
                   <div>
                     <div className="text-sm text-gray-600">Current Focus</div>
                     <div className="font-bold text-gray-800">Study Session</div>
                   </div>
                   <div className="text-3xl font-bold text-[#007BFF]">25:00</div>
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* Decorative dots */}
-              <div className="absolute -bottom-4 -right-4 grid grid-cols-3 gap-2">
+              <motion.div
+                className="absolute -bottom-4 -right-4 grid grid-cols-3 gap-2"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: { opacity: 1 },
+                }}
+                initial="hidden"
+                animate={isInView ? "visible" : "hidden"}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
                 {[...Array(9)].map((_, i) => (
                   <div
                     key={i}
                     className="w-2 h-2 bg-[#007BFF]/40 rounded-full"
                   ></div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
