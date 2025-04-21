@@ -109,118 +109,134 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   }
 
   Future<void> _deleteTodo(int todoId) async {
-     try {
-       final prefs = await SharedPreferences.getInstance();
-       final token = prefs.getString('auth_token');
- 
-       if (token == null) {
-         throw Exception('No JWT token found');
-       }
- 
-       // Create a client instance that will be closed later
-       final client = http.Client();
- 
-       try {
-         // Create DELETE request
-         final request = http.Request('DELETE', Uri.parse('https://api.tascaid.com/api/todos/$todoId/'));
-         request.headers['Authorization'] = 'Bearer $token';
-         request.headers['Content-Type'] = 'application/json';
- 
-         // Send request and get stream response
-         final streamedResponse = await client.send(request);
-         
-         // Get full response
-         final response = await http.Response.fromStream(streamedResponse);
- 
-         if (response.statusCode >= 200 && response.statusCode < 300) {
-           // Refresh todo list
-           await _fetchTodos();
-                        ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Todo berhasil dihapus')),
-           );
-         } else {
-           // Try alternative method if first method fails
-           // Try URL without trailing slash
-           final alternativeResponse = await http.delete(
-             Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-             headers: {
-               'Authorization': 'Bearer $token',
-               'Content-Type': 'application/json',
-             },
-           );
-           
-           if (alternativeResponse.statusCode >= 200 && alternativeResponse.statusCode < 300) {
-             await _fetchTodos();
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Todo berhasil dihapus')),
-             );
-           } else {
-             throw Exception('Failed to delete todo: Status ${response.statusCode}');
-           }
-         }
-       } finally {
-         // Always close client when done
-         client.close();
-       }
-     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('Error menghapus todo: $e')),
-       );
-     }
-   }
- 
-   // Show options when three dots clicked
-   void _showTodoOptions(int todoId) {
-     showModalBottomSheet(
-       context: context,
-       shape: RoundedRectangleBorder(
-         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-       ),
-       builder: (context) => Container(
-         padding: EdgeInsets.all(16),
-         child: Column(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             ListTile(
-               leading: Icon(Icons.delete, color: Colors.red),
-               title: Text('Hapus Todo', style: TextStyle(color: Colors.red)),
-               onTap: () {
-                 Navigator.pop(context); // Close bottom sheet
-                 // Show confirmation dialog
-                 showDialog(
-                   context: context,
-                   builder: (context) => AlertDialog(
-                     title: Text('Hapus Todo'),
-                     content: Text('Apakah Anda yakin ingin menghapus todo ini?'),
-                     actions: [
-                       TextButton(
-                         onPressed: () => Navigator.pop(context),
-                         child: Text('Batal'),
-                       ),
-                       TextButton(
-                         onPressed: () {
-                           Navigator.pop(context);
-                           _deleteTodo(todoId);
-                         },
-                         child: Text('Hapus', style: TextStyle(color: Colors.red)),
-                       ),
-                     ],
-                   ),
-                 );
-               },
-             ),
-             ListTile(
-               leading: Icon(Icons.cancel),
-               title: Text('Batal'),
-               onTap: () {
-                 Navigator.pop(context); // Close bottom sheet
-               },
-             ),
-           ],
-         ),
-       ),
-     );
-   }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception('No JWT token found');
+      }
+
+      // Create a client instance that will be closed later
+      final client = http.Client();
+
+      try {
+        // Create DELETE request
+        final request = http.Request(
+          'DELETE',
+          Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
+        );
+        request.headers['Authorization'] = 'Bearer $token';
+        request.headers['Content-Type'] = 'application/json';
+
+        // Send request and get stream response
+        final streamedResponse = await client.send(request);
+
+        // Get full response
+        final response = await http.Response.fromStream(streamedResponse);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Refresh todo list
+          await _fetchTodos();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+        } else {
+          // Try alternative method if first method fails
+          // Try URL without trailing slash
+          final alternativeResponse = await http.delete(
+            Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          );
+
+          if (alternativeResponse.statusCode >= 200 &&
+              alternativeResponse.statusCode < 300) {
+            await _fetchTodos();
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+          } else {
+            throw Exception(
+              'Failed to delete todo: Status ${response.statusCode}',
+            );
+          }
+        }
+      } finally {
+        // Always close client when done
+        client.close();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
+    }
+  }
+
+  // Show options when three dots clicked
+  void _showTodoOptions(int todoId) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text(
+                    'Hapus Todo',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                    // Show confirmation dialog
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text('Hapus Todo'),
+                            content: Text(
+                              'Apakah Anda yakin ingin menghapus todo ini?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('Batal'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteTodo(todoId);
+                                },
+                                child: Text(
+                                  'Hapus',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.cancel),
+                  title: Text('Batal'),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -371,13 +387,14 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DetailTodoPage(
-                    todoId: todo['id'],
-                    todoTitle: todo['title'],
-                    taskCount: todo['taskCount'],
-                    todoColor: todo['color'],
-                    onTodoUpdated: _fetchTodos,
-                  ),
+                  builder:
+                      (context) => DetailTodoPage(
+                        todoId: todo['id'],
+                        todoTitle: todo['title'],
+                        taskCount: todo['taskCount'],
+                        todoColor: todo['color'],
+                        onTodoUpdated: _fetchTodos,
+                      ),
                 ),
               );
             },
@@ -418,33 +435,40 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                   Positioned(
                     top: 0,
                     right: 0,
-                    child: PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      iconSize: 24,
+                    child: IconButton(
                       icon: Icon(
                         Icons.more_horiz,
                         color: Colors.white.withOpacity(0.8),
                       ),
-                      onSelected: (String choice) {
-                        if (choice == 'Options') {
-                          _showTodoOptions(todo['id']);
-                        }
+                      onPressed: () {
+                        // Show confirmation dialog
+                        showDialog(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: Text('Hapus Todo'),
+                                content: Text(
+                                  'Apakah Anda yakin ingin menghapus todo ini?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text('Batal'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _deleteTodo(todo['id']);
+                                    },
+                                    child: Text(
+                                      'Hapus',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
                       },
-                      itemBuilder: (BuildContext context) {
-                        return [
-                          const PopupMenuItem<String>(
-                            value: 'Options',
-                            child: Row(
-                              children: [
-                                Icon(Icons.more_vert, color: Colors.black87),
-                                SizedBox(width: 8),
-                                Text('Opsi'),
-                              ],
-                            ),
-                          ),
-                        ];
-                      },
-                      color: Colors.white,
                     ),
                   ),
                 ],

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:tasca_mobile1/pages/done.dart';
 import 'package:tasca_mobile1/pages/pomodoro.dart'; // Import the Pomodoro page
 import 'package:tasca_mobile1/pages/setting_page.dart'; // Import the Setting page
 import 'package:tasca_mobile1/pages/todo.dart'; // Import the Setting page
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasca_mobile1/pages/done.dart';
 
 class Navbar extends StatefulWidget {
   final int initialActiveIndex;
@@ -139,15 +141,21 @@ class _NavbarState extends State<Navbar> {
           //     // Add navigation logic for Date page
           //   },
           // ),
-          // NavBarItem(
-          //   icon: Icons.check_circle,
-          //   label: 'Done!',
-          //   isActive: activeIndex == 3,
-          //   onTap: () {
-          //     _onItemTapped(3);
-          //     // Add navigation logic for Done page
-          //   },
-          // ),
+           NavBarItem(
+             icon: Icons.check_circle,
+             label: 'Done!',
+             isActive: activeIndex == 3,
+             onTap: () {
+               _onItemTapped(3);
+               Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => DonePage(),
+                ),
+              );
+             },
+           ),
           NavBarItem(
             icon: Icons.settings,
             label: 'Setting',
