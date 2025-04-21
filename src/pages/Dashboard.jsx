@@ -5,6 +5,7 @@ import Features from "../component/Features";
 import LandingPage from "../component/LandingPage";
 import About from "../component/about";
 import OurTeam from "../component/Ourteam";
+import Testimoni from "../component/Testimoni";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,9 @@ export default function Dashboard() {
       </div>
       <div id="ourteams" className="w-full min-h-screen">
         <OurTeam />
+      </div>
+      <div id="testimoni" className="w-full min-h-screen">
+        <Testimoni />
       </div>
       <Footer />
     </div>
