@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 
-// Custom PageRouteBuilder untuk animasi slide
+// Custom PageRouteBuilder for slide animations
 class SlidePageRoute extends PageRouteBuilder {
   final Widget page;
   final AxisDirection direction;
@@ -12,28 +12,28 @@ class SlidePageRoute extends PageRouteBuilder {
     : super(
         pageBuilder: (context, animation, secondaryAnimation) => page,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Set offset berbeda berdasarkan arah
+          // Set different offsets based on direction
           late Offset begin;
 
           switch (direction) {
             case AxisDirection.right:
-              begin = const Offset(1.0, 0.0); // Dari kanan (continue)
+              begin = const Offset(1.0, 0.0); // From right (continue)
               break;
             case AxisDirection.left:
-              begin = const Offset(-1.0, 0.0); // Dari kiri (back)
+              begin = const Offset(-1.0, 0.0); // From left (back)
               break;
             case AxisDirection.up:
-              begin = const Offset(0.0, 1.0); // Dari bawah
+              begin = const Offset(0.0, 1.0); // From bottom
               break;
             case AxisDirection.down:
-              begin = const Offset(0.0, -1.0); // Dari atas
+              begin = const Offset(0.0, -1.0); // From top
               break;
           }
 
           const end = Offset.zero;
           const curve = Curves.easeInOut;
 
-          // Terapkan animasi slide sesuai arah
+          // Apply slide animation according to direction
           var tween = Tween(
             begin: begin,
             end: end,
@@ -47,7 +47,7 @@ class SlidePageRoute extends PageRouteBuilder {
       );
 }
 
-// Fungsi helper untuk navigasi dengan animasi slide
+// Helper function for navigation with slide animation
 void navigateWithSlide(
   BuildContext context,
   Widget page, {
@@ -56,15 +56,13 @@ void navigateWithSlide(
   Navigator.of(context).push(SlidePageRoute(page: page, direction: direction));
 }
 
-// Fungsi helper untuk navigasi dengan replacement dan animasi slide
+// Helper function for navigation with replacement and slide animation
 void navigateReplaceWithSlide(
   BuildContext context,
   Widget page, {
   AxisDirection direction = AxisDirection.right,
 }) {
-  Navigator.of(
-    context,
-  ).pushReplacement(SlidePageRoute(page: page, direction: direction));
+  Navigator.of(context).pushReplacement(SlidePageRoute(page: page, direction: direction));
 }
 
 class SlicingScreen extends StatefulWidget {
@@ -85,47 +83,23 @@ class _SlicingScreenState extends State<SlicingScreen> {
     _currentPage = widget.initialPage;
   }
 
-  // Fungsi untuk pergi ke halaman berikutnya dengan animasi slide
+  // Function to go to the next page with slide animation
   void _goToNextPage(BuildContext context) {
-    if (_currentPage == 0) {
+    if (_currentPage < 3) {
       navigateReplaceWithSlide(
         context,
-        const SlicingScreen(initialPage: 1),
-        direction: AxisDirection.right,
-      );
-    } else if (_currentPage == 1) {
-      navigateReplaceWithSlide(
-        context,
-        const SlicingScreen(initialPage: 2),
-        direction: AxisDirection.right,
-      );
-    } else if (_currentPage == 2) {
-      navigateReplaceWithSlide(
-        context,
-        const SlicingScreen(initialPage: 3),
+        SlicingScreen(initialPage: _currentPage + 1),
         direction: AxisDirection.right,
       );
     }
   }
 
-  // Fungsi untuk kembali ke halaman sebelumnya dengan animasi slide
+  // Function to go back to the previous page with slide animation
   void _goBack(BuildContext context) {
-    if (_currentPage == 1) {
+    if (_currentPage > 0) {
       navigateReplaceWithSlide(
         context,
-        const SlicingScreen(initialPage: 0),
-        direction: AxisDirection.left,
-      );
-    } else if (_currentPage == 2) {
-      navigateReplaceWithSlide(
-        context,
-        const SlicingScreen(initialPage: 1),
-        direction: AxisDirection.left,
-      );
-    } else if (_currentPage == 3) {
-      navigateReplaceWithSlide(
-        context,
-        const SlicingScreen(initialPage: 2),
+        SlicingScreen(initialPage: _currentPage - 1),
         direction: AxisDirection.left,
       );
     }
@@ -133,20 +107,25 @@ class _SlicingScreenState extends State<SlicingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Menampilkan halaman berdasarkan _currentPage
-    if (_currentPage == 0) {
-      return _buildFeaturesPage(context);
-    } else if (_currentPage == 1) {
-      return _buildNextPage(context);
-    } else if (_currentPage == 2) {
-      return _buildThirdPage(context);
-    } else {
-      return _buildFourthPage(context);
+    // Display page based on _currentPage
+    switch (_currentPage) {
+      case 0:
+        return _buildFeaturesPage(context);
+      case 1:
+        return _buildNextPage(context);
+      case 2:
+        return _buildThirdPage(context);
+      case 3:
+        return _buildFourthPage(context);
+      default:
+        return _buildFeaturesPage(context);
     }
   }
 
-  // Halaman fitur (halaman pertama)
+  // Features page (first page)
   Widget _buildFeaturesPage(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -154,121 +133,87 @@ class _SlicingScreenState extends State<SlicingScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFE8E2FF), // Ungu muda di bagian atas
-              Color(0xFFF5F3FF), // Ungu sangat muda di bagian bawah
+              Color(0xFFE8E2FF), // Light purple at top
+              Color(0xFFF5F3FF), // Very light purple at bottom
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top -
-                      MediaQuery.of(context).padding.bottom -
-                      48,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: screenHeight * 0.07),
+                
+                // Title Text
+                Text(
+                  'Done! Combine all the features\nto make your productivity\nexperience easier!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const SizedBox(height: 60),
-
-                    // Title Text
-                    Text(
-                      'Done! Combine all the features',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-
-                    Text(
-                      'to make your productivity',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-
-                    Text(
-                      'experience easier!',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-
-                    // Semua Feature Chips dalam satu gambar
-                    const SizedBox(height: 60),
-
-                    // Image chip.png yang berisi semua fitur
-                    Center(child: Image.asset('images/halaman1.png', width: 280)),
-
-                    const SizedBox(height: 220),
-
-                    // Continue Button dengan shadow ungu yang lebih terlihat
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Shadow bulat di belakang tombol
-                        Container(
-                          width: 280,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.purple.withOpacity(0.4),
-                                blurRadius: 80,
-                                spreadRadius: 30,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Button Continue
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 50),
-                          child: ElevatedButton(
-                            onPressed:
-                                () => _goToNextPage(
-                                  context,
-                                ), // Gunakan fungsi untuk pergi ke halaman berikutnya
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              elevation:
-                                  5, // Menambah elevasi untuk efek shadow tambahan
+                
+                SizedBox(height: screenHeight * 0.06),
+                
+                // Image with all feature chips
+                Expanded(
+                  child: Center(
+                    child: Image.asset('images/halaman1.png', width: 280),
+                  ),
+                ),
+                
+                // Continue Button with purple shadow
+                Padding(
+                  padding: EdgeInsets.only(bottom: screenHeight * 0.05),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Shadow circle behind button
+                      Container(
+                        width: 280,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.purple.withOpacity(0.4),
+                              blurRadius: 80,
+                              spreadRadius: 30,
                             ),
-                            child: Text(
-                              'Continue',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          ],
+                        ),
+                      ),
+                      // Continue Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _goToNextPage(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            elevation: 5,
+                          ),
+                          child: Text(
+                            'Continue',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -276,8 +221,10 @@ class _SlicingScreenState extends State<SlicingScreen> {
     );
   }
 
-  // Halaman kedua yang akan ditampilkan setelah tombol Continue diklik
+  // Second page
   Widget _buildNextPage(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -285,78 +232,62 @@ class _SlicingScreenState extends State<SlicingScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(
-                0xFFE8E2FF,
-              ), // Ungu muda di bagian atas (sama dengan halaman sebelumnya)
-              Color(
-                0xFFF5F3FF,
-              ), // Ungu sangat muda di bagian bawah (sama dengan halaman sebelumnya)
+              Color(0xFFE8E2FF), // Light purple at top
+              Color(0xFFF5F3FF), // Very light purple at bottom
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // Tombol Back
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: screenHeight * 0.02),
+                
+                // Back button
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios,
+                    color: Colors.black87,
+                  ),
+                  onPressed: () => _goBack(context),
+                ),
+                
+                SizedBox(height: screenHeight * 0.02),
+                
+                // Title Text
+                Center(
+                  child: Text(
+                    'Enable your notifications to get\nthe most out of it!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
-                    onPressed: () => _goBack(context),
                   ),
-
-                  const SizedBox(
-                    height: 20,
-                  ), // Diubah dari 30 ke 20 untuk menaikkan judul
-                  // Title Text
-                  Center(
-                    child: Text(
-                      'Enable your notifications to get',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  Center(
-                    child: Text(
-                      'the most out of it!',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Menggunakan image halaman2.png
-                  Center(
+                ),
+                
+                SizedBox(height: screenHeight * 0.03),
+                
+                // Main image
+                Expanded(
+                  child: Center(
                     child: Image.asset(
                       'images/halaman2.png',
-                      width: 340, // Diperbesar dari 320 ke 340
+                      width: 340,
                     ),
                   ),
-
-                  const SizedBox(height: 60),
-
-                  // Continue Button dengan shadow
-                  Stack(
+                ),
+                
+                // Continue Button with shadow
+                Padding(
+                  padding: EdgeInsets.only(bottom: screenHeight * 0.04),
+                  child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Shadow bulat di belakang tombol
+                      // Shadow circle behind button
                       Container(
                         width: 280,
                         height: 100,
@@ -367,20 +298,15 @@ class _SlicingScreenState extends State<SlicingScreen> {
                               color: Colors.purple.withOpacity(0.4),
                               blurRadius: 80,
                               spreadRadius: 30,
-                              offset: Offset(0, 0),
                             ),
                           ],
                         ),
                       ),
-                      // Button Continue
-                      Container(
+                      // Continue Button
+                      SizedBox(
                         width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 40),
                         child: ElevatedButton(
-                          onPressed:
-                              () => _goToNextPage(
-                                context,
-                              ), // Pergi ke halaman ketiga
+                          onPressed: () => _goToNextPage(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -401,11 +327,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ), // Extra space at bottom to avoid overflow
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -413,8 +336,10 @@ class _SlicingScreenState extends State<SlicingScreen> {
     );
   }
 
-  // Halaman ketiga yang akan ditampilkan setelah tombol Continue pada halaman kedua diklik
+  // Third page
   Widget _buildThirdPage(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -422,90 +347,62 @@ class _SlicingScreenState extends State<SlicingScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(
-                0xFFE8E2FF,
-              ), // Ungu muda di bagian atas (sama dengan halaman sebelumnya)
-              Color(
-                0xFFF5F3FF,
-              ), // Ungu sangat muda di bagian bawah (sama dengan halaman sebelumnya)
+              Color(0xFFE8E2FF), // Light purple at top
+              Color(0xFFF5F3FF), // Very light purple at bottom
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // Tombol Back
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: screenHeight * 0.02),
+                
+                // Back button
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios,
+                    color: Colors.black87,
+                  ),
+                  onPressed: () => _goBack(context),
+                ),
+                
+                SizedBox(height: screenHeight * 0.02),
+                
+                // Title Text
+                Center(
+                  child: Text(
+                    'Pomodoro & Relaxation Music\nto learn more effectively & create\ncozy atmosphere',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
-                    onPressed: () => _goBack(context),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // Title Text
-                  Center(
-                    child: Text(
-                      'Pomodoro & Relaxation Music',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  Center(
-                    child: Text(
-                      'to learn more effectively & create',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  Center(
-                    child: Text(
-                      'cozy atmosphere',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Menggunakan image halaman3.png dengan ukuran lebih besar
-                  Center(
+                ),
+                
+                SizedBox(height: screenHeight * 0.03),
+                
+                // Main image
+                Expanded(
+                  child: Center(
                     child: Image.asset(
                       'images/halaman3.png',
-                      width: 280, // Ukuran gambar diperbesar
+                      width: 280,
                     ),
                   ),
-
-                  // Meningkatkan nilai dari 50 menjadi 90 untuk menurunkan tombol
-                  const SizedBox(height: 90),
-
-                  // Continue Button dengan shadow
-                  Stack(
+                ),
+                
+                // Continue Button with shadow
+                Padding(
+                  padding: EdgeInsets.only(bottom: screenHeight * 0.04),
+                  child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Shadow bulat di belakang tombol
+                      // Shadow circle behind button
                       Container(
                         width: 280,
                         height: 100,
@@ -516,20 +413,15 @@ class _SlicingScreenState extends State<SlicingScreen> {
                               color: Colors.purple.withOpacity(0.4),
                               blurRadius: 80,
                               spreadRadius: 30,
-                              offset: Offset(0, 0),
                             ),
                           ],
                         ),
                       ),
-                      // Button Continue
-                      Container(
+                      // Continue Button
+                      SizedBox(
                         width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 40),
                         child: ElevatedButton(
-                          onPressed:
-                              () => _goToNextPage(
-                                context,
-                              ), // Pergi ke halaman keempat
+                          onPressed: () => _goToNextPage(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -550,11 +442,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ), // Extra space at bottom to avoid overflow
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -562,8 +451,10 @@ class _SlicingScreenState extends State<SlicingScreen> {
     );
   }
 
-  // Halaman keempat (Welcome page)
+  // Fourth page (Welcome page)
   Widget _buildFourthPage(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -571,12 +462,8 @@ class _SlicingScreenState extends State<SlicingScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(
-                0xFFE8E2FF,
-              ), // Ungu muda di bagian atas (sama dengan halaman sebelumnya)
-              Color(
-                0xFFF5F3FF,
-              ), // Ungu sangat muda di bagian bawah (sama dengan halaman sebelumnya)
+              Color(0xFFE8E2FF), // Light purple at top
+              Color(0xFFF5F3FF), // Very light purple at bottom
             ],
           ),
         ),
@@ -585,9 +472,9 @@ class _SlicingScreenState extends State<SlicingScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               children: [
-                const SizedBox(height: 20),
-
-                // Tombol Back
+                SizedBox(height: screenHeight * 0.02),
+                
+                // Back button row
                 Row(
                   children: [
                     IconButton(
@@ -599,130 +486,116 @@ class _SlicingScreenState extends State<SlicingScreen> {
                     ),
                   ],
                 ),
-
-                // Spacer untuk mendorong content ke tengah
-                const Spacer(flex: 1),
-
-                // Ilustrasi orang membaca
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Image.asset('images/get.png', width: 280),
-                ),
-
-                const Spacer(flex: 1),
-
-                // Card Welcome
-                Container(
-                  margin: const EdgeInsets.only(bottom: 40),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        spreadRadius: 5,
-                      ),
-                    ],
+                
+                // Illustration of person reading
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: Image.asset('images/get.png', width: 280),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        // Judul Welcome
-                        Text(
-                          'Welcome',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                ),
+                
+                // Welcome Card
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: screenHeight * 0.03),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          spreadRadius: 5,
                         ),
-
-                        const SizedBox(height: 8),
-
-                        // Subtitle
-                        Text(
-                          'Making management',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.black54,
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Welcome Title
+                          Text(
+                            'Welcome',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-
-                        Text(
-                          'experience easier.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.black54,
+                          
+                          const SizedBox(height: 8),
+                          
+                          // Subtitle
+                          Text(
+                            'Making management\nexperience easier.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
                           ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Button Get Started
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Navigasi ke halaman utama aplikasi (to_do.dart)
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Get Started Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Navigate to the main app screen (register_page.dart)
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => RegisterPage(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF007BFF), // Blue #007BFF
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Get Started',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Sign In link
+                          InkWell(
+                            onTap: () {
+                              // Navigate to sign in page (login_page.dart)
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
-                                  builder: (context) => RegisterPage(),
+                                  builder: (context) => LoginPage(),
                                 ),
                               );
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFF007BFF,
-                              ), // Warna biru #007BFF
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  20,
-                                ), // Radius lebih besar agar lebih melengkung
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              elevation: 0,
-                            ),
                             child: Text(
-                              'Get Started',
+                              'Sign In',
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF3F3CAC), // Purple #3F3CAC
                               ),
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Sign In link
-                        InkWell(
-                          onTap: () {
-                            // Navigasi ke halaman sign in (login_page.dart)
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (context) => LoginPage(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'Sign In',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(
-                                0xFF3F3CAC,
-                              ), // Warna ungu #3F3CAC
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

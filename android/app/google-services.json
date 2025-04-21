@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "358724440600",
+    "project_id": "tasca-ccde8",
+    "storage_bucket": "tasca-ccde8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358724440600:android:34be4f408742203c6c696d",
+        "android_client_info": {
+          "package_name": "com.tascaid.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAFO-7AVnFNgkdwo3CO3DCuUUrT2z4tbg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

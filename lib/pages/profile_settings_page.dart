@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'dart:developer' as developer;
 
 class UserProfile {
   final int id;
@@ -65,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     fetchUserProfile();
   }
 
+  // function fetch user profile
   Future<void> fetchUserProfile() async {
     setState(() {
       isLoading = true;
@@ -94,31 +97,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final data = json.decode(response.body);
 
         setState(() {
-          // Existing text field updates
           usernameController.text = data['username'] ?? '';
           emailController.text = data['email'] ?? '';
           nameController.text = data['name'] ?? '';
           phoneController.text = data['phone'] ?? '';
 
-          // Store original values
           originalUsername = data['username'];
           originalName = data['name'];
           originalPhone = data['phone'];
 
-          // Handle profile picture URL
-          // Ensure the picture URL is fully qualified
-          if (data['picture'] != null && data['picture'] is String) {
-            // If the URL doesn't start with http, prepend the base URL
-            profileImageUrl =
-                data['picture'].startsWith('http')
-                    ? data['picture']
-                    : 'https://api.tascaid.com/storage/upload/${data['picture']}';
+          if (data['picture'] != null &&
+              data['picture'] is String &&
+              data['picture'].isNotEmpty) {
+            if (data['picture'].startsWith('http')) {
+              profileImageUrl = data['picture'];
+            } else {
+              profileImageUrl =
+                  'https://api.tascaid.com/storage/${data['picture']}';
+
+              if (data['picture'].startsWith('/')) {
+                profileImageUrl = 'https://api.tascaid.com${data['picture']}';
+              } else {
+                profileImageUrl =
+                    'https://api.tascaid.com/storage/upload/${data['picture']}';
+              }
+            }
           } else {
             profileImageUrl = null;
+            developer.log('No profile picture found in data');
           }
 
           originalPicture = profileImageUrl;
-
           isLoading = false;
         });
       } else {
@@ -135,6 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // function update profile
   Future<void> updateProfile() async {
     try {
       setState(() {
@@ -172,7 +182,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (_selectedImage != null) {
-        // Additional validation before upload
         int fileSizeInBytes = await _selectedImage!.length();
         double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
 
@@ -186,7 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return;
         }
 
-        // Validate file type before upload
         String extension = _selectedImage!.path.split('.').last.toLowerCase();
         final allowedExtensions = [
           'jpg',
@@ -233,8 +241,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           originalPhone = phoneController.text;
 
           if (responseData['picture'] != null) {
-            originalPicture = responseData['picture'];
-            profileImageUrl = responseData['picture'];
+            String pictureUrl = responseData['picture'];
+            if (pictureUrl.startsWith('http')) {
+              profileImageUrl = pictureUrl;
+            } else {
+              profileImageUrl = 'https://api.tascaid.com/storage/$pictureUrl';
+            }
+            originalPicture = profileImageUrl;
           }
 
           isEdited = false;
@@ -254,6 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // function untuk button reset form
   void resetForm() {
     setState(() {
       usernameController.text = originalUsername ?? '';
@@ -264,6 +278,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // function untuk check form diedit
   void checkIfEdited() {
     setState(() {
       isEdited =
@@ -274,67 +289,215 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // function untuk memilih image
   Future<void> _pickImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        // Add these iOS-specific parameters
-        preferredCameraDevice: CameraDevice.front,
-        maxWidth: 1024, // Limit image width
-        maxHeight: 1024, // Limit image height
-        imageQuality: 80, // Compress image quality
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  height: 4,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    'Pilih Sumber Foto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B7DFA).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Color(0xFF8B7DFA),
+                    ),
+                  ),
+                  title: const Text('Kamera'),
+                  subtitle: const Text('Ambil foto baru dengan kamera'),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B7DFA).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.photo_library,
+                      color: Color(0xFF8B7DFA),
+                    ),
+                  ),
+                  title: const Text('Galeri'),
+                  subtitle: const Text('Pilih foto dari galeri'),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.gallery);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
       );
 
-      if (image != null) {
-        File file = File(image.path);
+      if (source == null) {
+        return;
+      }
 
-        // Existing size and type validation
-        int fileSizeInBytes = await file.length();
-        double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+      setState(() {
+        isLoading = true;
+      });
 
-        if (fileSizeInMB > 3) {
-          _showErrorDialog(
-            'Ukuran file tidak boleh lebih dari 3MB. Ukuran file Anda: ${fileSizeInMB.toStringAsFixed(2)} MB',
-          );
-          return;
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+        preferredCameraDevice:
+            source == ImageSource.camera
+                ? CameraDevice.front
+                : CameraDevice.rear,
+      );
+
+      setState(() {
+        isLoading = false;
+      });
+
+      if (image == null) {
+        return;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      try {
+        CroppedFile? croppedFile = await _safeCropImage(image.path);
+
+        if (croppedFile != null) {
+          File file = File(croppedFile.path);
+
+          await _validateImageFile(file);
+
+          setState(() {
+            _selectedImage = file;
+            isEdited = true;
+          });
         }
-
-        // Check file type
-        String extension = file.path.split('.').last.toLowerCase();
-        final allowedExtensions = [
-          'jpg',
-          'jpeg',
-          'png',
-          'heic',
-          'webp',
-          'bmp',
-          'tiff',
-        ];
-
-        if (!allowedExtensions.contains(extension)) {
-          _showErrorDialog(
-            'Format file tidak didukung. Gunakan format: ${allowedExtensions.join(", ")}',
-          );
-          return;
-        }
-
-        setState(() {
-          _selectedImage = file;
-          isEdited = true;
-        });
+      } catch (cropError) {
+        _showErrorDialog('Gagal memproses gambar: ${cropError.toString()}');
       }
     } on PlatformException catch (e) {
-      // More detailed error handling for iOS
+      setState(() {
+        isLoading = false;
+      });
+
       if (e.code == 'photo_access_denied') {
         _showErrorDialog(
           'Akses galeri ditolak. Silakan izinkan akses foto di pengaturan.',
+        );
+      } else if (e.code == 'camera_access_denied') {
+        _showErrorDialog(
+          'Akses kamera ditolak. Silakan izinkan akses kamera di pengaturan.',
         );
       } else {
         _showErrorDialog('Gagal memilih gambar: ${e.message}');
       }
     } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
       _showErrorDialog('Gagal memilih gambar: ${e.toString()}');
+    }
+  }
+
+  // function untuk crop image
+  Future<CroppedFile?> _safeCropImage(String imagePath) async {
+    try {
+      return await ImageCropper().cropImage(
+        sourcePath: imagePath,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Foto Profil',
+            toolbarColor: const Color(0xFF8B7DFA),
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: Colors.black,
+            activeControlsWidgetColor: const Color(0xFF8B7DFA),
+            lockAspectRatio: false,
+            showCropGrid: true, 
+          ),
+          IOSUiSettings(
+            title: 'Crop Foto Profil',
+            doneButtonTitle: 'Selesai',
+            cancelButtonTitle: 'Batal',
+            aspectRatioLockEnabled: false,
+            rotateButtonsHidden: false,
+            resetButtonHidden: false,
+            aspectRatioPickerButtonHidden: false, 
+          ),
+        ],
+        compressQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+    } catch (e) {
+      throw Exception('Gagal melakukan crop gambar: $e');
+    }
+  }
+
+  Future<void> _validateImageFile(File file) async {
+    int fileSizeInBytes = await file.length();
+    double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+
+    if (fileSizeInMB > 3) {
+      throw Exception(
+        'Ukuran file tidak boleh lebih dari 3MB. Ukuran file Anda: ${fileSizeInMB.toStringAsFixed(2)} MB',
+      );
+    }
+
+    String extension = file.path.split('.').last.toLowerCase();
+    final allowedExtensions = [
+      'jpg',
+      'jpeg',
+      'png',
+      'heic',
+      'webp',
+      'bmp',
+      'tiff',
+    ];
+
+    if (!allowedExtensions.contains(extension)) {
+      throw Exception(
+        'Format file tidak didukung. Gunakan format: ${allowedExtensions.join(", ")}',
+      );
     }
   }
 
@@ -352,6 +515,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+    );
+  }
+
+  // function untuk menampilkan foto profile
+  void _showFullScreenImage() {
+    final imageToShow = _selectedImage ?? profileImageUrl;
+
+    if (imageToShow == null) {
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.black.withOpacity(0.8),
+                  child:
+                      _selectedImage != null
+                          ? Image.file(_selectedImage!, fit: BoxFit.contain)
+                          : Image.network(
+                            profileImageUrl!,
+                            fit: BoxFit.contain,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                          : null,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              developer.log(
+                                'Error loading image: $error',
+                              ); // Debug log
+                              return const Center(
+                                child: Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              );
+                            },
+                          ),
+                ),
+              ),
+
+              // Tombol tutup
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                right: 10,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -373,7 +610,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
         ),
         title: const Text(
           'Profile',
@@ -400,94 +639,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Center(
                           child: Column(
                             children: [
-                              Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.grey.withOpacity(0.5),
+                              GestureDetector(
+                                onTap: () {
+                                  if (_selectedImage != null ||
+                                      (profileImageUrl != null &&
+                                          profileImageUrl!.isNotEmpty)) {
+                                    _showFullScreenImage();
+                                  }
+                                },
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      height: 80,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.grey.withOpacity(0.5),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  // Profile picture or placeholder
-                                  _selectedImage != null
-                                      ? ClipOval(
-                                        child: Image.file(
-                                          _selectedImage!,
-                                          width: 72,
-                                          height: 72,
-                                          fit: BoxFit.cover,
+                                    _selectedImage != null
+                                        ? ClipOval(
+                                          child: Image.file(
+                                            _selectedImage!,
+                                            width: 72,
+                                            height: 72,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                        : profileImageUrl != null
+                                        ? ClipOval(
+                                          child: Image.network(
+                                            profileImageUrl!,
+                                            width: 72,
+                                            height: 72,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) {
+                                              developer.log(
+                                                'Error loading avatar: $error',
+                                              ); // Debug log
+                                              return Container(
+                                                width: 60,
+                                                height: 60,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.grey,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  color: Colors.white,
+                                                  size: 38,
+                                                ),
+                                              );
+                                            },
+                                            loadingBuilder: (
+                                              context,
+                                              child,
+                                              loadingProgress,
+                                            ) {
+                                              if (loadingProgress == null) {
+                                                return child;
+                                              }
+                                              return Center(
+                                                child: CircularProgressIndicator(
+                                                  value:
+                                                      loadingProgress
+                                                                  .expectedTotalBytes !=
+                                                              null
+                                                          ? loadingProgress
+                                                                  .cumulativeBytesLoaded /
+                                                              loadingProgress
+                                                                  .expectedTotalBytes!
+                                                          : null,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        )
+                                        : Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.grey,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 38,
+                                          ),
                                         ),
-                                      )
-                                      : profileImageUrl != null
-                                      ? ClipOval(
-                                        child: Image.network(
-                                          profileImageUrl!,
-                                          width: 72,
-                                          height: 72,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              width: 60,
-                                              height: 60,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.grey,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(
-                                                Icons.person,
-                                                color: Colors.white,
-                                                size: 38,
-                                              ),
-                                            );
-                                          },
-                                          loadingBuilder: (
-                                            context,
-                                            child,
-                                            loadingProgress,
-                                          ) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return Center(
-                                              child: CircularProgressIndicator(
-                                                value:
-                                                    loadingProgress
-                                                                .expectedTotalBytes !=
-                                                            null
-                                                        ? loadingProgress
-                                                                .cumulativeBytesLoaded /
-                                                            loadingProgress
-                                                                .expectedTotalBytes!
-                                                        : null,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      )
-                                      : Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.grey,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.person,
-                                          color: Colors.white,
-                                          size: 38,
-                                        ),
-                                      ),
-                                ],
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 5),
                               TextButton.icon(
@@ -626,6 +876,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // function untuk membuat field profile
   Widget _buildProfileField({
     required String label,
     required TextEditingController controller,
@@ -656,8 +907,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: TextField(
                     controller: controller,
                     readOnly: !editable,
-                    enabled:
-                        editable, // Tambahkan ini agar benar-benar tidak bisa diklik
+                    enabled: editable,
                     onChanged: onChanged,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
@@ -665,21 +915,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     style: TextStyle(
                       fontSize: 15,
-                      // Warna teks berbeda untuk yang tidak bisa diedit
                       color: editable ? Colors.black : Colors.grey.shade700,
                     ),
                   ),
                 ),
               ),
               if (editable)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0),
-                  child: Icon(
-                    Icons.edit,
-                    size: 18,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
+                const Padding(padding: EdgeInsets.only(right: 12.0)),
             ],
           ),
         ),

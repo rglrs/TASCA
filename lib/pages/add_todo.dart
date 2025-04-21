@@ -11,17 +11,20 @@ class AddTodoPage extends StatefulWidget {
 
 class _AddTodoPageState extends State<AddTodoPage> {
   final TextEditingController _titleController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   String? _selectedUrgency;
   String? _selectedImportance;
 
   void _addTodo() {
-    if (_titleController.text.isNotEmpty) {
+    if (_formKey.currentState!.validate()) {
       final task = {
-        'title': _titleController.text,
+        'title': _titleController.text.trim(),
         'urgency': _selectedUrgency,
         'importance': _selectedImportance,
       };
       widget.onTodoAdded(task);
+      Navigator.of(context).pop(); // Tutup halaman setelah berhasil
     }
   }
 
@@ -34,93 +37,121 @@ class _AddTodoPageState extends State<AddTodoPage> {
         right: 16,
         top: 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _titleController,
-            decoration: InputDecoration(
-              hintText: 'To Do title...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Prioritize',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
-          ),
-          SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _PriorityChip(
-                label: 'Urgently',
-                isSelected: _selectedUrgency == 'Urgently',
-                onSelected: () {
-                  setState(() {
-                    _selectedUrgency = _selectedUrgency == 'Urgently' 
-                      ? null 
-                      : 'Urgently';
-                  });
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  hintText: 'To Do title...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a title';
+                  }
+                  return null;
                 },
               ),
-              _PriorityChip(
-                label: 'Not urgently',
-                isSelected: _selectedUrgency == 'Not urgently',
-                onSelected: () {
-                  setState(() {
-                    _selectedUrgency = _selectedUrgency == 'Not urgently' 
-                      ? null 
-                      : 'Not urgently';
-                  });
-                },
+              SizedBox(height: 20),
+              Text(
+                'Prioritize',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
               ),
-              _PriorityChip(
-                label: 'Important',
-                isSelected: _selectedImportance == 'Important',
-                onSelected: () {
-                  setState(() {
-                    _selectedImportance = _selectedImportance == 'Important' 
-                      ? null 
-                      : 'Important';
-                  });
-                },
+              SizedBox(height: 10),
+              Text(
+                'Urgency',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              _PriorityChip(
-                label: 'Not important',
-                isSelected: _selectedImportance == 'Not important',
-                onSelected: () {
-                  setState(() {
-                    _selectedImportance = _selectedImportance == 'Not important' 
-                      ? null 
-                      : 'Not important';
-                  });
-                },
+              SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _PriorityChip(
+                    label: 'Urgently',
+                    isSelected: _selectedUrgency == 'Urgently',
+                    onSelected: () {
+                      setState(() {
+                        _selectedUrgency = _selectedUrgency == 'Urgently'
+                            ? null
+                            : 'Urgently';
+                      });
+                    },
+                  ),
+                  _PriorityChip(
+                    label: 'Not urgently',
+                    isSelected: _selectedUrgency == 'Not urgently',
+                    onSelected: () {
+                      setState(() {
+                        _selectedUrgency = _selectedUrgency == 'Not urgently'
+                            ? null
+                            : 'Not urgently';
+                      });
+                    },
+                  ),
+                ],
               ),
+              SizedBox(height: 16),
+              Text(
+                'Importance',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _PriorityChip(
+                    label: 'Important',
+                    isSelected: _selectedImportance == 'Important',
+                    onSelected: () {
+                      setState(() {
+                        _selectedImportance =
+                            _selectedImportance == 'Important'
+                                ? null
+                                : 'Important';
+                      });
+                    },
+                  ),
+                  _PriorityChip(
+                    label: 'Not important',
+                    isSelected: _selectedImportance == 'Not important',
+                    onSelected: () {
+                      setState(() {
+                        _selectedImportance ==
+                                'Not important'
+                            ? _selectedImportance = null
+                            : _selectedImportance = 'Not important';
+                      });
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _addTodo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text('Add Task'),
+              ),
+              SizedBox(height: 20),
             ],
           ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _addTodo,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text('Add Task'),
-          ),
-          SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
@@ -132,7 +163,6 @@ class _PriorityChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   const _PriorityChip({
-    super.key,
     required this.label,
     required this.isSelected,
     required this.onSelected,

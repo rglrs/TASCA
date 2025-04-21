@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tasca_mobile1/pages/sliding_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/pages/todo.dart'; // Ensure this path is correct
+import 'package:tasca_mobile1/pages/todo.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:tasca_mobile1/pages/pomodoro.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -34,60 +33,81 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TASCA',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: AuthCheckScreen(),
+      home: const SplashScreen(),
     );
   }
 }
 
-class AuthCheckScreen extends StatefulWidget {
-  const AuthCheckScreen({super.key});
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
 
   @override
-  _AuthCheckScreenState createState() => _AuthCheckScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _AuthCheckScreenState extends State<AuthCheckScreen> {
-  bool _isLoading = true;
-  bool _isLoggedIn = false;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // Check login status and navigate after 5 seconds
+    _checkLoginAndNavigate();
   }
 
-  Future<void> _checkLoginStatus() async {
+  Future<void> _checkLoginAndNavigate() async {
     try {
+      await Future.delayed(const Duration(seconds: 5));
+      
+      if (!mounted) return;
+      
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-
-      setState(() {
-        _isLoggedIn = token != null;
-        _isLoading = false;
-      });
+      
+      if (!mounted) return;
+      
+      if (token != null) {
+        // User is logged in, navigate to TodoPage
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const TodoPage()),
+        );
+      } else {
+        // User is not logged in, navigate to StartScreen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const StartScreen()),
+        );
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      
+      // If error occurs, still navigate to StartScreen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const StartScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
-    } else if (_isLoggedIn) {
-      // Navigate directly to TodoPage if logged in
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (context) => TodoPage()));
-      });
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
-    } else {
-      // Show StartScreen if not logged in
-      return StartScreen();
-    }
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFE8E2FF),
+              Color(0xFFF5F3FF),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Image.asset(
+            'images/logo.png',
+            width: 280,
+            height: 280,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -98,11 +118,9 @@ class StartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Use slide animation from slicing.dart
         navigateWithSlide(context, const SlicingScreen(initialPage: 0));
       },
       child: Scaffold(
-        // [Code for StartScreen remains the same as before]
         body: Stack(
           children: [
             // Background gradient
@@ -112,8 +130,8 @@ class StartScreen extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFFE8E2FF), // Light purple at the top
-                    Color(0xFFF5F3FF), // Lighter purple at the bottom
+                    Color(0xFFE8E2FF),
+                    Color(0xFFF5F3FF),
                   ],
                 ),
               ),
@@ -221,6 +239,29 @@ class StartScreen extends StatelessWidget {
                                   fontSize: 56,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 60),
+                          
+                          // Static "Tap to continue" text
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                color: Theme.of(context).primaryColor,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tap to continue',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                             ],

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'register_page.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'register_page.dart';
 import 'pomodoro.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_pw.dart';
@@ -34,13 +35,11 @@ class _LoginPageState extends State<LoginPage> {
     if (token != null && expirationTime != null) {
       final currentTime = DateTime.now().millisecondsSinceEpoch;
       if (currentTime < expirationTime) {
-        // Token is still valid, redirect to PomodoroTimer
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
-        // Token is expired, clear the token and stay on the login page
         await prefs.remove('auth_token');
         await prefs.remove('token_expiration');
       }
@@ -109,6 +108,65 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> signInWithGoogle(BuildContext context) async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        // Operation was canceled by the user
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Make a POST request to your API with the Google sign-in token
+      final response = await http.post(
+        Uri.parse('https://api.tascaid.com/api/google/login'), // Your API endpoint here
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'email': googleUser.email,
+          'idToken': googleAuth.idToken, // Send token to your backend
+          // Add other necessary fields here
+        }), 
+      );
+
+      if (response.statusCode == 200) {
+        // Decode the API response
+        final Map<String, dynamic> callbackData = jsonDecode(response.body);
+
+        // Assuming the response contains an authentication token
+        String authToken = callbackData['token'];
+
+        // Store the token locally using SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', authToken);
+
+        // Navigate to the main page upon successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PomodoroTimer()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login with Google failed: ${response.reasonPhrase}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sign in with Google failed: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -274,6 +332,24 @@ class _LoginPageState extends State<LoginPage> {
                                       'Lanjut',
                                       style: TextStyle(color: Colors.white),
                                     ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Center(child: Text('atau')),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => signInWithGoogle(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF4285F4), // Google blue
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                              textStyle: TextStyle(fontSize: 16),
+                            ),
+                            child: Text(
+                              'Login with Google',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
                         SizedBox(height: 20),
