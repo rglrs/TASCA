@@ -2,10 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tasca_mobile1/pages/sliding_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/pages/todo.dart'; // Pastikan path ini benar
+import 'package:tasca_mobile1/pages/todo.dart'; // Ensure this path is correct
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:tasca_mobile1/pages/pomodoro.dart';
 
-void main() {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _initializeNotifications();
   runApp(MyApp());
+}
+
+// Initialize local notifications
+Future<void> _initializeNotifications() async {
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
 class MyApp extends StatelessWidget {
@@ -43,7 +60,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
+
       setState(() {
         _isLoggedIn = token != null;
         _isLoading = false;
@@ -58,21 +75,17 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     } else if (_isLoggedIn) {
-      // Jika sudah login, langsung menuju TodoPage
+      // Navigate directly to TodoPage if logged in
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => TodoPage()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (context) => TodoPage()));
       });
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     } else {
-      // Jika belum login, tampilkan StartScreen
+      // Show StartScreen if not logged in
       return StartScreen();
     }
   }
@@ -85,11 +98,11 @@ class StartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Menggunakan animasi slide dari slicing.dart
+        // Use slide animation from slicing.dart
         navigateWithSlide(context, const SlicingScreen(initialPage: 0));
       },
       child: Scaffold(
-        // [Kode StartScreen tetap sama seperti sebelumnya]
+        // [Code for StartScreen remains the same as before]
         body: Stack(
           children: [
             // Background gradient
@@ -99,13 +112,13 @@ class StartScreen extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFFE8E2FF), // Ungu muda di bagian atas
-                    Color(0xFFF5F3FF), // Ungu sangat muda di bagian bawah
+                    Color(0xFFE8E2FF), // Light purple at the top
+                    Color(0xFFF5F3FF), // Lighter purple at the bottom
                   ],
                 ),
               ),
             ),
-            
+
             // Purple moon shadow in the top right corner
             Positioned(
               top: -50,
@@ -125,7 +138,7 @@ class StartScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Purple moon shadow in the bottom left corner
             Positioned(
               bottom: 0,
@@ -145,28 +158,28 @@ class StartScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Main content (logo and text)
             SafeArea(
               child: Column(
                 children: [
                   // Add space at the top to push logo down
                   const SizedBox(height: 80),
-                  
+
                   // Logo and text in a centered column
                   Expanded(
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Logo dari folder assets
+                          // Logo from assets folder
                           Image.asset(
                             'images/logo.png',
                             width: 280,
                             height: 280,
                           ),
                           const SizedBox(height: 40),
-                          // Nama aplikasi dengan teks berwarna dan font Poppins
+                          // Application name with colored text and Poppins font
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

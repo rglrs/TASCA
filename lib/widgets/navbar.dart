@@ -41,9 +41,38 @@ class _NavbarState extends State<Navbar> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      activeIndex = index;
-    });
+    // Ensure not to re-navigate unnecessarily
+    if (activeIndex != index) {
+      setState(() {
+        activeIndex = index;
+      });
+
+      Widget page;
+      switch (index) {
+        case 0: // Navigate to Pomodoro
+          page = PomodoroTimer();
+          break;
+        case 1: // Navigate to To-Do List
+          page = TodoPage();
+          break;
+        case 2: // Navigate to Settings
+          page = SettingsScreen(jwtToken: jwtToken ?? '');
+          break;
+        default:
+          return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation1, animation2) => page,
+          transitionDuration: Duration.zero, // No animation duration
+          transitionsBuilder: (context, animation1, animation2, child) {
+            return child; // Directly show the new page without animations
+          },
+        ),
+      );
+    }
   }
 
   @override
@@ -106,62 +135,19 @@ class _NavbarState extends State<Navbar> {
             icon: Icons.more_time_rounded,
             label: 'Focus',
             isActive: activeIndex == 0,
-            onTap: () {
-              _onItemTapped(0);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PomodoroTimer()),
-              );
-            },
+            onTap: () => _onItemTapped(0),
           ),
           NavBarItem(
             icon: Icons.format_list_bulleted_add,
             label: 'To Do',
             isActive: activeIndex == 1,
-            onTap: () {
-              _onItemTapped(1);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => TodoPage(),
-                ),
-              );
-              // Add navigation logic for To Do page
-            },
+            onTap: () => _onItemTapped(1),
           ),
-          // NavBarItem(
-          //   icon: Icons.calendar_today,
-          //   label: 'Date',
-          //   isActive: activeIndex == 2,
-          //   onTap: () {
-          //     _onItemTapped(2);
-          //     // Add navigation logic for Date page
-          //   },
-          // ),
-          // NavBarItem(
-          //   icon: Icons.check_circle,
-          //   label: 'Done!',
-          //   isActive: activeIndex == 3,
-          //   onTap: () {
-          //     _onItemTapped(3);
-          //     // Add navigation logic for Done page
-          //   },
-          // ),
           NavBarItem(
             icon: Icons.settings,
             label: 'Setting',
             isActive: activeIndex == 2,
-            onTap: () {
-              _onItemTapped(2);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => SettingsScreen(jwtToken: jwtToken ?? ''),
-                ),
-              );              
-            },
+            onTap: () => _onItemTapped(2),
           ),
         ],
       ),

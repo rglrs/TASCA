@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart'; // Ensure this path is correct
 
 class PomodoroTimer extends StatefulWidget {
@@ -11,7 +13,9 @@ class PomodoroTimer extends StatefulWidget {
   _PomodoroTimerState createState() => _PomodoroTimerState();
 }
 
-class _PomodoroTimerState extends State<PomodoroTimer> {
+class _PomodoroTimerState extends State<PomodoroTimer>
+    with WidgetsBindingObserver {
+  late FlutterLocalNotificationsPlugin localNotifications;
   int timeLeft = 1500; // 25 minutes in seconds
   Timer? timer;
   bool isRunning = false;
@@ -28,31 +32,95 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   @override
   void initState() {
     super.initState();
-    _loadSavedInterval();
+    WidgetsBinding.instance.addObserver(this);
+    _loadSavedState();
+    _initializeNotifications();
   }
 
-  // Load saved interval from SharedPreferences
-  Future<void> _loadSavedInterval() async {
+  void _initializeNotifications() async {
+    localNotifications = FlutterLocalNotificationsPlugin();
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+    await localNotifications.initialize(initializationSettings);
+  }
+
+  Future<void> _scheduleNotification(String title, String body) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'pomodoro_channel',
+          'Pomodoro Notifications',
+          channelDescription:
+              'Notifies when Pomodoro focus or relax timer ends',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+    await localNotifications.show(0, title, body, notificationDetails);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _saveState();
+    } else if (state == AppLifecycleState.resumed) {
+      _loadSavedState();
+    }
+  }
+
+  Future<void> _loadSavedState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final interval = prefs.getInt('focus_interval') ?? 0; // Default to 25min
+      final savedStartTime = prefs.getInt('start_time');
+      final savedIsRunning = prefs.getBool('is_running') ?? false;
+      final savedIsFocusSession = prefs.getBool('is_focus_session') ?? true;
 
       setState(() {
-        if (interval == 0) {
-          // 25 min focus, 5 min rest
-          focusDuration = 1500;
-          restDuration = 300;
-        } else {
-          // 50 min focus, 10 min rest
-          focusDuration = 3000;
-          restDuration = 600;
-        }
-
-        timeLeft = isFocusSession ? focusDuration : restDuration;
+        isRunning = savedIsRunning;
+        isFocusSession = savedIsFocusSession;
       });
+
+      if (savedStartTime != null && isRunning) {
+        final currentTime = DateTime.now().millisecondsSinceEpoch;
+        final elapsedTime = (currentTime - savedStartTime) ~/ 1000;
+        timeLeft =
+            (isFocusSession ? focusDuration : restDuration) - elapsedTime;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          isRunning = false;
+          switchSession();
+        } else {
+          startTimer();
+        }
+      }
     } catch (e) {
-      // If there's an error, use default values
-      print('Error loading focus interval: $e');
+      print('Error loading saved state: $e');
+    }
+  }
+
+  Future<void> _saveState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (isRunning) {
+        final startTime =
+            DateTime.now().millisecondsSinceEpoch -
+            ((isFocusSession ? focusDuration : restDuration) - timeLeft) * 1000;
+        await prefs.setInt('start_time', startTime);
+      }
+      await prefs.setBool('is_running', isRunning);
+      await prefs.setBool('is_focus_session', isFocusSession);
+    } catch (e) {
+      print('Error saving state: $e');
     }
   }
 
@@ -69,6 +137,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
             isRunning = false;
             audioPlayer.stop(); // Stop sound when timer ends
             switchSession(); // Switch session when time is up
+            _scheduleNotification(
+              "Time's up!",
+              isFocusSession
+                  ? "Time to take a break."
+                  : "Time to get back to focus.",
+            ); // Schedule notification
           });
         }
       });
@@ -113,7 +187,22 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       currentSoundTitle = ''; // Reset sound title
       currentSoundPath = ''; // Reset sound path
       audioPlayer.stop(); // Stop sound when timer is reset
+
+      print('Switched to session: ${isFocusSession ? "Focus" : "Relax"}');
     });
+
+    // Schedule a notification when switching sessions
+    try {
+      _scheduleNotification(
+        "Session switched!",
+        isFocusSession
+            ? "Time for a focus session."
+            : "Time for a relax session.",
+      );
+      print("Notification scheduled successfully.");
+    } catch (e) {
+      print("Failed to schedule notification: $e");
+    }
   }
 
   void switchSession() {
@@ -334,26 +423,18 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Image.asset(
-                                'images/tomat.png',
-                                width: 24, // Increased size
-                                height: 24, // Increased size
-                                color: Colors.black,
-                              ),
-                              SizedBox(width: 4), // Increased space
-                              Image.asset(
-                                'images/tomat.png',
-                                width: 24, // Increased size
-                                height: 24, // Increased size
-                                color: Colors.black,
-                              ),
-                              SizedBox(width: 4), // Increased space
-                              Image.asset(
-                                'images/tomat.png',
-                                width: 24, // Increased size
-                                height: 24, // Increased size
-                                color: Colors.black,
-                              ),
+                              for (var i = 0; i < 3; i++)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 2.0,
+                                  ), // Even spacing
+                                  child: Image.asset(
+                                    'images/tomat.png',
+                                    width: 24, // Image width
+                                    height: 24, // Image height
+                                    color: Colors.black,
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 25),
@@ -373,8 +454,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                                 onTap: showSoundOptions,
                                 child: Image.asset(
                                   isMuted ? 'images/mute.png' : 'images/on.png',
-                                  width: 50, // Increased size
-                                  height: 50, // Increased size
+                                  width: 50, // Image width
+                                  height: 50, // Image height
                                 ),
                               ),
                               if (currentSoundTitle.isNotEmpty)
@@ -383,7 +464,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                                   child: Text(
                                     currentSoundTitle,
                                     style: TextStyle(
-                                      fontSize: 20, // Increased font size
+                                      fontSize: 20, // Font size
                                       color: Colors.black,
                                     ),
                                   ),
@@ -401,8 +482,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                       GestureDetector(
                         onTap: resetTimer,
                         child: Container(
-                          width: 55, // Increased size
-                          height: 55, // Increased size
+                          width: 55, // Button width
+                          height: 55, // Button height
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
@@ -418,7 +499,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                           child: const Text(
                             "Skip",
                             style: TextStyle(
-                              fontSize: 16, // Increased font size
+                              fontSize: 16, // Font size
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -429,8 +510,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                       GestureDetector(
                         onTap: isRunning ? pauseTimer : startTimer,
                         child: Container(
-                          width: 75, // Increased size
-                          height: 75, // Increased size
+                          width: 75, // Button width
+                          height: 75, // Button height
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.orange,
@@ -445,7 +526,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                           alignment: Alignment.center,
                           child: Icon(
                             isRunning ? Icons.pause : Icons.play_arrow,
-                            size: 40, // Increased size
+                            size: 40, // Icon size
                             color: Colors.white,
                           ),
                         ),
@@ -454,8 +535,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                       GestureDetector(
                         onTap: endCurrentSession,
                         child: Container(
-                          width: 55, // Increased size
-                          height: 55, // Increased size
+                          width: 55, // Button width
+                          height: 55, // Button height
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
@@ -471,7 +552,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                           child: const Text(
                             "End",
                             style: TextStyle(
-                              fontSize: 16, // Increased font size
+                              fontSize: 16, // Font size
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
