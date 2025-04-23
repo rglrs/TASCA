@@ -18,6 +18,18 @@ func GetIncompleteTasks(db *gorm.DB, userID uint) ([]map[string]interface{}, err
 	return results, err
 }
 
+func GetCompleteTasks(db *gorm.DB, userID uint) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	
+	err := db.Table("tasks").
+		Select("tasks.id, tasks.title").
+		Joins("JOIN todos ON tasks.todo_id = todos.id").
+		Where("tasks.is_complete = ? AND todos.user_id = ?", true, userID).
+		Find(&results).Error
+	
+	return results, err
+}
+
 func GetTasksByTodoID(db *gorm.DB, todoID uint) ([]models.Task, error) {
 	var tasks []models.Task
 	err := db.Where("todo_id = ?", todoID).Find(&tasks).Error

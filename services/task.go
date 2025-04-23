@@ -20,6 +20,10 @@ func GetIncompleteTasks(db *gorm.DB, userID uint) ([]map[string]interface{}, err
 	return repositories.GetIncompleteTasks(db, userID)
 }
 
+func GetCompleteTasks(db *gorm.DB, userID uint) ([]map[string]interface{}, error) {
+	return repositories.GetCompleteTasks(db, userID)
+}
+
 func GetTaskByID(db *gorm.DB, id uint) (*models.Task, error) {
 	return repositories.GetTaskByID(db, id)
 }

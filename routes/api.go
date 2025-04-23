@@ -39,7 +39,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		auth.Use(middleware.AuthMiddleware())
 		{
 			auth.POST("/logout", controllers.LogoutUser)
-
+			auth.POST("/pomodoro/complete", controllers.CompletePomodoroSession)
+			auth.GET("/pomodoro/stats", controllers.GetDailyStats)
+			auth.GET("/pomodoro/stats/weekly", controllers.GetWeeklyStats)
+			auth.GET("/tasks/complete", controllers.GetCompleteTasks)
+			auth.GET("/tasks/stats", controllers.GetWeeklyTaskStats)
+			
 			profile := auth.Group("/profile")
 			{
 				profile.GET("/", controllers.GetUserProfile)

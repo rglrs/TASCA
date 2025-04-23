@@ -13,6 +13,7 @@ type User struct {
 	Picture          *string    `gorm:"type:text;default:null" json:"picture,omitempty"`
 	Provider         string     `gorm:"type:text;default:'local'" json:"provider"`
 	Todos            []Todo     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"todos"`
+	Pomodoros        []Pomodoro `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"pomodoros"`
 	ResetToken       *string    `gorm:"type:text;default:null" json:"-"` //untuk reset password
 	ResetTokenExpiry *time.Time `gorm:"default:null" json:"-"`           //untuk reset password
 	CreatedAt        time.Time  `gorm:"autoCreateTime" json:"created_at"`
