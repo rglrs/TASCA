@@ -1,28 +1,90 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:tasca_mobile1/services/task_service.dart'; // Sesuaikan path import
 
-class TaskDoneBarChart extends StatelessWidget {
-  final List<int> taskDoneData;
+class TaskDoneBarChart extends StatefulWidget {
+  final TaskService taskService;
 
-  const TaskDoneBarChart({super.key, required this.taskDoneData});
+  const TaskDoneBarChart({
+    super.key, 
+    required this.taskService
+  });
+
+  @override
+  _TaskDoneBarChartState createState() => _TaskDoneBarChartState();
+}
+
+class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
+  List<int> _taskDoneData = List.filled(7, 0);
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeeklyTaskStats();
+  }
+
+  Future<void> _fetchWeeklyTaskStats() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final taskStats = await widget.taskService.getWeeklyCompletedTaskCount();
+      
+      setState(() {
+        _taskDoneData = taskStats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _taskDoneData = List.filled(7, 0);
+        _errorMessage = 'Error fetching weekly task stats';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _errorMessage!, 
+              style: const TextStyle(color: Colors.red)
+            ),
+            ElevatedButton(
+              onPressed: _fetchWeeklyTaskStats, 
+              child: const Text('Retry'),
+            )
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
       height: 200,
       child: BarChart(
         BarChartData(
-          barTouchData: BarTouchData(enabled: false),
+          barTouchData: BarTouchData(enabled: true),
           gridData: FlGridData(
             show: true,
             drawHorizontalLine: true,
             horizontalInterval: 2,
-            getDrawingHorizontalLine:
-                (value) => FlLine(
-                  color: Colors.grey.shade300,
-                  strokeWidth: 1,
-                  dashArray: [5, 5],
-                ),
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.grey.shade300,
+              strokeWidth: 1,
+              dashArray: [5, 5],
+            ),
             drawVerticalLine: false,
           ),
           titlesData: FlTitlesData(
@@ -32,13 +94,13 @@ class TaskDoneBarChart extends StatelessWidget {
                 reservedSize: 32,
                 getTitlesWidget: (value, meta) {
                   const days = [
-                    'Sun',
                     'Mon',
                     'Tue',
                     'Wed',
                     'Thu',
                     'Fri',
                     'Sat',
+                    'Sun',
                   ];
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -76,20 +138,42 @@ class TaskDoneBarChart extends StatelessWidget {
             ),
           ),
           maxY: 12,
-          barGroups: List.generate(taskDoneData.length, (index) {
+          barGroups: List.generate(_taskDoneData.length, (index) {
             return BarChartGroupData(
               x: index,
               barRods: [
                 BarChartRodData(
-                  toY: taskDoneData[index].toDouble(),
+                  toY: _taskDoneData[index].toDouble(),
                   width: 18,
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey.shade300,
+                  color: _taskDoneData[index] > 0 
+                    ? Colors.blue.shade300 
+                    : Colors.grey.shade300,
                 ),
               ],
             );
           }),
         ),
+      ),
+    );
+  }
+}
+
+// Contoh penggunaan di layar
+class WeeklyTaskProgressScreen extends StatelessWidget {
+  final TaskService taskService;
+
+  const WeeklyTaskProgressScreen({
+    super.key, 
+    required this.taskService
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Weekly Task Progress')),
+      body: Center(
+        child: TaskDoneBarChart(taskService: taskService),
       ),
     );
   }
