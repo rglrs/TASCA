@@ -1,13 +1,15 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart'; // Ensure this path is correct
+import 'package:tasca_mobile1/services/pomodoro.dart';
 
 class PomodoroTimer extends StatefulWidget {
-  const PomodoroTimer({super.key});
+  const PomodoroTimer({Key? key}) : super(key: key);
 
   @override
   _PomodoroTimerState createState() => _PomodoroTimerState();
@@ -15,19 +17,26 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer>
     with WidgetsBindingObserver {
+  final PomodoroService _pomodoroService = PomodoroService();
   late FlutterLocalNotificationsPlugin localNotifications;
   int timeLeft = 1500; // 25 minutes in seconds
   Timer? timer;
   bool isRunning = false;
-  bool isMuted = true; // State variable to track mute status
-  String currentSoundTitle = ''; // State variable to track current sound title
-  String currentSoundPath = ''; // State variable to track current sound path
-  AudioPlayer audioPlayer = AudioPlayer();
-  bool isFocusSession = true; // State variable to track session type
+  bool isFocusSession = true;
 
   // Timer settings
   int focusDuration = 1500; // 25 minutes
   int restDuration = 300; // 5 minutes
+
+  // Sound variables
+  bool isMuted = true;
+  String currentSoundTitle = '';
+  String currentSoundPath = '';
+  AudioPlayer audioPlayer = AudioPlayer();
+
+  // Todo variables
+  List<Map<String, dynamic>> todos = [];
+  String? selectedTodo;
 
   @override
   void initState() {
@@ -35,6 +44,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     WidgetsBinding.instance.addObserver(this);
     _loadSavedState();
     _initializeNotifications();
+    _fetchTodos(); // Fetch todos on initialization
   }
 
   void _initializeNotifications() async {
@@ -44,6 +54,45 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
     await localNotifications.initialize(initializationSettings);
+  }
+
+  Future<void> _fetchTodos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception('No JWT token found');
+      }
+
+      final response = await http.get(
+        Uri.parse('https://api.tascaid.com/api/todos/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+        final List<dynamic> todosData = responseBody['data'];
+
+        setState(() {
+          todos =
+              todosData.map((todo) {
+                return {
+                  'id': todo['id'],
+                  'title': todo['title'] ?? 'Unnamed Todo',
+                  'taskCount': todo['task_count'] ?? 0,
+                };
+              }).toList();
+        });
+      } else {
+        throw Exception('Failed to load todos: ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching todos: $e');
+    }
   }
 
   Future<void> _scheduleNotification(String title, String body) async {
@@ -124,6 +173,17 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     }
   }
 
+  void _sendPomodoroSession() {
+    int actualDuration =
+        isFocusSession
+            ? (focusDuration - timeLeft) ~/ 60
+            : (restDuration - timeLeft) ~/ 60;
+
+    if (actualDuration > 0) {
+      _pomodoroService.completePomodoroSession(actualDuration);
+    }
+  }
+
   void startTimer() {
     if (!isRunning) {
       timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -132,6 +192,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
             timeLeft--;
           });
         } else {
+          _sendPomodoroSession();
+
           timer.cancel();
           setState(() {
             isRunning = false;
@@ -146,27 +208,36 @@ class _PomodoroTimerState extends State<PomodoroTimer>
           });
         }
       });
+
       setState(() {
         isRunning = true;
         if (!isMuted && currentSoundPath.isNotEmpty) {
-          playSound(
-            currentSoundPath,
-            currentSoundTitle,
-          ); // Play sound when timer starts
+          playSound(currentSoundPath, currentSoundTitle);
         }
       });
     }
   }
 
   void endCurrentSession() {
+    // Hitung durasi aktual dalam menit
+    int actualDuration =
+        isFocusSession
+            ? (focusDuration - timeLeft) ~/ 60
+            : (restDuration - timeLeft) ~/ 60;
+
+    // Kirim data sesi ke backend hanya jika ada durasi
+    if (actualDuration > 0) {
+      _pomodoroService.completePomodoroSession(actualDuration);
+    }
+
     timer?.cancel();
     setState(() {
       isRunning = false;
-      isMuted = true; // Ensure sound is off when session ends
-      currentSoundTitle = ''; // Reset sound title
-      currentSoundPath = ''; // Reset sound path
-      audioPlayer.stop(); // Stop sound when session ends
-      timeLeft = isFocusSession ? focusDuration : restDuration; // Reset time
+      isMuted = true;
+      currentSoundTitle = '';
+      currentSoundPath = '';
+      audioPlayer.stop();
+      timeLeft = isFocusSession ? focusDuration : restDuration;
     });
   }
 
@@ -174,14 +245,14 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     timer?.cancel();
     setState(() {
       isRunning = false;
-      audioPlayer.pause(); // Pause sound when timer is paused
+      audioPlayer.pause();
     });
   }
 
   void resetTimer() {
     timer?.cancel();
     setState(() {
-      switchSession(); // Switch session when skip button is pressed
+      switchSession();
       isRunning = false;
       isMuted = true; // Ensure sound is off when timer is reset
       currentSoundTitle = ''; // Reset sound title
@@ -208,157 +279,12 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   void switchSession() {
     setState(() {
       isFocusSession = !isFocusSession;
-      timeLeft =
-          isFocusSession
-              ? focusDuration
-              : restDuration; // Switch session duration
+      timeLeft = isFocusSession ? focusDuration : restDuration;
     });
   }
 
-  String formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int sec = seconds % 60;
-    return '$minutes:${sec.toString().padLeft(2, '0')}';
-  }
-
-  void playSound(String soundPath, String soundTitle) async {
-    await audioPlayer.stop(); // Stop any currently playing sound
-    if (!isMuted && isRunning) {
-      await audioPlayer.setReleaseMode(ReleaseMode.loop); // Set to loop
-      await audioPlayer.play(AssetSource(soundPath));
-      setState(() {
-        currentSoundTitle = soundTitle; // Update current sound title
-      });
-    }
-  }
-
-  void showSoundOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SingleChildScrollView(
-          child: SizedBox(
-            height: 300,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: 40.0,
-                  ), // Add top padding to GridView
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    children: [
-                      _buildSoundOption('images/musicoff.png', 'Mute', () {
-                        setState(() {
-                          isMuted = true;
-                          currentSoundTitle = ''; // Clear sound title
-                          currentSoundPath = ''; // Clear sound path
-                        });
-                        audioPlayer.stop();
-                      }),
-                      _buildSoundOption('images/forest.png', 'Forest', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/forest_ambience.mp3';
-                          currentSoundTitle = 'Forest'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/forest_ambience.mp3', 'Forest');
-                        }
-                      }),
-                      _buildSoundOption('images/rain.png', 'Rain', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/rain_ambience.mp3';
-                          currentSoundTitle = 'Rain'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/rain_ambience.mp3', 'Rain');
-                        }
-                      }),
-                      _buildSoundOption('images/wave.png', 'Ocean', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/wave_ambience.mp3';
-                          currentSoundTitle = 'Ocean'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/wave_ambience.mp3', 'Ocean');
-                        }
-                      }),
-                      _buildSoundOption('images/fire.png', 'Fireplace', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/fire_ambience.mp3';
-                          currentSoundTitle = 'Fireplace'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/fire_ambience.mp3', 'Fireplace');
-                        }
-                      }),
-                      _buildSoundOption('images/bird.png', 'Bird', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/bird_ambience.mp3';
-                          currentSoundTitle = 'Bird'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/bird_ambience.mp3', 'Bird');
-                        }
-                      }),
-                      _buildSoundOption('images/wind.png', 'Wind', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/wind_ambience.mp3';
-                          currentSoundTitle = 'Wind'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/wind_ambience.mp3', 'Wind');
-                        }
-                      }),
-                      _buildSoundOption('images/night.png', 'Night', () {
-                        setState(() {
-                          isMuted = false;
-                          currentSoundPath = 'sound/night_ambience.mp3';
-                          currentSoundTitle = 'Night'; // Set sound title
-                        });
-                        if (isRunning) {
-                          playSound('sound/night_ambience.mp3', 'Night');
-                        }
-                      }),
-                    ],
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSoundOption(String imagePath, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(imagePath, width: 60, height: 60), // Increased size
-          SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 16)), // Increased font size
-        ],
-      ),
-    );
-  }
+  // Metode lainnya (formatTime, playSound, showSoundOptions) tetap sama seperti sebelumnya
+  // ...
 
   @override
   Widget build(BuildContext context) {
@@ -370,18 +296,34 @@ class _PomodoroTimerState extends State<PomodoroTimer>
           children: [
             Column(
               children: [
-                const SizedBox(height: 20), // Add space above the title
+                const SizedBox(height: 20),
                 const Center(
                   child: Text(
                     "POMODORO",
                     style: TextStyle(
-                      fontSize: 32, // Increased font size
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10), // Add space below the title
+                const SizedBox(height: 10),
+                Center(
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: 150,
+                    ), // Set a maximum width
+                    child: CustomDropdown(
+                      items: todos,
+                      selectedValue: selectedTodo,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedTodo = newValue;
+                        });
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
             Center(
@@ -392,8 +334,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
-                        width: 300, // Increased size
-                        height: 300, // Increased size
+                        width: 300,
+                        height: 300,
                         child: CircularProgressIndicator(
                           value:
                               1 -
@@ -401,7 +343,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                                   (isFocusSession
                                       ? focusDuration
                                       : restDuration)),
-                          strokeWidth: 10, // Increased stroke width
+                          strokeWidth: 10,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Colors.orange,
                           ),
@@ -414,7 +356,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                           Text(
                             isFocusSession ? "Stay Focused" : "Take a Break",
                             style: const TextStyle(
-                              fontSize: 20, // Increased font size
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -441,7 +383,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                           Text(
                             formatTime(timeLeft),
                             style: const TextStyle(
-                              fontSize: 60, // Increased font size
+                              fontSize: 60,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -566,6 +508,222 @@ class _PomodoroTimerState extends State<PomodoroTimer>
             ),
             Navbar(initialActiveIndex: 0),
           ],
+        ),
+      ),
+    );
+  }
+
+  String formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int sec = seconds % 60;
+    return '$minutes:${sec.toString().padLeft(2, '0')}';
+  }
+
+  void playSound(String soundPath, String soundTitle) async {
+    await audioPlayer.stop();
+    if (!isMuted && isRunning) {
+      await audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await audioPlayer.play(AssetSource(soundPath));
+      setState(() {
+        currentSoundTitle = soundTitle;
+      });
+    }
+  }
+
+  void showSoundOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SingleChildScrollView(
+          child: SizedBox(
+            height: 300,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 40.0),
+                  child: GridView.count(
+                    crossAxisCount: 4,
+                    children: [
+                      _buildSoundOption('images/musicoff.png', 'Mute', () {
+                        setState(() {
+                          isMuted = true;
+                          currentSoundTitle = '';
+                          currentSoundPath = '';
+                        });
+                        audioPlayer.stop();
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/forest.png', 'Forest', () {
+                        _setSoundOption('sound/forest_ambience.mp3', 'Forest');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/rain.png', 'Rain', () {
+                        _setSoundOption('sound/rain_ambience.mp3', 'Rain');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/wave.png', 'Ocean', () {
+                        _setSoundOption('sound/wave_ambience.mp3', 'Ocean');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/fire.png', 'Fireplace', () {
+                        _setSoundOption('sound/fire_ambience.mp3', 'Fireplace');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/bird.png', 'Bird', () {
+                        _setSoundOption('sound/bird_ambience.mp3', 'Bird');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/wind.png', 'Wind', () {
+                        _setSoundOption('sound/wind_ambience.mp3', 'Wind');
+                        Navigator.pop(context);
+                      }),
+                      _buildSoundOption('images/night.png', 'Night', () {
+                        _setSoundOption('sound/night_ambience.mp3', 'Night');
+                        Navigator.pop(context);
+                      }),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _setSoundOption(String soundPath, String soundTitle) {
+    setState(() {
+      isMuted = false;
+      currentSoundPath = soundPath;
+      currentSoundTitle = soundTitle;
+    });
+    if (isRunning) {
+      playSound(soundPath, soundTitle);
+    }
+  }
+
+  Widget _buildSoundOption(String imagePath, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(imagePath, width: 60, height: 60),
+          SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 16)),
+        ],
+      ),
+    );
+  }
+}
+
+class CustomDropdown extends StatefulWidget {
+  final List<Map<String, dynamic>> items;
+  final String? selectedValue;
+  final ValueChanged<String?> onChanged;
+
+  CustomDropdown({
+    required this.items,
+    required this.selectedValue,
+    required this.onChanged,
+  });
+
+  @override
+  _CustomDropdownState createState() => _CustomDropdownState();
+}
+
+class _CustomDropdownState extends State<CustomDropdown> {
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+
+  void _toggleDropdown() {
+    if (_overlayEntry == null) {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context)!.insert(_overlayEntry!);
+    } else {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    Size size = renderBox.size;
+    Offset offset = renderBox.localToGlobal(Offset.zero);
+
+    return OverlayEntry(
+      builder:
+          (context) => Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0.0, size.height),
+              child: Material(
+                elevation: 4.0,
+                child: Container(
+                  decoration: BoxDecoration(color: Colors.purple),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children:
+                        widget.items.map((todo) {
+                          return GestureDetector(
+                            onTap: () {
+                              widget.onChanged(todo['title']);
+                              _toggleDropdown();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                todo['title'],
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _toggleDropdown,
+        child: Container(
+          decoration: BoxDecoration(color: Colors.purple),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                widget.selectedValue ?? "Select a Todo",
+                style: TextStyle(color: Colors.white),
+              ),
+              Icon(
+                _overlayEntry == null
+                    ? Icons.arrow_drop_down
+                    : Icons.arrow_drop_up,
+                color: Colors.white,
+              ),
+            ],
+          ),
         ),
       ),
     );

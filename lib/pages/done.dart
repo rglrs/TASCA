@@ -1,12 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../widgets/navbar.dart';
 import '../widgets/done/stat_card.dart';
 import '../widgets/done/chart_card.dart';
 import '../widgets/done/task_done_bar_chart.dart';
 import '../widgets/done/focus_line_chart.dart';
+import '../services/task_service.dart';
+import '../services/pomodoro.dart';
 
-class DonePage extends StatelessWidget {
+class DonePage extends StatefulWidget {
   const DonePage({super.key});
+
+  @override
+  _DonePageState createState() => _DonePageState();
+}
+
+class _DonePageState extends State<DonePage> {
+  final TaskService _taskService = TaskService();
+  final PomodoroService _pomodoroService = PomodoroService();
+
+  int _totalTaskDone = 0;
+  int _totalFocusedMinutes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      // Fetch weekly task stats
+      final weeklyTaskStats = await _taskService.getWeeklyCompletedTaskCount();
+      
+      // Fetch weekly pomodoro stats
+      final weeklyPomodoroStats = await _pomodoroService.getWeeklyStats();
+
+      setState(() {
+        _totalTaskDone = weeklyTaskStats.reduce((a, b) => a + b);
+
+        if (weeklyPomodoroStats != null && 
+            weeklyPomodoroStats['daily_focus_times'] != null) {
+          final focusDurations = 
+              List<double>.from(weeklyPomodoroStats['daily_focus_times']);
+          _totalFocusedMinutes = 
+              focusDurations.reduce((a, b) => a + b).toInt();
+        }
+      });
+    } catch (e) {
+      print('Error fetching stats: $e');
+    }
+  }
+
+  // Mendapatkan rentang tanggal seminggu
+  String _getWeekDateRange() {
+    DateTime now = DateTime.now();
+    // Cari hari Senin terakhir
+    DateTime monday = now.subtract(Duration(days: now.weekday - 1));
+    // Cari hari Minggu terakhir
+    DateTime sunday = monday.add(const Duration(days: 6));
+
+    return '${DateFormat('dd/MM').format(monday)} - ${DateFormat('dd/MM').format(sunday)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,25 +84,30 @@ class DonePage extends StatelessWidget {
                 padding: const EdgeInsets.all(12.0),
                 child: ListView(
                   children: [
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        StatCard(title: 'Task Done', value: '2'),
-                        StatCard(title: 'Focused', value: '20m'),
+                        StatCard(
+                          title: 'Task Done', 
+                          value: '$_totalTaskDone',
+                        ),
+                        StatCard(
+                          title: 'Focused', 
+                          value: '${_totalFocusedMinutes}m',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     ChartCard(
                       title: 'Task Done',
-                      dateRange: '02/03 - 08/03',
-                      child: TaskDoneBarChart(
-                        taskDoneData: List.filled(7, 11),
-                      ),
+                      dateRange: _getWeekDateRange(),
+                      child: TaskDoneBarChart(taskService: _taskService),
                     ),
                     const SizedBox(height: 16),
-                    const ChartCard(
+                    ChartCard(
                       title: 'Focused',
-                      child: FocusLineChart(),
+                      dateRange: _getWeekDateRange(),
+                      child: FocusLineChart(pomodoroService: _pomodoroService),
                     ),
                   ],
                 ),
