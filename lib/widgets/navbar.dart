@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:tasca_mobile1/pages/done.dart';
 import 'package:tasca_mobile1/pages/pomodoro.dart'; // Import the Pomodoro page
 import 'package:tasca_mobile1/pages/setting_page.dart'; // Import the Setting page
 import 'package:tasca_mobile1/pages/todo.dart'; // Import the Setting page
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasca_mobile1/pages/done.dart';
 
 class Navbar extends StatefulWidget {
   final int initialActiveIndex;
@@ -75,82 +77,139 @@ class _NavbarState extends State<Navbar> {
     }
   }
 
+  Future<bool> _onWillPop() async {
+    // Exit the app when back button is pressed
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Container(
-        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(
-            5,
-            (index) => SizedBox(
-              width: 40,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.circle, color: Colors.grey.shade300, size: 28),
-                  SizedBox(height: 4),
-                  Container(height: 12, width: 30, color: Colors.grey.shade300),
-                ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child:
+          isLoading
+              ? Container(
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(
+                    5,
+                    (index) => SizedBox(
+                      width: 40,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: Colors.grey.shade300,
+                            size: 28,
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            height: 12,
+                            width: 30,
+                            color: Colors.grey.shade300,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              : Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                margin: EdgeInsets.only(bottom: 20),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    NavBarItem(
+                      icon: Icons.more_time_rounded,
+                      label: 'Focus',
+                      isActive: activeIndex == 0,
+                      onTap: () => _onItemTapped(0),
+                    ),
+                    NavBarItem(
+                      icon: Icons.format_list_bulleted_add,
+                      label: 'To Do',
+                      isActive: activeIndex == 1,
+                      onTap: () {
+                        _onItemTapped(1);
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation1, animation2) => TodoPage(),
+                            transitionDuration: Duration.zero,
+                            transitionsBuilder: (
+                              context,
+                              animation1,
+                              animation2,
+                              child,
+                            ) {
+                              return child;
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    NavBarItem(
+                      icon: Icons.check_circle,
+                      label: 'Done!',
+                      isActive: activeIndex == 3,
+                      onTap: () {
+                        _onItemTapped(3);
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation1, animation2) => DonePage(),
+                            transitionDuration: Duration.zero,
+                            transitionsBuilder: (
+                              context,
+                              animation1,
+                              animation2,
+                              child,
+                            ) {
+                              return child;
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    NavBarItem(
+                      icon: Icons.settings,
+                      label: 'Setting',
+                      isActive: activeIndex == 2,
+                      onTap: () => _onItemTapped(2),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.9,
-      margin: EdgeInsets.only(bottom: 20),
-      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(50),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          NavBarItem(
-            icon: Icons.more_time_rounded,
-            label: 'Focus',
-            isActive: activeIndex == 0,
-            onTap: () => _onItemTapped(0),
-          ),
-          NavBarItem(
-            icon: Icons.format_list_bulleted_add,
-            label: 'To Do',
-            isActive: activeIndex == 1,
-            onTap: () => _onItemTapped(1),
-          ),
-          NavBarItem(
-            icon: Icons.settings,
-            label: 'Setting',
-            isActive: activeIndex == 2,
-            onTap: () => _onItemTapped(2),
-          ),
-        ],
-      ),
     );
   }
 }
