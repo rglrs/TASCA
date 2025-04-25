@@ -31,7 +31,7 @@ class TaskService {
 
       if (token == null) {
         print('No authentication token found');
-        return [];
+        return Future.error('Unauthorized access');
       }
 
       final response = await http.get(
@@ -45,6 +45,9 @@ class TaskService {
 
         // Kembalikan daftar tugas yang diselesaikan
         return responseData['data'] ?? [];
+      } else if (response.statusCode == 401) {
+        // Handle unauthorized access
+        return Future.error('Unauthorized access');
       } else {
         print('Failed to fetch completed tasks: ${response.body}');
         return [];
@@ -62,7 +65,7 @@ class TaskService {
 
       if (token == null) {
         print('No authentication token found');
-        return [0, 0, 0, 0, 0, 0, 0];
+        return Future.error('Unauthorized access');
       }
 
       final response = await http.get(
@@ -90,6 +93,9 @@ class TaskService {
         }
 
         return dailyTasks;
+      } else if (response.statusCode == 401) {
+        // Handle unauthorized access
+        return Future.error('Unauthorized access');
       } else {
         print('Failed to fetch weekly completed tasks: ${response.body}');
         return [0, 0, 0, 0, 0, 0, 0];

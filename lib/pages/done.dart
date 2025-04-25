@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/navbar.dart';
 import '../widgets/done/stat_card.dart';
 import '../widgets/done/chart_card.dart';
@@ -7,6 +8,7 @@ import '../widgets/done/task_done_bar_chart.dart';
 import '../widgets/done/focus_line_chart.dart';
 import '../services/task_service.dart';
 import '../services/pomodoro.dart';
+import 'login_page.dart';
 
 class DonePage extends StatefulWidget {
   const DonePage({super.key});
@@ -32,24 +34,39 @@ class _DonePageState extends State<DonePage> {
     try {
       // Fetch weekly task stats
       final weeklyTaskStats = await _taskService.getWeeklyCompletedTaskCount();
-      
+
       // Fetch weekly pomodoro stats
       final weeklyPomodoroStats = await _pomodoroService.getWeeklyStats();
 
       setState(() {
         _totalTaskDone = weeklyTaskStats.reduce((a, b) => a + b);
 
-        if (weeklyPomodoroStats != null && 
+        if (weeklyPomodoroStats != null &&
             weeklyPomodoroStats['daily_focus_times'] != null) {
-          final focusDurations = 
-              List<double>.from(weeklyPomodoroStats['daily_focus_times']);
-          _totalFocusedMinutes = 
-              focusDurations.reduce((a, b) => a + b).toInt();
+          final focusDurations = List<double>.from(
+            weeklyPomodoroStats['daily_focus_times'],
+          );
+          _totalFocusedMinutes = focusDurations.reduce((a, b) => a + b).toInt();
         }
       });
     } catch (e) {
-      print('Error fetching stats: $e');
+      if (e == 'Unauthorized access') {
+        _redirectToLogin();
+      } else {
+        print('Error fetching stats: $e');
+      }
     }
+  }
+
+  void _redirectToLogin() {
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('auth_token');
+    });
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => LoginPage()),
+      (route) => false,
+    );
   }
 
   // Mendapatkan rentang tanggal seminggu
@@ -87,12 +104,9 @@ class _DonePageState extends State<DonePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
+                        StatCard(title: 'Task Done', value: '$_totalTaskDone'),
                         StatCard(
-                          title: 'Task Done', 
-                          value: '$_totalTaskDone',
-                        ),
-                        StatCard(
-                          title: 'Focused', 
+                          title: 'Focused',
                           value: '${_totalFocusedMinutes}m',
                         ),
                       ],

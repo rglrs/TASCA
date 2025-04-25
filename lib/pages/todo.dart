@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'detail_todo.dart';
 import 'add_todo.dart';
 import '../widgets/navbar.dart';
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
@@ -62,7 +63,8 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       final token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception('No JWT token found');
+        _redirectToLogin();
+        return;
       }
 
       final response = await http.get(
@@ -91,6 +93,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
             _isLoading = false;
           });
         }
+      } else if (response.statusCode == 401) {
+        // Token is invalid or expired
+        _redirectToLogin();
       } else {
         throw Exception('Failed to load todos: ${response.body}');
       }
@@ -109,6 +114,17 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         });
       }
     }
+  }
+
+  void _redirectToLogin() {
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('auth_token');
+    });
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => LoginPage()),
+      (route) => false,
+    );
   }
 
   String _getColorForTodo(int todoId) {

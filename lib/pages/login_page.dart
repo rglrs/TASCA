@@ -31,31 +31,35 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _checkToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    final expirationTime = prefs.getInt('token_expiration');
 
-    if (token != null && expirationTime != null) {
-      final currentTime = DateTime.now().millisecondsSinceEpoch;
-      if (currentTime < expirationTime) {
-        // Token masih valid, langsung ke halaman utama
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => PomodoroTimer()),
+    if (token != null) {
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.tascaid.com/api/validate_token'),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'token': token}),
         );
-      } else {
-        // Token expired, hapus token
-        await prefs.remove('auth_token');
-        await prefs.remove('token_expiration');
 
-        // Refresh halaman login
-        setState(() {});
-
-        // Tampilkan notifikasi sesi berakhir
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sesi telah berakhir, silakan login ulang.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        if (response.statusCode == 200) {
+          // Token valid
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => PomodoroTimer()),
+          );
+        } else {
+          // Token invalid / expired
+          await prefs.remove('auth_token');
+          _showErrorMessage('Sesi telah berakhir, silakan login ulang.');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        }
+      } catch (e) {
+        _showErrorMessage('Terjadi kesalahan jaringan.');
       }
     }
   }
@@ -101,10 +105,7 @@ class _LoginPageState extends State<LoginPage> {
         final String token = data['token'];
 
         final prefs = await SharedPreferences.getInstance();
-        final expirationTime =
-            DateTime.now().add(Duration(days: 1)).millisecondsSinceEpoch;
         await prefs.setString('auth_token', token);
-        await prefs.setInt('token_expiration', expirationTime);
 
         _showSuccessMessage('Login berhasil!');
         Navigator.pushReplacement(

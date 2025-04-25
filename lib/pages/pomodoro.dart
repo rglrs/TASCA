@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart'; // Ensure this path is correct
 import 'package:tasca_mobile1/services/pomodoro.dart';
 import 'dart:io'; // Import for SocketException
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({Key? key}) : super(key: key);
@@ -64,7 +65,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       final token = prefs.getString('auth_token');
 
       if (token == null) {
-        throw Exception('No JWT token found');
+        _redirectToLogin();
+        return;
       }
 
       final response = await http.get(
@@ -80,15 +82,17 @@ class _PomodoroTimerState extends State<PomodoroTimer>
         final List<dynamic> todosData = responseBody['data'];
 
         setState(() {
-          todos =
-              todosData.map((todo) {
-                return {
-                  'id': todo['id'],
-                  'title': todo['title'] ?? 'Unnamed Todo',
-                  'taskCount': todo['task_count'] ?? 0,
-                };
-              }).toList();
+          todos = todosData.map((todo) {
+            return {
+              'id': todo['id'],
+              'title': todo['title'] ?? 'Unnamed Todo',
+              'taskCount': todo['task_count'] ?? 0,
+            };
+          }).toList();
         });
+      } else if (response.statusCode == 401) {
+        // Token is invalid or expired
+        _redirectToLogin();
       } else {
         throw Exception('Failed to load todos: ${response.body}');
       }
@@ -99,6 +103,17 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     } catch (e) {
       print('Error fetching todos: $e');
     }
+  }
+
+  void _redirectToLogin() {
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('auth_token');
+    });
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => LoginPage()),
+      (route) => false,
+    );
   }
 
   Future<void> _scheduleNotification(String title, String body) async {
