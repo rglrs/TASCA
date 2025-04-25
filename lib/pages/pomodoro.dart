@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart'; // Ensure this path is correct
 import 'package:tasca_mobile1/services/pomodoro.dart';
+import 'dart:io'; // Import for SocketException
 
 class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({Key? key}) : super(key: key);
@@ -37,6 +38,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   // Todo variables
   List<Map<String, dynamic>> todos = [];
   String? selectedTodo;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -90,6 +92,10 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       } else {
         throw Exception('Failed to load todos: ${response.body}');
       }
+    } on SocketException {
+      setState(() {
+        _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
+      });
     } catch (e) {
       print('Error fetching todos: $e');
     }

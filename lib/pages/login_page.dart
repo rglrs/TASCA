@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io'; // Import for SocketException
 import 'register_page.dart';
 import 'pomodoro.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,13 +36,26 @@ class _LoginPageState extends State<LoginPage> {
     if (token != null && expirationTime != null) {
       final currentTime = DateTime.now().millisecondsSinceEpoch;
       if (currentTime < expirationTime) {
+        // Token masih valid, langsung ke halaman utama
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
+        // Token expired, hapus token
         await prefs.remove('auth_token');
         await prefs.remove('token_expiration');
+
+        // Refresh halaman login
+        setState(() {});
+
+        // Tampilkan notifikasi sesi berakhir
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sesi telah berakhir, silakan login ulang.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     }
   }
@@ -102,6 +116,8 @@ class _LoginPageState extends State<LoginPage> {
           'Login gagal: Periksa kembali email/username dan password Anda.',
         );
       }
+    } on SocketException {
+      _showErrorMessage('Kesalahan Koneksi: Periksa koneksi internet Anda.');
     } catch (e) {
       _showErrorMessage('Terjadi kesalahan: Silakan coba lagi nanti.');
     } finally {
@@ -125,7 +141,9 @@ class _LoginPageState extends State<LoginPage> {
 
       // Make a POST request to your API with the Google sign-in token
       final response = await http.post(
-        Uri.parse('https://api.tascaid.com/api/google/login'), // Your API endpoint here
+        Uri.parse(
+          'https://api.tascaid.com/api/google/login',
+        ), // Your API endpoint here
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -133,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
           'email': googleUser.email,
           'idToken': googleAuth.idToken, // Send token to your backend
           // Add other necessary fields here
-        }), 
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -160,6 +178,8 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
+    } on SocketException {
+      _showErrorMessage('Kesalahan Koneksi: Periksa koneksi internet Anda.');
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

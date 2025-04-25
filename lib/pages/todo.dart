@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io'; // Import for SocketException
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -92,6 +93,13 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         }
       } else {
         throw Exception('Failed to load todos: ${response.body}');
+      }
+    } on SocketException {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
+          _isLoading = false;
+        });
       }
     } catch (e) {
       if (mounted) {
