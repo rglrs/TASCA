@@ -54,9 +54,19 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     localNotifications = FlutterLocalNotificationsPlugin();
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        );
+
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-    await localNotifications.initialize(initializationSettings);
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
   }
 
   Future<void> _fetchTasks() async {
@@ -91,17 +101,16 @@ class _PomodoroTimerState extends State<PomodoroTimer>
               }).toList();
         });
       } else if (response.statusCode == 401) {
-        // Token is invalid or expired
         _redirectToLogin();
       } else {
-        throw Exception('Failed to load todos: ${response.body}');
+        throw Exception('Failed to load incomplete tasks: ${response.body}');
       }
     } on SocketException {
       setState(() {
         _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
       });
     } catch (e) {
-      print('Error fetching todos: $e');
+      print('Error fetching incomplete tasks: $e');
     }
   }
 
@@ -661,21 +670,30 @@ class CustomDropdown extends StatefulWidget {
 class _CustomDropdownState extends State<CustomDropdown> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
+  bool _isDropdownOpen = false;
+
+  bool get _isNoTaskState =>
+      widget.items.length == 1 && widget.items[0]['title'] == 'Tidak ada task';
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context)!.insert(_overlayEntry!);
+      setState(() {
+        _isDropdownOpen = true;
+      });
     } else {
       _overlayEntry!.remove();
       _overlayEntry = null;
+      setState(() {
+        _isDropdownOpen = false;
+      });
     }
   }
 
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     Size size = renderBox.size;
-    Offset offset = renderBox.localToGlobal(Offset.zero);
 
     return OverlayEntry(
       builder:
@@ -692,24 +710,40 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:
-                        widget.items.map((task) {
-                          return GestureDetector(
-                            onTap: () {
-                              widget.onChanged(task['title']);
-                              _toggleDropdown();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                        _isNoTaskState
+                            ? [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Tidak ada task',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
                               ),
-                              child: Text(
-                                task['title'],
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                            ]
+                            : widget.items.map((task) {
+                              return GestureDetector(
+                                onTap: () {
+                                  widget.onChanged(task['title']);
+                                  _toggleDropdown();
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    task['title'],
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                   ),
                 ),
               ),
@@ -735,9 +769,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                 style: TextStyle(color: Colors.white),
               ),
               Icon(
-                _overlayEntry == null
-                    ? Icons.arrow_drop_down
-                    : Icons.arrow_drop_up,
+                _isDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                 color: Colors.white,
               ),
             ],
@@ -745,5 +777,11 @@ class _CustomDropdownState extends State<CustomDropdown> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
   }
 }
