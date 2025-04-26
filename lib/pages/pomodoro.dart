@@ -37,8 +37,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   AudioPlayer audioPlayer = AudioPlayer();
 
   // Todo variables
-  List<Map<String, dynamic>> todos = [];
-  String? selectedTodo;
+  List<Map<String, dynamic>> tasks = [];
+  String? selectedTask;
   String? _errorMessage;
 
   @override
@@ -47,7 +47,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     WidgetsBinding.instance.addObserver(this);
     _loadSavedState();
     _initializeNotifications();
-    _fetchTodos(); // Fetch todos on initialization
+    _fetchTasks(); // Fetch todos on initialization
   }
 
   void _initializeNotifications() async {
@@ -59,7 +59,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     await localNotifications.initialize(initializationSettings);
   }
 
-  Future<void> _fetchTodos() async {
+  Future<void> _fetchTasks() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -70,7 +70,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       }
 
       final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/todos/'),
+        Uri.parse('https://api.tascaid.com/api/tasks/incomplete'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -79,16 +79,16 @@ class _PomodoroTimerState extends State<PomodoroTimer>
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> todosData = responseBody['data'];
+        final List<dynamic> tasksData = responseBody['data'];
 
         setState(() {
-          todos = todosData.map((todo) {
-            return {
-              'id': todo['id'],
-              'title': todo['title'] ?? 'Unnamed Todo',
-              'taskCount': todo['task_count'] ?? 0,
-            };
-          }).toList();
+          tasks =
+              tasksData.map((task) {
+                return {
+                  'id': task['id'],
+                  'title': task['title'] ?? 'Unnamed Task',
+                };
+              }).toList();
         });
       } else if (response.statusCode == 401) {
         // Token is invalid or expired
@@ -304,9 +304,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     });
   }
 
-  // Metode lainnya (formatTime, playSound, showSoundOptions) tetap sama seperti sebelumnya
-  // ...
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,11 +332,11 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                       maxWidth: 150,
                     ), // Set a maximum width
                     child: CustomDropdown(
-                      items: todos,
-                      selectedValue: selectedTodo,
+                      items: tasks,
+                      selectedValue: selectedTask,
                       onChanged: (String? newValue) {
                         setState(() {
-                          selectedTodo = newValue;
+                          selectedTask = newValue;
                         });
                       },
                     ),
@@ -695,10 +692,10 @@ class _CustomDropdownState extends State<CustomDropdown> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:
-                        widget.items.map((todo) {
+                        widget.items.map((task) {
                           return GestureDetector(
                             onTap: () {
-                              widget.onChanged(todo['title']);
+                              widget.onChanged(task['title']);
                               _toggleDropdown();
                             },
                             child: Container(
@@ -707,7 +704,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                                 vertical: 8,
                               ),
                               child: Text(
-                                todo['title'],
+                                task['title'],
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
@@ -734,7 +731,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                widget.selectedValue ?? "Select a Todo",
+                widget.selectedValue ?? "Select a Task",
                 style: TextStyle(color: Colors.white),
               ),
               Icon(
