@@ -12,6 +12,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:async';
 
+import '../widgets/setting/no_internet_view.dart';
+import '../widgets/setting/error_view.dart';
+import '../widgets/setting/profile_tile.dart';
+import '../widgets/setting/settings_section.dart';
+import '../widgets/setting/settings_tile.dart';
+import '../widgets/setting/logout_tile.dart';
+
 enum LoadingState { loading, loaded, error, noInternet }
 
 class UserProfile {
@@ -70,7 +77,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _initializeScreen() async {
     try {
       await _getToken();
-
       await _fetchUserProfile();
     } catch (e) {
       setState(() {
@@ -90,7 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       if (_token == null || _token!.isEmpty) {
-        // Redirect ke login jika token kosong
         _redirectToLogin();
         return;
       }
@@ -143,7 +148,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _loadingState = LoadingState.loaded;
         });
       } else if (response.statusCode == 401) {
-        // Token expired, redirect to login
         _redirectToLogin();
       } else {
         setState(() {
@@ -220,279 +224,119 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       case LoadingState.noInternet:
-        return _buildNoInternetView();
+        return NoInternetView(onRetry: _initializeScreen);
       case LoadingState.error:
-        return _buildErrorView();
+        return ErrorView(
+          errorMessage: _errorMessage,
+          onRetry: _initializeScreen,
+        );
       case LoadingState.loaded:
         return _buildSettingsContent();
     }
   }
 
-  Widget _buildNoInternetView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.wifi_off_rounded, size: 100, color: Colors.grey[500]),
-          SizedBox(height: 20),
-          Text(
-            'Tidak ada koneksi internet',
-            style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _initializeScreen,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Coba Lagi'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 100, color: Colors.red[500]),
-          SizedBox(height: 20),
-          Text(
-            'Terjadi kesalahan',
-            style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-          ),
-          Text(
-            _errorMessage,
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _initializeScreen,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Coba Lagi'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSettingsContent() {
-    final textColor = Colors.black87;
     final subtitleColor = Colors.grey.shade600;
     final iconColor = Colors.black87;
-    final backgroundColor = Color(0xFFF0E9F7);
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       children: [
         // Profile Section
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.red.withOpacity(0.2),
-              child:
-                  _userProfile?.picture == null || _userProfile!.picture.isEmpty
-                      ? const Icon(Icons.person, color: Colors.red)
-                      : ClipOval(
-                        child: Image.network(
-                          _userProfile!.picture,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(Icons.person, color: Colors.red);
-                          },
-                        ),
-                      ),
-            ),
-            title: Text(
-              _userProfile?.name ?? '',
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-            ),
-            subtitle: Text(
-              _userProfile?.email ?? '',
-              style: TextStyle(color: subtitleColor),
-            ),
-            trailing: Icon(Icons.chevron_right, color: subtitleColor),
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfileScreen()),
-              );
-
-              await _fetchUserProfile();
-            },
-          ),
+        ProfileTile(
+          userProfile: _userProfile,
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            );
+            await _fetchUserProfile();
+          },
         ),
 
         const SizedBox(height: 20),
 
         // General Section
-        Padding(
-          padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
-          child: Text(
-            'General',
-            style: TextStyle(color: subtitleColor, fontSize: 16),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.timer_outlined, color: iconColor),
-                title: Text(
-                  'Focus Timer',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
-                  ),
-                ),
-                trailing: Icon(Icons.chevron_right, color: subtitleColor),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FocusTimerScreen()),
-                  );
-                },
-              ),
-            ],
-          ),
+        SettingsSection(
+          title: 'General',
+          children: [
+            SettingsTile(
+              icon: Icons.timer_outlined,
+              title: 'Focus Timer',
+              iconColor: iconColor,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => FocusTimerScreen()),
+                );
+              },
+            ),
+          ],
         ),
 
         const SizedBox(height: 20),
 
         // About Section
-        Padding(
-          padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
-          child: Text(
-            'About',
-            style: TextStyle(color: subtitleColor, fontSize: 16),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.message_outlined, color: iconColor),
-                title: Text(
-                  'Send Feedback',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
-                  ),
-                ),
-                trailing: Icon(Icons.chevron_right, color: subtitleColor),
-                onTap: () {
-                  launch(
-                    'https://play.google.com/store/apps/details?id=com.tascaid.app',
-                  );
-                },
-              ),
-              Divider(
-                height: 1,
-                indent: 16,
-                endIndent: 16,
-                color: subtitleColor.withOpacity(0.5),
-              ),
-              ListTile(
-                leading: Icon(Icons.thumb_up_alt_outlined, color: iconColor),
-                title: Text(
-                  'Leave Rating',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
-                  ),
-                ),
-                trailing: Icon(Icons.chevron_right, color: subtitleColor),
-                onTap: () {
-                  // Use the user's actual ID from _userProfile
-                  context.showRatingModal(
-                    username: _userProfile?.username ?? '',
-                  );
-                },
-              ),
-            ],
-          ),
+        SettingsSection(
+          title: 'About',
+          children: [
+            SettingsTile(
+              icon: Icons.message_outlined,
+              title: 'Send Feedback',
+              iconColor: iconColor,
+              onTap: () {
+                launch(
+                  'https://play.google.com/store/apps/details?id=com.tascaid.app',
+                );
+              },
+            ),
+            Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: subtitleColor.withOpacity(0.5),
+            ),
+            SettingsTile(
+              icon: Icons.thumb_up_alt_outlined,
+              title: 'Leave Rating',
+              iconColor: iconColor,
+              onTap: () {
+                context.showRatingModal(
+                  username: _userProfile?.username ?? '',
+                );
+              },
+            ),
+          ],
         ),
 
         const SizedBox(height: 20),
 
         // Account Section
-        Padding(
-          padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
-          child: Text(
-            'Account',
-            style: TextStyle(color: subtitleColor, fontSize: 16),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.password_outlined, color: iconColor),
-                title: Text(
-                  'Change Password',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
+        SettingsSection(
+          title: 'Account',
+          children: [
+            SettingsTile(
+              icon: Icons.password_outlined,
+              title: 'Change Password',
+              iconColor: iconColor,
+              showTrailing: false,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordPage(),
                   ),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChangePasswordPage(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+                );
+              },
+            ),
+          ],
         ),
 
         const SizedBox(height: 20),
 
         // Logout Button
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            title: Center(
-              child: Text(
-                'Log Out',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            onTap: () => _logout(context),
-          ),
+        LogoutTile(
+          onTap: () => _logout(context),
         ),
 
         const SizedBox(height: 20),

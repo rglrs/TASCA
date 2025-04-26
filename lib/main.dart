@@ -5,6 +5,103 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tasca_mobile1/pages/todo.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+// Custom PageRouteBuilder for slide animations 
+class SlidePageRoute extends PageRouteBuilder {
+  final Widget page;
+  final AxisDirection direction;
+
+  SlidePageRoute({required this.page, this.direction = AxisDirection.right})
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionDuration: const Duration(milliseconds: 800),
+        reverseTransitionDuration: const Duration(milliseconds: 800),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Set different offsets based on direction
+          late Offset begin;
+          late Offset beginSecondary;
+
+          switch (direction) {
+            case AxisDirection.right:
+              begin = const Offset(1.0, 0.0); // From right
+              beginSecondary = const Offset(-0.3, 0.0); // Current page slides slightly left
+              break;
+            case AxisDirection.left:
+              begin = const Offset(-1.0, 0.0); // From left
+              beginSecondary = const Offset(0.3, 0.0); // Current page slides slightly right
+              break;
+            case AxisDirection.up:
+              begin = const Offset(0.0, 1.0); // From bottom
+              beginSecondary = const Offset(0.0, -0.3);
+              break;
+            case AxisDirection.down:
+              begin = const Offset(0.0, -1.0); // From top
+              beginSecondary = const Offset(0.0, 0.3);
+              break;
+          }
+
+          const end = Offset.zero;
+          // Using cubic curves for more natural motion
+          const curve = Curves.easeOutCubic;
+          const secondaryCurve = Curves.easeInCubic;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var secondaryTween = Tween(begin: end, end: beginSecondary).chain(CurveTween(curve: secondaryCurve));
+
+          // Add subtle scale effect for depth
+          var scaleTween = Tween(begin: 0.95, end: 1.0).chain(CurveTween(curve: curve));
+          var secondaryScaleTween = Tween(begin: 1.0, end: 0.95).chain(CurveTween(curve: secondaryCurve));
+
+          // Subtle fade for smoothness
+          var fadeTween = Tween(begin: 0.5, end: 1.0).chain(CurveTween(curve: curve));
+
+          // For the current page (the one being replaced)
+          Widget currentPage = SlideTransition(
+            position: secondaryAnimation.drive(secondaryTween),
+            child: ScaleTransition(
+              scale: secondaryAnimation.drive(secondaryScaleTween),
+              child: child,
+            ),
+          );
+
+          // For the new page coming in
+          Widget newPage = SlideTransition(
+            position: animation.drive(tween),
+            child: ScaleTransition(
+              scale: animation.drive(scaleTween),
+              child: child,
+            ),
+          );
+
+          if (secondaryAnimation.status == AnimationStatus.reverse) {
+            return currentPage;
+          } else {
+            return FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: newPage,
+            );
+          }
+        },
+      );
+}
+
+// Helper function for navigation with slide animation
+void navigateWithSlide(
+  BuildContext context,
+  Widget page, {
+  AxisDirection direction = AxisDirection.right,
+}) {
+  Navigator.of(context).push(SlidePageRoute(page: page, direction: direction));
+}
+
+// Helper function for navigation with replacement and slide animation
+void navigateReplaceWithSlide(
+  BuildContext context,
+  Widget page, {
+  AxisDirection direction = AxisDirection.right,
+}) {
+  Navigator.of(context).pushReplacement(SlidePageRoute(page: page, direction: direction));
+}
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -33,28 +130,29 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TASCA',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const SplashScreen(),
+      home: const StartScreen(),
     );
   }
 }
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class StartScreen extends StatefulWidget {
+  const StartScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<StartScreen> createState() => _StartScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
-    // Check login status and navigate after 5 seconds
+    // Check login status and auto navigate
     _checkLoginAndNavigate();
   }
 
   Future<void> _checkLoginAndNavigate() async {
     try {
+      // Show StartScreen for 5 seconds
       await Future.delayed(const Duration(seconds: 5));
       
       if (!mounted) return;
@@ -70,17 +168,21 @@ class _SplashScreenState extends State<SplashScreen> {
           MaterialPageRoute(builder: (context) => const TodoPage()),
         );
       } else {
-        // User is not logged in, navigate to StartScreen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const StartScreen()),
+        // User is not logged in, navigate to SlicingScreen with slide animation
+        navigateReplaceWithSlide(
+          context, 
+          const SlicingScreen(initialPage: 0),
+          direction: AxisDirection.right
         );
       }
     } catch (e) {
       if (!mounted) return;
       
-      // If error occurs, still navigate to StartScreen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const StartScreen()),
+      // If error occurs, still navigate to SlicingScreen with slide animation
+      navigateReplaceWithSlide(
+        context, 
+        const SlicingScreen(initialPage: 0),
+        direction: AxisDirection.right
       );
     }
   }
@@ -88,193 +190,137 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFE8E2FF),
-              Color(0xFFF5F3FF),
-            ],
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFE8E2FF),
+                  Color(0xFFF5F3FF),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Center(
-          child: Image.asset(
-            'images/logo.png',
-            width: 280,
-            height: 280,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
-class StartScreen extends StatelessWidget {
-  const StartScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        navigateWithSlide(context, const SlicingScreen(initialPage: 0));
-      },
-      child: Scaffold(
-        body: Stack(
-          children: [
-            // Background gradient
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFE8E2FF),
-                    Color(0xFFF5F3FF),
-                  ],
-                ),
-              ),
-            ),
-
-            // Purple moon shadow in the top right corner
-            Positioned(
-              top: -50,
-              right: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.2),
-                      blurRadius: 70,
-                      spreadRadius: 20,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Purple moon shadow in the bottom left corner
-            Positioned(
-              bottom: 0,
-              left: -40,
-              child: Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.15),
-                      blurRadius: 60,
-                      spreadRadius: 15,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Main content (logo and text)
-            SafeArea(
-              child: Column(
-                children: [
-                  // Add space at the top to push logo down
-                  const SizedBox(height: 80),
-
-                  // Logo and text in a centered column
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Logo from assets folder
-                          Image.asset(
-                            'images/logo.png',
-                            width: 280,
-                            height: 280,
-                          ),
-                          const SizedBox(height: 40),
-                          // Application name with colored text and Poppins font
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'T',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              Text(
-                                'a',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              Text(
-                                's',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                              Text(
-                                'c',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                              Text(
-                                'a',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 60),
-                          
-                          // Static "Tap to continue" text
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.touch_app,
-                                color: Theme.of(context).primaryColor,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tap to continue',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+          // Purple moon shadow in the top right corner
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.2),
+                    blurRadius: 70,
+                    spreadRadius: 20,
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Purple moon shadow in the bottom left corner
+          Positioned(
+            bottom: 0,
+            left: -40,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.15),
+                    blurRadius: 60,
+                    spreadRadius: 15,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Main content (logo and text)
+          SafeArea(
+            child: Column(
+              children: [
+                // Add space at the top to push logo down
+                const SizedBox(height: 80),
+
+                // Logo and text in a centered column
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Logo from assets folder
+                        Image.asset(
+                          'images/logo.png',
+                          width: 280,
+                          height: 280,
+                        ),
+                        const SizedBox(height: 40),
+                        // Application name with colored text and Poppins font
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'T',
+                              style: GoogleFonts.poppins(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            Text(
+                              'a',
+                              style: GoogleFonts.poppins(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            Text(
+                              's',
+                              style: GoogleFonts.poppins(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                            Text(
+                              'c',
+                              style: GoogleFonts.poppins(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            Text(
+                              'a',
+                              style: GoogleFonts.poppins(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Removed "Tap to continue" text
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

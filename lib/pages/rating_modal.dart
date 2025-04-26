@@ -70,45 +70,85 @@ class _RatingModalState extends State<RatingModal> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Berikan Rating', textAlign: TextAlign.center),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Bagaimana pengalaman Anda menggunakan aplikasi ini?',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              return IconButton(
-                icon: Icon(
-                  index < _selectedRating ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                  size: 40,
+    // Mendapatkan lebar layar untuk menyesuaikan ukuran dialog
+    final screenWidth = MediaQuery.of(context).size.width;
+    final starSize = screenWidth < 360 ? 30.0 : 36.0; // Ukuran bintang yang responsif
+    
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Berikan Rating',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Bagaimana pengalaman Anda menggunakan aplikasi ini?',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8.0,
+                children: List.generate(5, (index) {
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedRating = index + 1;
+                        _canSubmit = true;
+                      });
+                    },
+                    child: Icon(
+                      index < _selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: starSize,
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _canSubmit ? _saveRating : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B7DFA),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey[300],
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Kirim Rating'),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _selectedRating = index + 1;
-                    _canSubmit = true;
-                  });
-                },
-              );
-            }),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _canSubmit ? _saveRating : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B7DFA),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey[300],
-            ),
-            child: const Text('Kirim Rating'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -127,6 +167,7 @@ extension RatingModalExtension on BuildContext {
     if (!hasRated) {
       await showDialog(
         context: this,
+        barrierDismissible: false,
         builder: (context) => RatingModal(username: username),
       );
     } else {

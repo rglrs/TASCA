@@ -8,6 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:developer' as developer;
 
+import '../widgets/profile_settings/profile_image_widget.dart';
+import '../widgets/profile_settings/profile_field_widget.dart';
+import '../widgets/profile_settings/profile_buttons_widget.dart';
+
 class UserProfile {
   final int id;
   final String username;
@@ -631,301 +635,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child:
               isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      children: [
-                        // Avatar and Edit button
-                        Center(
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  if (_selectedImage != null ||
-                                      (profileImageUrl != null &&
-                                          profileImageUrl!.isNotEmpty)) {
-                                    _showFullScreenImage();
-                                  }
-                                },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.grey.withOpacity(0.5),
-                                        ),
-                                      ),
-                                    ),
-                                    _selectedImage != null
-                                        ? ClipOval(
-                                          child: Image.file(
-                                            _selectedImage!,
-                                            width: 72,
-                                            height: 72,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        )
-                                        : profileImageUrl != null
-                                        ? ClipOval(
-                                          child: Image.network(
-                                            profileImageUrl!,
-                                            width: 72,
-                                            height: 72,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              developer.log(
-                                                'Error loading avatar: $error',
-                                              ); // Debug log
-                                              return Container(
-                                                width: 60,
-                                                height: 60,
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.grey,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: const Icon(
-                                                  Icons.person,
-                                                  color: Colors.white,
-                                                  size: 38,
-                                                ),
-                                              );
-                                            },
-                                            loadingBuilder: (
-                                              context,
-                                              child,
-                                              loadingProgress,
-                                            ) {
-                                              if (loadingProgress == null) {
-                                                return child;
-                                              }
-                                              return Center(
-                                                child: CircularProgressIndicator(
-                                                  value:
-                                                      loadingProgress
-                                                                  .expectedTotalBytes !=
-                                                              null
-                                                          ? loadingProgress
-                                                                  .cumulativeBytesLoaded /
-                                                              loadingProgress
-                                                                  .expectedTotalBytes!
-                                                          : null,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        )
-                                        : Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.grey,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.person,
-                                            color: Colors.white,
-                                            size: 38,
-                                          ),
-                                        ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              TextButton.icon(
-                                onPressed: _pickImage,
-                                icon: const Icon(
-                                  Icons.edit,
-                                  size: 14,
-                                  color: Colors.black54,
-                                ),
-                                label: const Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                style: TextButton.styleFrom(
-                                  minimumSize: Size.zero,
-                                  padding: EdgeInsets.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ),
-                            ],
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          // Avatar and Edit button
+                          ProfileImageWidget(
+                            selectedImage: _selectedImage,
+                            profileImageUrl: profileImageUrl,
+                            onTap: _showFullScreenImage,
+                            onEditTap: _pickImage,
                           ),
-                        ),
 
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                        // Profile Information Card
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              children: [
-                                _buildProfileField(
-                                  label: 'Username',
-                                  controller: usernameController,
-                                  editable: true,
-                                  onChanged: (_) => checkIfEdited(),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildProfileField(
-                                  label: 'Email',
-                                  controller: emailController,
-                                  editable: false,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildProfileField(
-                                  label: 'Phone Number',
-                                  controller: phoneController,
-                                  editable: true,
-                                  onChanged: (_) => checkIfEdited(),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildProfileField(
-                                  label: 'Fullname',
-                                  controller: nameController,
-                                  editable: true,
-                                  onChanged: (_) => checkIfEdited(),
+                          // Profile Information Card
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 1,
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  ProfileFieldWidget(
+                                    label: 'Username',
+                                    controller: usernameController,
+                                    editable: true,
+                                    onChanged: (_) => checkIfEdited(),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ProfileFieldWidget(
+                                    label: 'Email',
+                                    controller: emailController,
+                                    editable: false,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ProfileFieldWidget(
+                                    label: 'Phone Number',
+                                    controller: phoneController,
+                                    editable: true,
+                                    onChanged: (_) => checkIfEdited(),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ProfileFieldWidget(
+                                    label: 'Fullname',
+                                    controller: nameController,
+                                    editable: true,
+                                    onChanged: (_) => checkIfEdited(),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                        // Buttons Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: isEdited ? resetForm : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  disabledBackgroundColor: Colors.white
-                                      .withOpacity(0.7),
-                                  disabledForegroundColor: Colors.grey
-                                      .withOpacity(0.5),
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  side: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
-                                  ),
-                                ),
-                                child: const Text('Reset'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: isEdited ? updateProfile : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF8B7DFA),
-                                  foregroundColor: Colors.white,
-                                  disabledBackgroundColor: const Color(
-                                    0xFF8B7DFA,
-                                  ).withOpacity(0.5),
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text('Save'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          // Buttons Row
+                          ProfileButtonsWidget(
+                            isEdited: isEdited,
+                            onReset: resetForm,
+                            onSave: updateProfile,
+                          ),
+                          
+                          const SizedBox(height: 20), // Extra bottom padding
+                        ],
+                      ),
                     ),
-                  ),
         ),
       ),
-    );
-  }
-
-  // function untuk membuat field profile
-  Widget _buildProfileField({
-    required String label,
-    required TextEditingController controller,
-    bool editable = false,
-    Function(String)? onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          height: 50,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
-            borderRadius: BorderRadius.circular(8),
-            // Tambahkan background berbeda untuk yang tidak bisa diedit
-            color: editable ? Colors.white : Colors.grey.shade50,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 12.0),
-                  child: TextField(
-                    controller: controller,
-                    readOnly: !editable,
-                    enabled: editable,
-                    onChanged: onChanged,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: editable ? Colors.black : Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-              ),
-              if (editable)
-                const Padding(padding: EdgeInsets.only(right: 12.0)),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

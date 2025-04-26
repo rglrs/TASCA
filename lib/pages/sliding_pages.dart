@@ -11,38 +11,73 @@ class SlidePageRoute extends PageRouteBuilder {
   SlidePageRoute({required this.page, this.direction = AxisDirection.right})
     : super(
         pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionDuration: const Duration(milliseconds: 800),
+        reverseTransitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           // Set different offsets based on direction
           late Offset begin;
+          late Offset beginSecondary;
 
           switch (direction) {
             case AxisDirection.right:
               begin = const Offset(1.0, 0.0); // From right (continue)
+              beginSecondary = const Offset(-0.3, 0.0); // Current page slides slightly left
               break;
             case AxisDirection.left:
               begin = const Offset(-1.0, 0.0); // From left (back)
+              beginSecondary = const Offset(0.3, 0.0); // Current page slides slightly right
               break;
             case AxisDirection.up:
               begin = const Offset(0.0, 1.0); // From bottom
+              beginSecondary = const Offset(0.0, -0.3);
               break;
             case AxisDirection.down:
               begin = const Offset(0.0, -1.0); // From top
+              beginSecondary = const Offset(0.0, 0.3);
               break;
           }
 
           const end = Offset.zero;
-          const curve = Curves.easeInOut;
+          // Using cubic curves for more natural motion
+          const curve = Curves.easeOutCubic;
+          const secondaryCurve = Curves.easeInCubic;
 
-          // Apply slide animation according to direction
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var secondaryTween = Tween(begin: end, end: beginSecondary).chain(CurveTween(curve: secondaryCurve));
 
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
+          // Add subtle scale effect for depth
+          var scaleTween = Tween(begin: 0.95, end: 1.0).chain(CurveTween(curve: curve));
+          var secondaryScaleTween = Tween(begin: 1.0, end: 0.95).chain(CurveTween(curve: secondaryCurve));
+
+          // Subtle fade for smoothness
+          var fadeTween = Tween(begin: 0.5, end: 1.0).chain(CurveTween(curve: curve));
+
+          // For the current page (the one being replaced)
+          Widget currentPage = SlideTransition(
+            position: secondaryAnimation.drive(secondaryTween),
+            child: ScaleTransition(
+              scale: secondaryAnimation.drive(secondaryScaleTween),
+              child: child,
+            ),
           );
+
+          // For the new page coming in
+          Widget newPage = SlideTransition(
+            position: animation.drive(tween),
+            child: ScaleTransition(
+              scale: animation.drive(scaleTween),
+              child: child,
+            ),
+          );
+
+          if (secondaryAnimation.status == AnimationStatus.reverse) {
+            return currentPage;
+          } else {
+            return FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: newPage,
+            );
+          }
         },
       );
 }
@@ -451,7 +486,7 @@ class _SlicingScreenState extends State<SlicingScreen> {
     );
   }
 
-  // Fourth page (Welcome page)
+  // Fourth page (Welcome page) - FIXED OVERFLOW
   Widget _buildFourthPage(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     
@@ -487,35 +522,45 @@ class _SlicingScreenState extends State<SlicingScreen> {
                   ],
                 ),
                 
-                // Illustration of person reading
+                // Empty space before image
+                SizedBox(height: screenHeight * 0.04),
+                
+                // Image centered vertically more
                 Expanded(
                   flex: 3,
                   child: Center(
-                    child: Image.asset('images/get.png', width: 280),
+                    child: Image.asset(
+                      'images/get.png', 
+                      width: 280,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
                 
-                // Welcome Card
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    margin: EdgeInsets.only(bottom: screenHeight * 0.03),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          spreadRadius: 5,
-                        ),
-                      ],
+                // Welcome Card - positioned more towards the bottom
+                Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.only(bottom: screenHeight * 0.03),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  // Using ConstrainedBox to control height without overflow
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: screenHeight * 0.35, // Limit maximum height
                     ),
-                    child: Padding(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20.0),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           // Welcome Title
                           Text(
