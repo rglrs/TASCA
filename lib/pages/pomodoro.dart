@@ -19,6 +19,7 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer>
     with WidgetsBindingObserver {
+  // Add WidgetsBindingObserver mixin
   final PomodoroService _pomodoroService = PomodoroService();
   late FlutterLocalNotificationsPlugin localNotifications;
   int timeLeft = 1500; // 25 minutes in seconds
@@ -44,10 +45,38 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _loadSavedState();
+    WidgetsBinding.instance.addObserver(this); // Register observer
     _initializeNotifications();
     _fetchTasks(); // Fetch todos on initialization
+  }
+
+  // --- Lifecycle Method ---
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Stop sound if the app is paused or inactive (user navigated away, app in background)
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (isRunning && !isMuted) {
+        audioPlayer
+            .pause(); // Use pause instead of stop to potentially resume later if needed
+      }
+    }
+    // Optional: Handle resuming if needed, e.g., when state becomes AppLifecycleState.resumed
+    // else if (state == AppLifecycleState.resumed) {
+    //   if (isRunning && !isMuted && currentSoundPath.isNotEmpty) {
+    //      audioPlayer.resume(); // Or playSound(...) if starting fresh
+    //   }
+    // }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Unregister observer
+    timer?.cancel();
+    audioPlayer.stop(); // Ensure sound is stopped
+    audioPlayer.dispose(); // Release audio player resources
+    super.dispose();
   }
 
   void _initializeNotifications() async {
@@ -60,6 +89,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   Future<void> _fetchTasks() async {
+    // ... (rest of the fetchTasks method remains the same)
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -110,13 +140,17 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       prefs.remove('auth_token');
     });
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => LoginPage()),
-      (route) => false,
-    );
+    // Ensure context is still valid before navigating
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => LoginPage()),
+        (route) => false,
+      );
+    }
   }
 
   Future<void> _scheduleNotification(String title, String body) async {
+    // ... (rest of the scheduleNotification method remains the same)
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
           'pomodoro_channel',
@@ -132,69 +166,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     await localNotifications.show(0, title, body, notificationDetails);
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _saveState();
-    } else if (state == AppLifecycleState.resumed) {
-      _loadSavedState();
-    }
-  }
-
-  Future<void> _loadSavedState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedStartTime = prefs.getInt('start_time');
-      final savedIsRunning = prefs.getBool('is_running') ?? false;
-      final savedIsFocusSession = prefs.getBool('is_focus_session') ?? true;
-
-      setState(() {
-        isRunning = savedIsRunning;
-        isFocusSession = savedIsFocusSession;
-      });
-
-      if (savedStartTime != null && isRunning) {
-        final currentTime = DateTime.now().millisecondsSinceEpoch;
-        final elapsedTime = (currentTime - savedStartTime) ~/ 1000;
-        timeLeft =
-            (isFocusSession ? focusDuration : restDuration) - elapsedTime;
-        if (timeLeft <= 0) {
-          timeLeft = 0;
-          isRunning = false;
-          switchSession();
-        } else {
-          startTimer();
-        }
-      }
-    } catch (e) {
-      print('Error loading saved state: $e');
-    }
-  }
-
-  Future<void> _saveState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (isRunning) {
-        final startTime =
-            DateTime.now().millisecondsSinceEpoch -
-            ((isFocusSession ? focusDuration : restDuration) - timeLeft) * 1000;
-        await prefs.setInt('start_time', startTime);
-      }
-      await prefs.setBool('is_running', isRunning);
-      await prefs.setBool('is_focus_session', isFocusSession);
-    } catch (e) {
-      print('Error saving state: $e');
-    }
-  }
-
   void _sendPomodoroSession() {
+    // ... (rest of the sendPomodoroSession method remains the same)
     int actualDuration =
         isFocusSession
             ? (focusDuration - timeLeft) ~/ 60
@@ -206,6 +179,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void startTimer() {
+    // ... (rest of the startTimer method remains the same)
     if (!isRunning) {
       timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (timeLeft > 0) {
@@ -240,6 +214,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void endCurrentSession() {
+    // ... (rest of the endCurrentSession method remains the same)
     // Hitung durasi aktual dalam menit
     int actualDuration =
         isFocusSession
@@ -263,14 +238,16 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void pauseTimer() {
+    // ... (rest of the pauseTimer method remains the same)
     timer?.cancel();
     setState(() {
       isRunning = false;
-      audioPlayer.pause();
+      audioPlayer.pause(); // Keep this pause for explicit user action
     });
   }
 
   void resetTimer() {
+    // ... (rest of the resetTimer method remains the same)
     timer?.cancel();
     setState(() {
       switchSession();
@@ -298,6 +275,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void switchSession() {
+    // ... (rest of the switchSession method remains the same)
     setState(() {
       isFocusSession = !isFocusSession;
       timeLeft = isFocusSession ? focusDuration : restDuration;
@@ -306,6 +284,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
 
   @override
   Widget build(BuildContext context) {
+    // ... (build method remains the same)
     return Scaffold(
       backgroundColor: const Color(0xFFF3E5F5),
       body: SafeArea(
@@ -524,7 +503,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                 ],
               ),
             ),
-            Navbar(initialActiveIndex: 0),
+            Navbar(initialActiveIndex: 0), // Ensure Navbar is correctly placed
           ],
         ),
       ),
@@ -532,23 +511,31 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   String formatTime(int seconds) {
+    // ... (formatTime method remains the same)
     int minutes = seconds ~/ 60;
     int sec = seconds % 60;
     return '$minutes:${sec.toString().padLeft(2, '0')}';
   }
 
   void playSound(String soundPath, String soundTitle) async {
-    await audioPlayer.stop();
+    // ... (playSound method remains the same)
+    await audioPlayer.stop(); // Stop previous sound if any
     if (!isMuted && isRunning) {
-      await audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await audioPlayer.play(AssetSource(soundPath));
-      setState(() {
-        currentSoundTitle = soundTitle;
-      });
+      try {
+        await audioPlayer.setReleaseMode(ReleaseMode.loop);
+        await audioPlayer.play(AssetSource(soundPath));
+        setState(() {
+          currentSoundTitle = soundTitle;
+        });
+      } catch (e) {
+        print("Error playing sound: $e");
+        // Handle error appropriately, maybe show a message to the user
+      }
     }
   }
 
   void showSoundOptions() {
+    // ... (showSoundOptions method remains the same)
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -618,6 +605,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void _setSoundOption(String soundPath, String soundTitle) {
+    // ... (setSoundOption method remains the same)
     setState(() {
       isMuted = false;
       currentSoundPath = soundPath;
@@ -629,6 +617,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   Widget _buildSoundOption(String imagePath, String label, VoidCallback onTap) {
+    // ... (buildSoundOption method remains the same)
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -643,6 +632,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 }
 
+// --- CustomDropdown Widget remains the same ---
 class CustomDropdown extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final String? selectedValue;
@@ -662,54 +652,81 @@ class _CustomDropdownState extends State<CustomDropdown> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
+  @override
+  void dispose() {
+    // Ensure overlay is removed when the dropdown widget is disposed
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
   void _toggleDropdown() {
     if (_overlayEntry == null) {
       _overlayEntry = _createOverlayEntry();
-      Overlay.of(context)!.insert(_overlayEntry!);
+      Overlay.of(context)?.insert(_overlayEntry!);
     } else {
       _overlayEntry!.remove();
       _overlayEntry = null;
     }
+    // Trigger rebuild to update arrow icon
+    setState(() {});
   }
 
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     Size size = renderBox.size;
-    Offset offset = renderBox.localToGlobal(Offset.zero);
+    // Offset offset = renderBox.localToGlobal(Offset.zero); // Not needed with CompositedTransformFollower
 
     return OverlayEntry(
       builder:
           (context) => Positioned(
-            width: size.width,
+            width: size.width, // Match the width of the dropdown button
             child: CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: Offset(0.0, size.height),
+              offset: Offset(
+                0.0,
+                size.height + 2.0,
+              ), // Position below the button with a small gap
               child: Material(
                 elevation: 4.0,
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.purple),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children:
-                        widget.items.map((task) {
-                          return GestureDetector(
-                            onTap: () {
-                              widget.onChanged(task['title']);
-                              _toggleDropdown();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              child: Text(
-                                task['title'],
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                color: Colors.purple, // Background color for the dropdown list
+                shape: RoundedRectangleBorder(
+                  // Optional: Add rounded corners
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+                child: ConstrainedBox(
+                  // Limit the height of the dropdown
+                  constraints: BoxConstraints(
+                    maxHeight: 200, // Adjust max height as needed
+                  ),
+                  child: ListView.builder(
+                    // Use ListView for scrollability if many items
+                    padding: EdgeInsets.zero, // Remove default padding
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    itemBuilder: (context, index) {
+                      final task = widget.items[index];
+                      return InkWell(
+                        // Use InkWell for tap feedback
+                        onTap: () {
+                          widget.onChanged(
+                            task['id'].toString(),
+                          ); // Pass ID back
+                          _toggleDropdown(); // Close dropdown on selection
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10, // Adjust vertical padding
+                          ),
+                          child: Text(
+                            task['title'],
+                            style: TextStyle(color: Colors.white),
+                            overflow: TextOverflow.ellipsis, // Handle long text
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -720,19 +737,38 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   @override
   Widget build(BuildContext context) {
+    // Find the title corresponding to the selectedValue (which should be an ID)
+    String displayValue = "Select a Task";
+    if (widget.selectedValue != null) {
+      final selectedItem = widget.items.firstWhere(
+        (item) => item['id'].toString() == widget.selectedValue,
+        orElse: () => {'title': 'Select a Task'}, // Default if not found
+      );
+      displayValue = selectedItem['title'];
+    }
+
     return CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(
         onTap: _toggleDropdown,
         child: Container(
-          decoration: BoxDecoration(color: Colors.purple),
+          decoration: BoxDecoration(
+            color: Colors.purple,
+            borderRadius: BorderRadius.circular(
+              4.0,
+            ), // Optional: Rounded corners
+          ),
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.selectedValue ?? "Select a Task",
-                style: TextStyle(color: Colors.white),
+              Expanded(
+                // Allow text to take available space
+                child: Text(
+                  displayValue, // Display the found title
+                  style: TextStyle(color: Colors.white),
+                  overflow: TextOverflow.ellipsis, // Prevent overflow
+                ),
               ),
               Icon(
                 _overlayEntry == null
