@@ -679,7 +679,6 @@ class _CustomDropdownState extends State<CustomDropdown> {
         _isDropdownOpen = false;
       });
     }
-    // Trigger rebuild to update arrow icon
     setState(() {});
   }
 
@@ -694,10 +693,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
             child: CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: Offset(
-                0.0,
-                size.height + 2.0,
-              ), // Position below the button with a small gap
+              offset: Offset(0.0, size.height + 2.0),
               child: Material(
                 elevation: 4.0,
                 child: Container(
@@ -724,7 +720,8 @@ class _CustomDropdownState extends State<CustomDropdown> {
                             : widget.items.map((task) {
                               return GestureDetector(
                                 onTap: () {
-                                  widget.onChanged(task['title']);
+                                  // Kirim ID task, bukan title
+                                  widget.onChanged(task['id'].toString());
                                   _toggleDropdown();
                                 },
                                 child: Container(
@@ -749,12 +746,11 @@ class _CustomDropdownState extends State<CustomDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    // Find the title corresponding to the selectedValue (which should be an ID)
     String displayValue = "Select a Task";
     if (widget.selectedValue != null) {
       final selectedItem = widget.items.firstWhere(
         (item) => item['id'].toString() == widget.selectedValue,
-        orElse: () => {'title': 'Select a Task'}, // Default if not found
+        orElse: () => {'title': 'Select a Task'},
       );
       displayValue = selectedItem['title'];
     }
@@ -766,20 +762,17 @@ class _CustomDropdownState extends State<CustomDropdown> {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.purple,
-            borderRadius: BorderRadius.circular(
-              4.0,
-            ), // Optional: Rounded corners
+            borderRadius: BorderRadius.circular(4.0),
           ),
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                // Allow text to take available space
                 child: Text(
-                  displayValue, // Display the found title
+                  displayValue,
                   style: TextStyle(color: Colors.white),
-                  overflow: TextOverflow.ellipsis, // Prevent overflow
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Icon(
