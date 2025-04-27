@@ -83,9 +83,19 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     localNotifications = FlutterLocalNotificationsPlugin();
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        );
+
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-    await localNotifications.initialize(initializationSettings);
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
   }
 
   Future<void> _fetchTasks() async {
@@ -121,17 +131,16 @@ class _PomodoroTimerState extends State<PomodoroTimer>
               }).toList();
         });
       } else if (response.statusCode == 401) {
-        // Token is invalid or expired
         _redirectToLogin();
       } else {
-        throw Exception('Failed to load todos: ${response.body}');
+        throw Exception('Failed to load incomplete tasks: ${response.body}');
       }
     } on SocketException {
       setState(() {
         _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
       });
     } catch (e) {
-      print('Error fetching todos: $e');
+      print('Error fetching incomplete tasks: $e');
     }
   }
 
@@ -651,21 +660,24 @@ class CustomDropdown extends StatefulWidget {
 class _CustomDropdownState extends State<CustomDropdown> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
+  bool _isDropdownOpen = false;
 
-  @override
-  void dispose() {
-    // Ensure overlay is removed when the dropdown widget is disposed
-    _overlayEntry?.remove();
-    super.dispose();
-  }
+  bool get _isNoTaskState =>
+      widget.items.length == 1 && widget.items[0]['title'] == 'Tidak ada task';
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
       _overlayEntry = _createOverlayEntry();
-      Overlay.of(context)?.insert(_overlayEntry!);
+      Overlay.of(context)!.insert(_overlayEntry!);
+      setState(() {
+        _isDropdownOpen = true;
+      });
     } else {
       _overlayEntry!.remove();
       _overlayEntry = null;
+      setState(() {
+        _isDropdownOpen = false;
+      });
     }
     // Trigger rebuild to update arrow icon
     setState(() {});
@@ -674,7 +686,6 @@ class _CustomDropdownState extends State<CustomDropdown> {
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     Size size = renderBox.size;
-    // Offset offset = renderBox.localToGlobal(Offset.zero); // Not needed with CompositedTransformFollower
 
     return OverlayEntry(
       builder:
@@ -689,44 +700,45 @@ class _CustomDropdownState extends State<CustomDropdown> {
               ), // Position below the button with a small gap
               child: Material(
                 elevation: 4.0,
-                color: Colors.purple, // Background color for the dropdown list
-                shape: RoundedRectangleBorder(
-                  // Optional: Add rounded corners
-                  borderRadius: BorderRadius.circular(4.0),
-                ),
-                child: ConstrainedBox(
-                  // Limit the height of the dropdown
-                  constraints: BoxConstraints(
-                    maxHeight: 200, // Adjust max height as needed
-                  ),
-                  child: ListView.builder(
-                    // Use ListView for scrollability if many items
-                    padding: EdgeInsets.zero, // Remove default padding
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final task = widget.items[index];
-                      return InkWell(
-                        // Use InkWell for tap feedback
-                        onTap: () {
-                          widget.onChanged(
-                            task['id'].toString(),
-                          ); // Pass ID back
-                          _toggleDropdown(); // Close dropdown on selection
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10, // Adjust vertical padding
-                          ),
-                          child: Text(
-                            task['title'],
-                            style: TextStyle(color: Colors.white),
-                            overflow: TextOverflow.ellipsis, // Handle long text
-                          ),
-                        ),
-                      );
-                    },
+                child: Container(
+                  decoration: BoxDecoration(color: Colors.purple),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children:
+                        _isNoTaskState
+                            ? [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Tidak ada task',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ]
+                            : widget.items.map((task) {
+                              return GestureDetector(
+                                onTap: () {
+                                  widget.onChanged(task['title']);
+                                  _toggleDropdown();
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    task['title'],
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                   ),
                 ),
               ),
@@ -771,9 +783,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
                 ),
               ),
               Icon(
-                _overlayEntry == null
-                    ? Icons.arrow_drop_down
-                    : Icons.arrow_drop_up,
+                _isDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                 color: Colors.white,
               ),
             ],

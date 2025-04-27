@@ -5,10 +5,7 @@ import 'package:tasca_mobile1/services/task_service.dart'; // Sesuaikan path imp
 class TaskDoneBarChart extends StatefulWidget {
   final TaskService taskService;
 
-  const TaskDoneBarChart({
-    super.key, 
-    required this.taskService
-  });
+  const TaskDoneBarChart({super.key, required this.taskService});
 
   @override
   _TaskDoneBarChartState createState() => _TaskDoneBarChartState();
@@ -33,7 +30,7 @@ class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
 
     try {
       final taskStats = await widget.taskService.getWeeklyCompletedTaskCount();
-      
+
       setState(() {
         _taskDoneData = taskStats;
         _isLoading = false;
@@ -58,14 +55,11 @@ class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              _errorMessage!, 
-              style: const TextStyle(color: Colors.red)
-            ),
+            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
             ElevatedButton(
-              onPressed: _fetchWeeklyTaskStats, 
+              onPressed: _fetchWeeklyTaskStats,
               child: const Text('Retry'),
-            )
+            ),
           ],
         ),
       );
@@ -75,16 +69,31 @@ class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
       height: 200,
       child: BarChart(
         BarChartData(
-          barTouchData: BarTouchData(enabled: true),
+          // Replace the existing barTouchData with this enhanced version
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                return BarTooltipItem(
+                  '${rod.toY.toInt()}', // Convert to int to remove decimal
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
+            ),
+          ),
           gridData: FlGridData(
             show: true,
             drawHorizontalLine: true,
             horizontalInterval: 2,
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.shade300,
-              strokeWidth: 1,
-              dashArray: [5, 5],
-            ),
+            getDrawingHorizontalLine:
+                (value) => FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                  dashArray: [5, 5],
+                ),
             drawVerticalLine: false,
           ),
           titlesData: FlTitlesData(
@@ -146,9 +155,10 @@ class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
                   toY: _taskDoneData[index].toDouble(),
                   width: 18,
                   borderRadius: BorderRadius.circular(8),
-                  color: _taskDoneData[index] > 0 
-                    ? Colors.blue.shade300 
-                    : Colors.grey.shade300,
+                  color:
+                      _taskDoneData[index] > 0
+                          ? Colors.blue.shade300
+                          : Colors.grey.shade300,
                 ),
               ],
             );
@@ -163,18 +173,13 @@ class _TaskDoneBarChartState extends State<TaskDoneBarChart> {
 class WeeklyTaskProgressScreen extends StatelessWidget {
   final TaskService taskService;
 
-  const WeeklyTaskProgressScreen({
-    super.key, 
-    required this.taskService
-  });
+  const WeeklyTaskProgressScreen({super.key, required this.taskService});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Weekly Task Progress')),
-      body: Center(
-        child: TaskDoneBarChart(taskService: taskService),
-      ),
+      body: Center(child: TaskDoneBarChart(taskService: taskService)),
     );
   }
 }

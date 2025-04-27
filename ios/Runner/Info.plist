@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Aplikasi membutuhkan akses kamera untuk mengambil foto profil</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses notifications to remind you about tasks.</string>
 </dict>
 </plist>
