@@ -456,16 +456,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.black,
             activeControlsWidgetColor: const Color(0xFF8B7DFA),
             lockAspectRatio: false,
-            showCropGrid: true, 
+            showCropGrid: true,
+            initAspectRatio: CropAspectRatioPreset.square,
+            hideBottomControls: false,
+            cropFrameStrokeWidth: 2,
+            cropGridStrokeWidth: 1,
+            cropFrameColor: Colors.white,
+            cropGridColor: Colors.white54,
+            statusBarColor: Colors.transparent,
           ),
           IOSUiSettings(
             title: 'Crop Foto Profil',
             doneButtonTitle: 'Selesai',
             cancelButtonTitle: 'Batal',
-            aspectRatioLockEnabled: false,
+            aspectRatioLockEnabled: true,
             rotateButtonsHidden: false,
             resetButtonHidden: false,
-            aspectRatioPickerButtonHidden: false, 
+            aspectRatioPickerButtonHidden: true,
           ),
         ],
         compressQuality: 85,
@@ -636,82 +643,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
               isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          // Avatar and Edit button
-                          ProfileImageWidget(
-                            selectedImage: _selectedImage,
-                            profileImageUrl: profileImageUrl,
-                            onTap: _showFullScreenImage,
-                            onEditTap: _pickImage,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        // Avatar and Edit button
+                        ProfileImageWidget(
+                          selectedImage: _selectedImage,
+                          profileImageUrl: profileImageUrl,
+                          onTap: _showFullScreenImage,
+                          onEditTap: _pickImage,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Profile Information Card
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-
-                          const SizedBox(height: 20),
-
-                          // Profile Information Card
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              children: [
+                                ProfileFieldWidget(
+                                  label: 'Username',
+                                  controller: usernameController,
+                                  editable: true,
+                                  onChanged: (_) => checkIfEdited(),
+                                ),
+                                const SizedBox(height: 16),
+                                ProfileFieldWidget(
+                                  label: 'Email',
+                                  controller: emailController,
+                                  editable: false,
+                                ),
+                                const SizedBox(height: 16),
+                                ProfileFieldWidget(
+                                  label: 'Phone Number',
+                                  controller: phoneController,
+                                  editable: true,
+                                  onChanged: (_) => checkIfEdited(),
+                                ),
+                                const SizedBox(height: 16),
+                                ProfileFieldWidget(
+                                  label: 'Fullname',
+                                  controller: nameController,
+                                  editable: true,
+                                  onChanged: (_) => checkIfEdited(),
                                 ),
                               ],
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  ProfileFieldWidget(
-                                    label: 'Username',
-                                    controller: usernameController,
-                                    editable: true,
-                                    onChanged: (_) => checkIfEdited(),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ProfileFieldWidget(
-                                    label: 'Email',
-                                    controller: emailController,
-                                    editable: false,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ProfileFieldWidget(
-                                    label: 'Phone Number',
-                                    controller: phoneController,
-                                    editable: true,
-                                    onChanged: (_) => checkIfEdited(),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ProfileFieldWidget(
-                                    label: 'Fullname',
-                                    controller: nameController,
-                                    editable: true,
-                                    onChanged: (_) => checkIfEdited(),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
+                        ),
 
-                          const SizedBox(height: 40),
+                        const SizedBox(height: 40),
 
-                          // Buttons Row
-                          ProfileButtonsWidget(
-                            isEdited: isEdited,
-                            onReset: resetForm,
-                            onSave: updateProfile,
-                          ),
-                          
-                          const SizedBox(height: 20), // Extra bottom padding
-                        ],
-                      ),
+                        // Buttons Row
+                        ProfileButtonsWidget(
+                          isEdited: isEdited,
+                          onReset: resetForm,
+                          onSave: updateProfile,
+                        ),
+
+                        const SizedBox(height: 20), // Extra bottom padding
+                      ],
                     ),
+                  ),
         ),
       ),
     );

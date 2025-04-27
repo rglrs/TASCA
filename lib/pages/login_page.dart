@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io'; // Import for SocketException
@@ -125,69 +124,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> signInWithGoogle(BuildContext context) async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        // Operation was canceled by the user
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      // Make a POST request to your API with the Google sign-in token
-      final response = await http.post(
-        Uri.parse(
-          'https://api.tascaid.com/api/google/login',
-        ), // Your API endpoint here
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode({
-          'email': googleUser.email,
-          'idToken': googleAuth.idToken, // Send token to your backend
-          // Add other necessary fields here
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        // Decode the API response
-        final Map<String, dynamic> callbackData = jsonDecode(response.body);
-
-        // Assuming the response contains an authentication token
-        String authToken = callbackData['token'];
-
-        // Store the token locally using SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', authToken);
-
-        // Navigate to the main page upon successful login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => PomodoroTimer()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login with Google failed: ${response.reasonPhrase}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } on SocketException {
-      _showErrorMessage('Kesalahan Koneksi: Periksa koneksi internet Anda.');
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sign in with Google failed: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -355,25 +291,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                           ),
                         ),
-                        SizedBox(height: 10),
-                        Center(child: Text('atau')),
-                        SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => signInWithGoogle(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF4285F4), // Google blue
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                              textStyle: TextStyle(fontSize: 16),
-                            ),
-                            child: Text(
-                              'Login with Google',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),                      
                         TextButton(
                           onPressed: () {
                             Navigator.push(
