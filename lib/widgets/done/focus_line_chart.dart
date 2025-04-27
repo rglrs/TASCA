@@ -89,6 +89,24 @@ class _FocusLineChartState extends State<FocusLineChart> {
         maxX: 6,
         minY: 0,
         maxY: maxYValue,
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+              return touchedBarSpots.map((barSpot) {
+                // Format value as integer without decimal places
+                return LineTooltipItem(
+                  '${barSpot.y.toInt()}',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+          handleBuiltInTouches: true,
+        ),
+
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,

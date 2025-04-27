@@ -778,10 +778,4 @@ class _CustomDropdownState extends State<CustomDropdown> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _overlayEntry?.remove();
-    super.dispose();
-  }
 }
