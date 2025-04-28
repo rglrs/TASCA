@@ -93,7 +93,6 @@ void navigateWithSlide(
   Navigator.of(context).push(SlidePageRoute(page: page, direction: direction));
 }
 
-// Helper function for navigation with replacement and slide animation
 void navigateReplaceWithSlide(
   BuildContext context,
   Widget page, {
@@ -111,16 +110,15 @@ void main() async {
   runApp(MyApp());
 }
 
-// Initialize local notifications
 Future<void> _initializeNotifications() async {
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
   
   const DarwinInitializationSettings initializationSettingsIOS =
       DarwinInitializationSettings(
-    requestSoundPermission: false,
-    requestBadgePermission: false,
-    requestAlertPermission: false,
+    requestSoundPermission: true,
+    requestBadgePermission: true,
+    requestAlertPermission: true,
   );
 
   const InitializationSettings initializationSettings = InitializationSettings(

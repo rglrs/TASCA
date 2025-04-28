@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/navbar.dart';
-import '../widgets/done/stat_card.dart';
-import '../widgets/done/chart_card.dart';
-import '../widgets/done/task_done_bar_chart.dart';
-import '../widgets/done/focus_line_chart.dart';
-import '../services/task_service.dart';
-import '../services/pomodoro.dart';
+import 'package:tasca_mobile1/widgets/navbar.dart';
+import 'package:tasca_mobile1/widgets/done/stat_card.dart';
+import 'package:tasca_mobile1/widgets/done/chart_card.dart';
+import 'package:tasca_mobile1/widgets/done/task_done_bar_chart.dart';
+import 'package:tasca_mobile1/widgets/done/focus_line_chart.dart';
+import 'package:tasca_mobile1/services/task_service.dart';
+import 'package:tasca_mobile1/services/pomodoro.dart';
 import 'login_page.dart';
 
 class DonePage extends StatefulWidget {

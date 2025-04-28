@@ -4,7 +4,7 @@ import 'package:tasca_mobile1/pages/pomodoro.dart'; // Import the Pomodoro page
 import 'package:tasca_mobile1/pages/setting_page.dart'; // Import the Setting page
 import 'package:tasca_mobile1/pages/todo.dart'; // Import the Setting page
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/pages/done.dart';
+import 'package:tasca_mobile1/pages/calendar.dart';
 
 class Navbar extends StatefulWidget {
   final int initialActiveIndex;
@@ -152,7 +152,7 @@ class _NavbarState extends State<Navbar> {
                       label: 'Focus',
                       isActive: activeIndex == 0,
                       onTap: () => _onItemTapped(0),
-                    ),
+                    ),                    
                     NavBarItem(
                       icon: Icons.format_list_bulleted_add,
                       label: 'To Do',
@@ -164,6 +164,30 @@ class _NavbarState extends State<Navbar> {
                           PageRouteBuilder(
                             pageBuilder:
                                 (context, animation1, animation2) => TodoPage(),
+                            transitionDuration: Duration.zero,
+                            transitionsBuilder: (
+                              context,
+                              animation1,
+                              animation2,
+                              child,
+                            ) {
+                              return child;
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    NavBarItem(
+                      icon: Icons.calendar_today,
+                      label: 'Date',
+                      isActive: activeIndex == 4,
+                      onTap: () {
+                        _onItemTapped(4);
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation1, animation2) => CalendarScreen(),
                             transitionDuration: Duration.zero,
                             transitionsBuilder: (
                               context,
