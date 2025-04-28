@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io'; // Import for SocketException
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -18,10 +18,13 @@ class TodoPage extends StatefulWidget {
 
 class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> searchResults = [];
   bool _isLoading = true;
+  bool _isSearching = false;
   String? _errorMessage;
   bool _isInSelectionMode = false;
   Set<int> _selectedTodoIds = {};
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -83,20 +87,18 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 
         if (mounted) {
           setState(() {
-            tasks =
-                todosData.map((todo) {
-                  return {
-                    'id': todo['id'],
-                    'title': todo['title'] ?? 'Unnamed Todo',
-                    'taskCount': todo['task_count'] ?? 0,
-                    'color': _getColorForTodo(todo['id']),
-                  };
-                }).toList();
+            tasks = todosData.map((todo) {
+              return {
+                'id': todo['id'],
+                'title': todo['title'] ?? 'Unnamed Todo',
+                'taskCount': todo['task_count'] ?? 0,
+                'color': _getColorForTodo(todo['id']),
+              };
+            }).toList();
             _isLoading = false;
           });
         }
       } else if (response.statusCode == 401) {
-        // Token is invalid or expired
         _redirectToLogin();
       } else {
         throw Exception('Failed to load todos: ${response.body}');
@@ -107,6 +109,70 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
           _isLoading = false;
         });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _searchTasks(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _isSearching = false;
+        searchResults.clear();
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token == null) {
+        _redirectToLogin();
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://api.tascaid.com/api/tasks/search?search=$query'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+        final List<dynamic> tasksData = responseBody['data'];
+
+        if (mounted) {
+          setState(() {
+            searchResults = tasksData.map((task) {
+              return {
+                'id': task['id'],
+                'title': task['title'] ?? 'Unnamed Task',
+                'is_complete': task['is_complete'] ?? false,
+                'todo_id': task['todo_id'], // Changed from todo_title to todo_id
+              };
+            }).toList();
+            _isLoading = false;
+          });
+        }
+      } else if (response.statusCode == 401) {
+        _redirectToLogin();
+      } else {
+        throw Exception('Failed to search tasks: ${response.body}');
       }
     } catch (e) {
       if (mounted) {
@@ -134,7 +200,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     return colors[todoId % colors.length];
   }
 
-  // Fungsi untuk menghapus satu todo
   Future<void> _deleteTodo(int todoId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -144,11 +209,8 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         throw Exception('No JWT token found');
       }
 
-      // Create a client instance that will be closed later
       final client = http.Client();
-
       try {
-        // Create DELETE request
         final request = http.Request(
           'DELETE',
           Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
@@ -156,21 +218,14 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         request.headers['Authorization'] = 'Bearer $token';
         request.headers['Content-Type'] = 'application/json';
 
-        // Send request and get stream response
         final streamedResponse = await client.send(request);
-
-        // Get full response
         final response = await http.Response.fromStream(streamedResponse);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          // Refresh todo list
           await _fetchTodos();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Todo berhasil dihapus')));
         } else {
-          // Try alternative method if first method fails
-          // Try URL without trailing slash
           final alternativeResponse = await http.delete(
             Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
             headers: {
@@ -182,27 +237,22 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           if (alternativeResponse.statusCode >= 200 &&
               alternativeResponse.statusCode < 300) {
             await _fetchTodos();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Todo berhasil dihapus')));
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Todo berhasil dihapus')));
           } else {
             throw Exception(
-              'Failed to delete todo: Status ${response.statusCode}',
-            );
+                'Failed to delete todo: Status ${response.statusCode}');
           }
         }
       } finally {
-        // Always close client when done
         client.close();
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error menghapus todo: $e')));
     }
   }
 
-  // Fungsi untuk menghapus beberapa todo sekaligus
   Future<void> _deleteMultipleTodos() async {
     if (_selectedTodoIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -219,16 +269,12 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         throw Exception('No JWT token found');
       }
 
-      // Create a client instance that will be closed later
       final client = http.Client();
-
       int successCount = 0;
       List<int> failedIds = [];
 
-      // Process each todo deletion
       for (int todoId in _selectedTodoIds) {
         try {
-          // Create DELETE request
           final request = http.Request(
             'DELETE',
             Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
@@ -236,14 +282,12 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           request.headers['Authorization'] = 'Bearer $token';
           request.headers['Content-Type'] = 'application/json';
 
-          // Send request and get stream response
           final streamedResponse = await client.send(request);
           final response = await http.Response.fromStream(streamedResponse);
 
           if (response.statusCode >= 200 && response.statusCode < 300) {
             successCount++;
           } else {
-            // Try alternative method if first method fails
             final alternativeResponse = await http.delete(
               Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
               headers: {
@@ -264,23 +308,21 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         }
       }
 
-      // Refresh todo list after batch deletion
       await _fetchTodos();
-
-      // Exit selection mode
       setState(() {
         _isInSelectionMode = false;
         _selectedTodoIds.clear();
       });
 
-      // Show appropriate message
       if (successCount == _selectedTodoIds.length) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Semua todo berhasil dihapus')),
         );
       } else if (successCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$successCount todo berhasil dihapus, ${failedIds.length} gagal')),
+          SnackBar(
+              content: Text(
+                  '$successCount todo berhasil dihapus, ${failedIds.length} gagal')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -294,66 +336,62 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     }
   }
 
-  // Show options when three dots clicked
   void _showTodoOptions(int todoId) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text(
-                    'Hapus Todo',
-                    style: TextStyle(color: Colors.red),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.delete, color: Colors.red),
+              title: Text(
+                'Hapus Todo',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Hapus Todo'),
+                    content: Text(
+                      'Apakah Anda yakin ingin menghapus todo ini?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Batal'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _deleteTodo(todoId);
+                        },
+                        child: Text(
+                          'Hapus',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
                   ),
-                  onTap: () {
-                    Navigator.pop(context); // Close bottom sheet
-                    // Show confirmation dialog
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: Text('Hapus Todo'),
-                            content: Text(
-                              'Apakah Anda yakin ingin menghapus todo ini?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text('Batal'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _deleteTodo(todoId);
-                                },
-                                child: Text(
-                                  'Hapus',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.cancel),
-                  title: Text('Batal'),
-                  onTap: () {
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                ),
-              ],
+                );
+              },
             ),
-          ),
+            ListTile(
+              leading: Icon(Icons.cancel),
+              title: Text('Batal'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -372,15 +410,17 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         child: Column(
           children: [
             _buildHeader(),
+            _buildSearchBar(),
             Expanded(
-              child:
-                  _isLoading
-                      ? Center(child: CircularProgressIndicator())
-                      : _errorMessage != null
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
                       ? Center(child: Text('Error: $_errorMessage'))
-                      : tasks.isEmpty
-                      ? _buildEmptyState()
-                      : _buildTodoGrid(),
+                      : _isSearching
+                          ? _buildSearchResults()
+                          : tasks.isEmpty
+                              ? _buildEmptyState()
+                              : _buildTodoGrid(),
             ),
             Navbar(initialActiveIndex: 1),
           ],
@@ -388,10 +428,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       ),
       floatingActionButton: _isInSelectionMode && _selectedTodoIds.isNotEmpty
           ? Padding(
-              padding: const EdgeInsets.only(bottom: 90.0), // Menaikkan posisi FAB lebih tinggi
+              padding: const EdgeInsets.only(bottom: 90.0),
               child: FloatingActionButton.extended(
                 onPressed: () {
-                  // Show confirmation dialog
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
@@ -420,7 +459,8 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                 },
                 backgroundColor: Colors.red,
                 icon: Icon(Icons.delete_outline, color: Colors.white),
-                label: Text('Hapus (${_selectedTodoIds.length})', style: TextStyle(color: Colors.white)),
+                label: Text('Hapus (${_selectedTodoIds.length})',
+                    style: TextStyle(color: Colors.white)),
                 extendedPadding: EdgeInsets.symmetric(horizontal: 16),
               ),
             )
@@ -443,7 +483,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           ),
           Row(
             children: [
-              if (_isInSelectionMode) 
+              if (_isInSelectionMode)
                 Container(
                   margin: EdgeInsets.only(right: 12),
                   child: Text(
@@ -460,7 +500,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _isInSelectionMode ? Color(0xFFEEE8F8) : Colors.transparent,
+                    color: _isInSelectionMode
+                        ? Color(0xFFEEE8F8)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -476,7 +518,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _isInSelectionMode ? Colors.grey.withOpacity(0.1) : Colors.transparent,
+                    color: _isInSelectionMode
+                        ? Colors.grey.withOpacity(0.1)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -493,6 +537,103 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Cari Task....',
+          prefixIcon: Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _searchTasks('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        onChanged: (value) {
+          _searchTasks(value);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (searchResults.isEmpty) {
+      return Center(
+        child: Text(
+          'No tasks found',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: searchResults.length,
+      itemBuilder: (context, index) {
+        final task = searchResults[index];
+        return Card(
+          elevation: 2,
+          margin: EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            title: Text(
+              task['title'],
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              task['is_complete'] ? 'Completed' : 'Pending',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: task['is_complete'] ? Colors.green : Colors.red,
+              ),
+            ),
+            onTap: () {
+              // Find the corresponding todo for color
+              final todo = tasks.firstWhere(
+                (t) => t['id'] == task['todo_id'],
+                orElse: () => {'color': '#007BFF', 'title': 'Unknown Todo'},
+              );
+              
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context)  => DetailTodoPage(
+                    todoId: task['todo_id'],
+                    todoTitle: todo['title'],
+                    taskCount: 0, // You might want to fetch actual task count
+                    todoColor: todo['color'],
+                    onTodoUpdated: _fetchTodos,
+                  ),
+                ),
+              );
+            },
+            trailing: Icon(
+              task['is_complete'] ? Icons.check_circle : Icons.circle_outlined,
+              color: task['is_complete'] ? Colors.green : Colors.grey,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showAddTodoBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -500,43 +641,42 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (context) => AddTodoPage(
-            onTodoAdded: (task) async {
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                final token = prefs.getString('auth_token');
+      builder: (context) => AddTodoPage(
+        onTodoAdded: (task) async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('auth_token');
 
-                if (token == null) {
-                  throw Exception('No JWT token found');
-                }
+            if (token == null) {
+              throw Exception('No JWT token found');
+            }
 
-                final response = await http.post(
-                  Uri.parse('https://api.tascaid.com/api/todos/'),
-                  headers: {
-                    'Authorization': 'Bearer $token',
-                    'Content-Type': 'application/json',
-                  },
-                  body: json.encode({
-                    'title': task['title'],
-                    'urgency': task['urgency'],
-                    'importance': task['importance'],
-                  }),
-                );
+            final response = await http.post(
+              Uri.parse('https://api.tascaid.com/api/todos/'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: json.encode({
+                'title': task['title'],
+                'urgency': task['urgency'],
+                'importance': task['importance'],
+              }),
+            );
 
-                if (response.statusCode == 201) {
-                  await _fetchTodos();
-                  Navigator.pop(context);
-                } else {
-                  throw Exception('Failed to create todo: ${response.body}');
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to add todo: $e')),
-                );
-              }
-            },
-          ),
+            if (response.statusCode == 201) {
+              await _fetchTodos();
+              Navigator.pop(context);
+            } else {
+              throw Exception('Failed to create todo: ${response.body}');
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to add todo: $e')),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -633,7 +773,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               ),
               child: Stack(
                 children: [
-                  // Main content
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -660,8 +799,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                  
-                  // Options icon
                   if (!_isInSelectionMode)
                     Positioned(
                       top: 0,
@@ -672,7 +809,6 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                           color: Colors.white.withOpacity(0.8),
                         ),
                         onPressed: () {
-                          // Show confirmation dialog
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -701,13 +837,11 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                         },
                       ),
                     ),
-                  
-                  // Selection overlay
                   if (_isInSelectionMode)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected 
+                          color: isSelected
                               ? Colors.black.withOpacity(0.3)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
@@ -733,7 +867,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                                       ),
                                     ],
                                   ),
-                                  child: Icon(Icons.check, color: Theme.of(context).primaryColor, size: 16),
+                                  child: Icon(Icons.check,
+                                      color: Theme.of(context).primaryColor,
+                                      size: 16),
                                 ),
                               )
                             else
@@ -746,7 +882,8 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.3),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                        color: Colors.white, width: 1.5),
                                   ),
                                 ),
                               ),
