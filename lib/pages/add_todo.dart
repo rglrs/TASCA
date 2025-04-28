@@ -16,20 +16,53 @@ class _AddTodoPageState extends State<AddTodoPage> {
   String? _selectedUrgency;
   String? _selectedImportance;
 
+  // Fungsi untuk mendapatkan warna berdasarkan prioritas
+  String _getColorBasedOnPriority() {
+    if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
+      return "#FC0101"; // Merah
+    } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
+               (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
+      return "#FFC107"; // Kuning
+    } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
+      return "#28A745"; // Hijau
+    } else {
+      return "#808080"; // Abu-abu (default jika tidak memilih)
+    }
+  }
+
+  // Fungsi untuk mendapatkan object Color dari string hex
+  Color _getColorFromHex(String hexColor) {
+    switch (hexColor) {
+      case "#FC0101":
+        return Colors.red;
+      case "#FFC107":
+        return Colors.amber;
+      case "#28A745":
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
   void _addTodo() {
     if (_formKey.currentState!.validate()) {
       final task = {
         'title': _titleController.text.trim(),
         'urgency': _selectedUrgency,
         'importance': _selectedImportance,
+        'color': _getColorBasedOnPriority(), // Menggunakan fungsi untuk mendapatkan warna
       };
       widget.onTodoAdded(task);
-      Navigator.of(context).pop(); // Tutup halaman setelah berhasil
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Mendapatkan warna saat ini berdasarkan prioritas
+    String currentColor = _getColorBasedOnPriority();
+    Color displayColor = _getColorFromHex(currentColor);
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -60,6 +93,39 @@ class _AddTodoPageState extends State<AddTodoPage> {
                 },
               ),
               SizedBox(height: 20),
+              
+              // Preview warna berdasarkan prioritas
+              Row(
+                children: [
+                  Text(
+                    'Priority Color: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: displayColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    _getPriorityDescription(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              
               Text(
                 'Prioritize',
                 style: TextStyle(
@@ -126,10 +192,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                     isSelected: _selectedImportance == 'Not important',
                     onSelected: () {
                       setState(() {
-                        _selectedImportance ==
-                                'Not important'
-                            ? _selectedImportance = null
-                            : _selectedImportance = 'Not important';
+                        _selectedImportance =
+                            _selectedImportance == 'Not important'
+                                ? null
+                                : 'Not important';
                       });
                     },
                   ),
@@ -154,6 +220,20 @@ class _AddTodoPageState extends State<AddTodoPage> {
         ),
       ),
     );
+  }
+
+  // Fungsi untuk mendapatkan deskripsi prioritas
+  String _getPriorityDescription() {
+    if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
+      return "High Priority (Red)";
+    } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
+               (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
+      return "Medium Priority (Yellow)";
+    } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
+      return "Low Priority (Green)";
+    } else {
+      return "No Priority (Grey)";
+    }
   }
 }
 

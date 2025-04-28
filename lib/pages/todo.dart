@@ -20,6 +20,8 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   List<Map<String, dynamic>> tasks = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isInSelectionMode = false;
+  Set<int> _selectedTodoIds = {};
 
   @override
   void initState() {
@@ -132,6 +134,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     return colors[todoId % colors.length];
   }
 
+  // Fungsi untuk menghapus satu todo
   Future<void> _deleteTodo(int todoId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -199,6 +202,98 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     }
   }
 
+  // Fungsi untuk menghapus beberapa todo sekaligus
+  Future<void> _deleteMultipleTodos() async {
+    if (_selectedTodoIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tidak ada todo yang dipilih')),
+      );
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token == null) {
+        throw Exception('No JWT token found');
+      }
+
+      // Create a client instance that will be closed later
+      final client = http.Client();
+
+      int successCount = 0;
+      List<int> failedIds = [];
+
+      // Process each todo deletion
+      for (int todoId in _selectedTodoIds) {
+        try {
+          // Create DELETE request
+          final request = http.Request(
+            'DELETE',
+            Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
+          );
+          request.headers['Authorization'] = 'Bearer $token';
+          request.headers['Content-Type'] = 'application/json';
+
+          // Send request and get stream response
+          final streamedResponse = await client.send(request);
+          final response = await http.Response.fromStream(streamedResponse);
+
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            successCount++;
+          } else {
+            // Try alternative method if first method fails
+            final alternativeResponse = await http.delete(
+              Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+            );
+
+            if (alternativeResponse.statusCode >= 200 &&
+                alternativeResponse.statusCode < 300) {
+              successCount++;
+            } else {
+              failedIds.add(todoId);
+            }
+          }
+        } catch (e) {
+          failedIds.add(todoId);
+        }
+      }
+
+      // Refresh todo list after batch deletion
+      await _fetchTodos();
+
+      // Exit selection mode
+      setState(() {
+        _isInSelectionMode = false;
+        _selectedTodoIds.clear();
+      });
+
+      // Show appropriate message
+      if (successCount == _selectedTodoIds.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Semua todo berhasil dihapus')),
+        );
+      } else if (successCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$successCount todo berhasil dihapus, ${failedIds.length} gagal')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghapus todo')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error menghapus todo: $e')),
+      );
+    }
+  }
+
   // Show options when three dots clicked
   void _showTodoOptions(int todoId) {
     showModalBottomSheet(
@@ -262,6 +357,13 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     );
   }
 
+  void _toggleSelectionMode() {
+    setState(() {
+      _isInSelectionMode = !_isInSelectionMode;
+      _selectedTodoIds.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -284,6 +386,45 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           ],
         ),
       ),
+      floatingActionButton: _isInSelectionMode && _selectedTodoIds.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 90.0), // Menaikkan posisi FAB lebih tinggi
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  // Show confirmation dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('Hapus Todo'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menghapus ${_selectedTodoIds.length} todo yang dipilih?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _deleteMultipleTodos();
+                          },
+                          child: Text(
+                            'Hapus',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                backgroundColor: Colors.red,
+                icon: Icon(Icons.delete_outline, color: Colors.white),
+                label: Text('Hapus (${_selectedTodoIds.length})', style: TextStyle(color: Colors.white)),
+                extendedPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+            )
+          : null,
     );
   }
 
@@ -300,9 +441,52 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               fontWeight: FontWeight.bold,
             ),
           ),
-          InkWell(
-            onTap: _showAddTodoBottomSheet,
-            child: const Icon(Icons.add, size: 30, weight: 700),
+          Row(
+            children: [
+              if (_isInSelectionMode) 
+                Container(
+                  margin: EdgeInsets.only(right: 12),
+                  child: Text(
+                    '${_selectedTodoIds.length} dipilih',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+              InkWell(
+                onTap: _toggleSelectionMode,
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _isInSelectionMode ? Color(0xFFEEE8F8) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _isInSelectionMode ? Icons.close : Icons.delete_outline,
+                    size: 24,
+                    color: _isInSelectionMode ? Color(0xFF8B7DFA) : Colors.red,
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              InkWell(
+                onTap: _isInSelectionMode ? null : _showAddTodoBottomSheet,
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _isInSelectionMode ? Colors.grey.withOpacity(0.1) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    size: 24,
+                    color: _isInSelectionMode ? Colors.grey : Colors.black,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -405,22 +589,41 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         itemBuilder: (context, index) {
           final todo = tasks[index];
           Color cardColor = _getCardColor(todo['color']);
+          final todoId = todo['id'];
+          final isSelected = _selectedTodoIds.contains(todoId);
 
           return GestureDetector(
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => DetailTodoPage(
-                        todoId: todo['id'],
-                        todoTitle: todo['title'],
-                        taskCount: todo['taskCount'],
-                        todoColor: todo['color'],
-                        onTodoUpdated: _fetchTodos,
-                      ),
-                ),
-              );
+            onTap: () {
+              if (_isInSelectionMode) {
+                setState(() {
+                  if (isSelected) {
+                    _selectedTodoIds.remove(todoId);
+                  } else {
+                    _selectedTodoIds.add(todoId);
+                  }
+                });
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DetailTodoPage(
+                      todoId: todo['id'],
+                      todoTitle: todo['title'],
+                      taskCount: todo['taskCount'],
+                      todoColor: todo['color'],
+                      onTodoUpdated: _fetchTodos,
+                    ),
+                  ),
+                );
+              }
+            },
+            onLongPress: () {
+              if (!_isInSelectionMode) {
+                setState(() {
+                  _isInSelectionMode = true;
+                  _selectedTodoIds.add(todoId);
+                });
+              }
             },
             child: Card(
               color: cardColor,
@@ -430,6 +633,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               ),
               child: Stack(
                 children: [
+                  // Main content
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -456,45 +660,100 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.more_horiz,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                      onPressed: () {
-                        // Show confirmation dialog
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: Text('Hapus Todo'),
-                                content: Text(
-                                  'Apakah Anda yakin ingin menghapus todo ini?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text('Batal'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      _deleteTodo(todo['id']);
-                                    },
-                                    child: Text(
-                                      'Hapus',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
+                  
+                  // Options icon
+                  if (!_isInSelectionMode)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.more_horiz,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                        onPressed: () {
+                          // Show confirmation dialog
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('Hapus Todo'),
+                              content: Text(
+                                'Apakah Anda yakin ingin menghapus todo ini?',
                               ),
-                        );
-                      },
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _deleteTodo(todo['id']);
+                                  },
+                                  child: Text(
+                                    'Hapus',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                  
+                  // Selection overlay
+                  if (_isInSelectionMode)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Stack(
+                          children: [
+                            if (isSelected)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        spreadRadius: 1,
+                                        blurRadius: 2,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(Icons.check, color: Theme.of(context).primaryColor, size: 16),
+                                ),
+                              )
+                            else
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
