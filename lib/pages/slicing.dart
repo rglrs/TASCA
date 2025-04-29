@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'todo.dart';
-import 'login_page.dart';
+import 'package:tasca_mobile1/pages/todo.dart';
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 // Custom PageRouteBuilder untuk animasi slide
 class SlidePageRoute extends PageRouteBuilder {

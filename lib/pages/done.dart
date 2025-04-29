@@ -8,7 +8,7 @@ import 'package:tasca_mobile1/widgets/done/task_done_bar_chart.dart';
 import 'package:tasca_mobile1/widgets/done/focus_line_chart.dart';
 import 'package:tasca_mobile1/services/task_service.dart';
 import 'package:tasca_mobile1/services/pomodoro.dart';
-import 'login_page.dart';
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 class DonePage extends StatefulWidget {
   const DonePage({super.key});

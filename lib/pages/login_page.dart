@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io'; // Import for SocketException
-import 'register_page.dart';
-import 'pomodoro.dart';
+import 'package:tasca_mobile1/pages/register_page.dart';
+import 'package:tasca_mobile1/pages/pomodoro.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'forgot_pw.dart';
+import 'package:tasca_mobile1/pages/forgot_pw.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

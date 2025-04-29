@@ -8,9 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:developer' as developer;
 
-import '../widgets/profile_settings/profile_image_widget.dart';
-import '../widgets/profile_settings/profile_field_widget.dart';
-import '../widgets/profile_settings/profile_buttons_widget.dart';
+import 'package:tasca_mobile1/widgets/profile_settings/profile_image_widget.dart';
+import 'package:tasca_mobile1/widgets/profile_settings/profile_field_widget.dart';
+import 'package:tasca_mobile1/widgets/profile_settings/profile_buttons_widget.dart';
 
 class UserProfile {
   final int id;
