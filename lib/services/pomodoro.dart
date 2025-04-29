@@ -9,7 +9,6 @@ class PomodoroService {
       final token = prefs.getString('auth_token');
 
       if (token == null) {
-        print('No authentication token found');
         return false;
       }
 
@@ -29,18 +28,12 @@ class PomodoroService {
         }),
       );
 
-      print('Response Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
-        print('Pomodoro session completed successfully');
         return true;
       } else {
-        print('Failed to complete Pomodoro session: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error completing Pomodoro session: $e');
       return false;
     }
   }
@@ -68,16 +61,11 @@ class PomodoroService {
                 .toList() ??
             List.filled(7, 0.0);
 
-        // Debug print
-        print('Received weekly stats: $dailyFocusTimes');
-
         return {...data, 'daily_focus_times': dailyFocusTimes};
       } else {
-        print('Failed to fetch weekly stats: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error fetching weekly stats: $e');
       return null;
     }
   }
