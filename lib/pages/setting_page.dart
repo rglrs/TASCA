@@ -12,12 +12,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:async';
 
-import '../widgets/setting/no_internet_view.dart';
-import '../widgets/setting/error_view.dart';
-import '../widgets/setting/profile_tile.dart';
-import '../widgets/setting/settings_section.dart';
-import '../widgets/setting/settings_tile.dart';
-import '../widgets/setting/logout_tile.dart';
+import 'package:tasca_mobile1/widgets/setting/no_internet_view.dart';
+import 'package:tasca_mobile1/widgets/setting/error_view.dart';
+import 'package:tasca_mobile1/widgets/setting/profile_tile.dart';
+import 'package:tasca_mobile1/widgets/setting/settings_section.dart';
+import 'package:tasca_mobile1/widgets/setting/settings_tile.dart';
+import 'package:tasca_mobile1/widgets/setting/logout_tile.dart';
 
 enum LoadingState { loading, loaded, error, noInternet }
 

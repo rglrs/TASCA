@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'detail_todo.dart';
-import 'add_todo.dart';
-import '../widgets/navbar.dart';
+import 'package:tasca_mobile1/pages/detail_todo.dart';
+import 'package:tasca_mobile1/pages/add_todo.dart';
+import 'package:tasca_mobile1/widgets/navbar.dart';
 import 'package:tasca_mobile1/pages/login_page.dart';
 
 class TodoPage extends StatefulWidget {
