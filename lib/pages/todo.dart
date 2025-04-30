@@ -1,13 +1,11 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'detail_todo.dart';
 import 'add_todo.dart';
-import '../widgets/navbar.dart';
+import 'package:tasca_mobile1/widgets/navbar.dart';
 import 'package:tasca_mobile1/pages/login_page.dart';
+import 'package:tasca_mobile1/services/todo_service.dart';
 
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
@@ -17,7 +15,8 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
-  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> todos = [];
+  List<Map<String, dynamic>> allTasks = []; // Store all tasks for local search
   List<Map<String, dynamic>> searchResults = [];
   bool _isLoading = true;
   bool _isSearching = false;
@@ -26,92 +25,86 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   Set<int> _selectedTodoIds = {};
   final TextEditingController _searchController = TextEditingController();
 
+  // Store a reference to mounted state
+  bool _mounted = true;
+
+  // Store a reference to the current route in didChangeDependencies
+  bool _isCurrent = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _fetchTodos();
+    _fetchTodosAndTasks();
   }
 
   @override
   void dispose() {
+    // Set mounted to false first
+    _mounted = false;
+
+    // Remove observer
     WidgetsBinding.instance.removeObserver(this);
+
+    // Dispose controller
     _searchController.dispose();
+
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _fetchTodos();
+    if (state == AppLifecycleState.resumed && _mounted && _isCurrent) {
+      _fetchTodosAndTasks();
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final route = ModalRoute.of(context);
-    if (route != null && route.isCurrent) {
-      _fetchTodos();
+
+    // Store the isCurrent status when the widget is active
+    if (_mounted) {
+      final route = ModalRoute.of(context);
+      _isCurrent = route != null && route.isCurrent;
+
+      if (_isCurrent) {
+        _fetchTodosAndTasks();
+      }
     }
   }
 
-  Future<void> _fetchTodos() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = tasks.isEmpty;
-        _errorMessage = null;
-      });
-    }
+  // Fetch both todos and all tasks for local search
+  Future<void> _fetchTodosAndTasks() async {
+    if (!_mounted) return;
+
+    setState(() {
+      _isLoading = todos.isEmpty;
+      _errorMessage = null;
+    });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      // Fetch todos using the service
+      final fetchedTodos = await TodoService.fetchTodos();
 
-      if (token == null) {
-        _redirectToLogin();
-        return;
-      }
+      // Fetch all tasks using the service
+      final fetchedTasks = await TodoService.fetchAllTasks();
 
-      final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/todos/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> todosData = responseBody['data'];
-
-        if (mounted) {
-          setState(() {
-            tasks = todosData.map((todo) {
-              return {
-                'id': todo['id'],
-                'title': todo['title'] ?? 'Unnamed Todo',
-                'taskCount': todo['task_count'] ?? 0,
-                'color': _getColorForTodo(todo['id']),
-              };
-            }).toList();
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 401) {
-        _redirectToLogin();
-      } else {
-        throw Exception('Failed to load todos: ${response.body}');
-      }
-    } on SocketException {
-      if (mounted) {
+      if (_mounted) {
         setState(() {
-          _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
+          todos = fetchedTodos;
+          allTasks = fetchedTasks;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (_mounted) {
+        // Check if unauthorized error
+        if (e.toString().contains('Unauthorized')) {
+          _redirectToLogin();
+          return;
+        }
+
         setState(() {
           _errorMessage = e.toString();
           _isLoading = false;
@@ -120,7 +113,10 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _searchTasks(String query) async {
+  // Local search implementation that doesn't require API call
+  void _searchTasks(String query) {
+    if (!_mounted) return;
+
     if (query.isEmpty) {
       setState(() {
         _isSearching = false;
@@ -131,271 +127,118 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 
     setState(() {
       _isSearching = true;
-      _isLoading = true;
-      _errorMessage = null;
+
+      // Filter tasks locally based on search query
+      searchResults =
+          allTasks
+              .where(
+                (task) =>
+                    task['title'].toString().toLowerCase().contains(
+                      query.toLowerCase(),
+                    ) ||
+                    (task['description'] != null &&
+                        task['description'].toString().toLowerCase().contains(
+                          query.toLowerCase(),
+                        )),
+              )
+              .toList();
     });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        _redirectToLogin();
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/tasks/search?search=$query'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> tasksData = responseBody['data'];
-
-        if (mounted) {
-          setState(() {
-            searchResults = tasksData.map((task) {
-              return {
-                'id': task['id'],
-                'title': task['title'] ?? 'Unnamed Task',
-                'is_complete': task['is_complete'] ?? false,
-                'todo_id': task['todo_id'], // Changed from todo_title to todo_id
-              };
-            }).toList();
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 401) {
-        _redirectToLogin();
-      } else {
-        throw Exception('Failed to search tasks: ${response.body}');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
   }
 
   void _redirectToLogin() {
+    if (!_mounted) return;
+
+    // Store shared prefs reference first
     SharedPreferences.getInstance().then((prefs) {
+      // Then clear the token
       prefs.remove('auth_token');
+
+      // Then check if still mounted before navigation
+      if (_mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginPage()),
+          (route) => false,
+        );
+      }
     });
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => LoginPage()),
-      (route) => false,
-    );
-  }
-
-  String _getColorForTodo(int todoId) {
-    final colors = ["#FC0101", "#007BFF", "#FFC107"];
-    return colors[todoId % colors.length];
   }
 
   Future<void> _deleteTodo(int todoId) async {
+    if (!_mounted) return;
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final success = await TodoService.deleteTodo(todoId);
 
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      final client = http.Client();
-      try {
-        final request = http.Request(
-          'DELETE',
-          Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
-        );
-        request.headers['Authorization'] = 'Bearer $token';
-        request.headers['Content-Type'] = 'application/json';
-
-        final streamedResponse = await client.send(request);
-        final response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          await _fetchTodos();
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Todo berhasil dihapus')));
-        } else {
-          final alternativeResponse = await http.delete(
-            Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          );
-
-          if (alternativeResponse.statusCode >= 200 &&
-              alternativeResponse.statusCode < 300) {
-            await _fetchTodos();
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Todo berhasil dihapus')));
-          } else {
-            throw Exception(
-                'Failed to delete todo: Status ${response.statusCode}');
-          }
-        }
-      } finally {
-        client.close();
+      if (_mounted && success) {
+        await _fetchTodosAndTasks();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Todo berhasil dihapus')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error menghapus todo: $e')));
+      if (_mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
+      }
     }
   }
 
   Future<void> _deleteMultipleTodos() async {
+    if (!_mounted) return;
+
     if (_selectedTodoIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak ada todo yang dipilih')),
+        const SnackBar(content: Text('Tidak ada todo yang dipilih')),
       );
       return;
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final result = await TodoService.deleteMultipleTodos(
+        List<int>.from(_selectedTodoIds),
+      );
 
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
+      if (!_mounted) return;
 
-      final client = http.Client();
-      int successCount = 0;
-      List<int> failedIds = [];
+      if (_mounted) {
+        await _fetchTodosAndTasks();
 
-      for (int todoId in _selectedTodoIds) {
-        try {
-          final request = http.Request(
-            'DELETE',
-            Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
+        setState(() {
+          _isInSelectionMode = false;
+          _selectedTodoIds.clear();
+        });
+
+        if (result['failed'] == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Semua todo berhasil dihapus')),
           );
-          request.headers['Authorization'] = 'Bearer $token';
-          request.headers['Content-Type'] = 'application/json';
-
-          final streamedResponse = await client.send(request);
-          final response = await http.Response.fromStream(streamedResponse);
-
-          if (response.statusCode >= 200 && response.statusCode < 300) {
-            successCount++;
-          } else {
-            final alternativeResponse = await http.delete(
-              Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            );
-
-            if (alternativeResponse.statusCode >= 200 &&
-                alternativeResponse.statusCode < 300) {
-              successCount++;
-            } else {
-              failedIds.add(todoId);
-            }
-          }
-        } catch (e) {
-          failedIds.add(todoId);
+        } else if (result['success'] > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${result['success']} todo berhasil dihapus, ${result['failed']} gagal',
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Gagal menghapus todo')));
         }
       }
-
-      await _fetchTodos();
-      setState(() {
-        _isInSelectionMode = false;
-        _selectedTodoIds.clear();
-      });
-
-      if (successCount == _selectedTodoIds.length) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Semua todo berhasil dihapus')),
-        );
-      } else if (successCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  '$successCount todo berhasil dihapus, ${failedIds.length} gagal')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus todo')),
-        );
-      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus todo: $e')),
-      );
+      if (_mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
+      }
     }
   }
 
-  void _showTodoOptions(int todoId) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text(
-                'Hapus Todo',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('Hapus Todo'),
-                    content: Text(
-                      'Apakah Anda yakin ingin menghapus todo ini?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Batal'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _deleteTodo(todoId);
-                        },
-                        child: Text(
-                          'Hapus',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.cancel),
-              title: Text('Batal'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _toggleSelectionMode() {
+    if (!_mounted) return;
+
     setState(() {
       _isInSelectionMode = !_isInSelectionMode;
       _selectedTodoIds.clear();
@@ -412,59 +255,66 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
             _buildHeader(),
             _buildSearchBar(),
             Expanded(
-              child: _isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
                       ? Center(child: Text('Error: $_errorMessage'))
                       : _isSearching
-                          ? _buildSearchResults()
-                          : tasks.isEmpty
-                              ? _buildEmptyState()
-                              : _buildTodoGrid(),
+                      ? _buildSearchResults()
+                      : todos.isEmpty
+                      ? _buildEmptyState()
+                      : _buildTodoGrid(),
             ),
-            Navbar(initialActiveIndex: 1),
+            const Navbar(initialActiveIndex: 1),
           ],
         ),
       ),
-      floatingActionButton: _isInSelectionMode && _selectedTodoIds.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 90.0),
-              child: FloatingActionButton.extended(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Hapus Todo'),
-                      content: Text(
-                        'Apakah Anda yakin ingin menghapus ${_selectedTodoIds.length} todo yang dipilih?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Batal'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _deleteMultipleTodos();
-                          },
-                          child: Text(
-                            'Hapus',
-                            style: TextStyle(color: Colors.red),
+      floatingActionButton:
+          _isInSelectionMode && _selectedTodoIds.isNotEmpty
+              ? Padding(
+                padding: const EdgeInsets.only(bottom: 90.0),
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    if (!_mounted) return;
+
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text('Hapus Todo'),
+                            content: Text(
+                              'Apakah Anda yakin ingin menghapus ${_selectedTodoIds.length} todo yang dipilih?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Batal'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteMultipleTodos();
+                                },
+                                child: const Text(
+                                  'Hapus',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                backgroundColor: Colors.red,
-                icon: Icon(Icons.delete_outline, color: Colors.white),
-                label: Text('Hapus (${_selectedTodoIds.length})',
-                    style: TextStyle(color: Colors.white)),
-                extendedPadding: EdgeInsets.symmetric(horizontal: 16),
-              ),
-            )
-          : null,
+                    );
+                  },
+                  backgroundColor: Colors.red,
+                  icon: const Icon(Icons.delete_outline, color: Colors.white),
+                  label: Text(
+                    'Hapus (${_selectedTodoIds.length})',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              )
+              : null,
     );
   }
 
@@ -485,7 +335,7 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
             children: [
               if (_isInSelectionMode)
                 Container(
-                  margin: EdgeInsets.only(right: 12),
+                  margin: const EdgeInsets.only(right: 12),
                   child: Text(
                     '${_selectedTodoIds.length} dipilih',
                     style: GoogleFonts.poppins(
@@ -498,29 +348,34 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
               InkWell(
                 onTap: _toggleSelectionMode,
                 child: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _isInSelectionMode
-                        ? Color(0xFFEEE8F8)
-                        : Colors.transparent,
+                    color:
+                        _isInSelectionMode
+                            ? const Color(0xFFEEE8F8)
+                            : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     _isInSelectionMode ? Icons.close : Icons.delete_outline,
                     size: 24,
-                    color: _isInSelectionMode ? Color(0xFF8B7DFA) : Colors.red,
+                    color:
+                        _isInSelectionMode
+                            ? const Color(0xFF8B7DFA)
+                            : Colors.red,
                   ),
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: _isInSelectionMode ? null : _showAddTodoBottomSheet,
                 child: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _isInSelectionMode
-                        ? Colors.grey.withOpacity(0.1)
-                        : Colors.transparent,
+                    color:
+                        _isInSelectionMode
+                            ? Colors.grey.withOpacity(0.1)
+                            : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -544,16 +399,17 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Cari Task....',
-          prefixIcon: Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _searchTasks('');
-                  },
-                )
-              : null,
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon:
+              _searchController.text.isNotEmpty
+                  ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      _searchTasks('');
+                    },
+                  )
+                  : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -569,26 +425,47 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   }
 
   Widget _buildSearchResults() {
+    if (_searchController.text.isEmpty) {
+      return const Center(
+        child: Text(
+          'Type something to search tasks',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
     if (searchResults.isEmpty) {
       return Center(
-        child: Text(
-          'No tasks found',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'No tasks found for "${_searchController.text}"',
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
+            ),
+          ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: searchResults.length,
       itemBuilder: (context, index) {
         final task = searchResults[index];
+
+        // Find the corresponding todo for navigation
+        final Map<String, dynamic> todoData = {
+          'id': task['todo_id'],
+          'title': task['todo_title'] ?? 'Unknown Todo',
+          'color': task['todo_color'] ?? '#007BFF',
+        };
+
         return Card(
           elevation: 2,
-          margin: EdgeInsets.symmetric(vertical: 4),
+          margin: const EdgeInsets.symmetric(vertical: 4),
           child: ListTile(
             title: Text(
               task['title'],
@@ -597,30 +474,45 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            subtitle: Text(
-              task['is_complete'] ? 'Completed' : 'Pending',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: task['is_complete'] ? Colors.green : Colors.red,
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'In: ${todoData['title']}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                Text(
+                  task['is_complete'] ? 'Completed' : 'Pending',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: task['is_complete'] ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
             ),
             onTap: () {
-              // Find the corresponding todo for color
-              final todo = tasks.firstWhere(
-                (t) => t['id'] == task['todo_id'],
-                orElse: () => {'color': '#007BFF', 'title': 'Unknown Todo'},
+              if (!_mounted) return;
+
+              // Get the taskCount of the todo
+              final todoWithCount = todos.firstWhere(
+                (todo) => todo['id'] == task['todo_id'],
+                orElse: () => {'taskCount': 0},
               );
-              
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context)  => DetailTodoPage(
-                    todoId: task['todo_id'],
-                    todoTitle: todo['title'],
-                    taskCount: 0, // You might want to fetch actual task count
-                    todoColor: todo['color'],
-                    onTodoUpdated: _fetchTodos,
-                  ),
+                  builder:
+                      (context) => DetailTodoPage(
+                        todoId: todoData['id'],
+                        todoTitle: todoData['title'],
+                        taskCount: todoWithCount['taskCount'] ?? 0,
+                        todoColor: todoData['color'],
+                        onTodoUpdated: _fetchTodosAndTasks,
+                      ),
                 ),
               );
             },
@@ -635,48 +527,43 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   }
 
   void _showAddTodoBottomSheet() {
+    if (!_mounted) return;
+
+    final currentContext = context;
+
     showModalBottomSheet(
-      context: context,
+      context: currentContext,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => AddTodoPage(
-        onTodoAdded: (task) async {
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final token = prefs.getString('auth_token');
+      builder:
+          (dialogContext) => AddTodoPage(
+            onTodoAdded: (todoData) async {
+              try {
+                final success = await TodoService.createTodo(todoData);
 
-            if (token == null) {
-              throw Exception('No JWT token found');
-            }
+                if (success) {
+                  if (Navigator.canPop(dialogContext)) {
+                    Navigator.pop(dialogContext);
+                  }
 
-            final response = await http.post(
-              Uri.parse('https://api.tascaid.com/api/todos/'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-              body: json.encode({
-                'title': task['title'],
-                'urgency': task['urgency'],
-                'importance': task['importance'],
-              }),
-            );
-
-            if (response.statusCode == 201) {
-              await _fetchTodos();
-              Navigator.pop(context);
-            } else {
-              throw Exception('Failed to create todo: ${response.body}');
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to add todo: $e')),
-            );
-          }
-        },
-      ),
+                  // Update data if widget still mounted
+                  if (_mounted) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_mounted) {
+                        _fetchTodosAndTasks();
+                      }
+                    });
+                  }
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Failed to add todo: $e')),
+                );
+              }
+            },
+          ),
     );
   }
 
@@ -725,15 +612,17 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
           mainAxisSpacing: 16,
           childAspectRatio: 1,
         ),
-        itemCount: tasks.length,
+        itemCount: todos.length,
         itemBuilder: (context, index) {
-          final todo = tasks[index];
+          final todo = todos[index];
           Color cardColor = _getCardColor(todo['color']);
           final todoId = todo['id'];
           final isSelected = _selectedTodoIds.contains(todoId);
 
           return GestureDetector(
             onTap: () {
+              if (!_mounted) return;
+
               if (_isInSelectionMode) {
                 setState(() {
                   if (isSelected) {
@@ -746,18 +635,21 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DetailTodoPage(
-                      todoId: todo['id'],
-                      todoTitle: todo['title'],
-                      taskCount: todo['taskCount'],
-                      todoColor: todo['color'],
-                      onTodoUpdated: _fetchTodos,
-                    ),
+                    builder:
+                        (context) => DetailTodoPage(
+                          todoId: todo['id'],
+                          todoTitle: todo['title'],
+                          taskCount: todo['taskCount'],
+                          todoColor: todo['color'],
+                          onTodoUpdated: _fetchTodosAndTasks,
+                        ),
                   ),
                 );
               }
             },
             onLongPress: () {
+              if (!_mounted) return;
+
               if (!_isInSelectionMode) {
                 setState(() {
                   _isInSelectionMode = true;
@@ -809,30 +701,33 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                           color: Colors.white.withOpacity(0.8),
                         ),
                         onPressed: () {
+                          if (!_mounted) return;
+
                           showDialog(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: Text('Hapus Todo'),
-                              content: Text(
-                                'Apakah Anda yakin ingin menghapus todo ini?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _deleteTodo(todo['id']);
-                                  },
-                                  child: Text(
-                                    'Hapus',
-                                    style: TextStyle(color: Colors.red),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('Hapus Todo'),
+                                  content: const Text(
+                                    'Apakah Anda yakin ingin menghapus todo ini?',
                                   ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Batal'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        _deleteTodo(todo['id']);
+                                      },
+                                      child: const Text(
+                                        'Hapus',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
                           );
                         },
                       ),
@@ -841,9 +736,10 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.transparent,
+                          color:
+                              isSelected
+                                  ? Colors.black.withOpacity(0.3)
+                                  : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Stack(
@@ -863,13 +759,15 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                                         color: Colors.black.withOpacity(0.2),
                                         spreadRadius: 1,
                                         blurRadius: 2,
-                                        offset: Offset(0, 1),
+                                        offset: const Offset(0, 1),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(Icons.check,
-                                      color: Theme.of(context).primaryColor,
-                                      size: 16),
+                                  child: Icon(
+                                    Icons.check,
+                                    color: Theme.of(context).primaryColor,
+                                    size: 16,
+                                  ),
                                 ),
                               )
                             else
@@ -883,7 +781,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                                     color: Colors.white.withOpacity(0.3),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: Colors.white, width: 1.5),
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),

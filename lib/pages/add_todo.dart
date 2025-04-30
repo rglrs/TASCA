@@ -46,6 +46,16 @@ class _AddTodoPageState extends State<AddTodoPage> {
 
   void _addTodo() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedUrgency == null || _selectedImportance == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select both urgency and importance'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
       final task = {
         'title': _titleController.text.trim(),
         'urgency': _selectedUrgency,
@@ -53,7 +63,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
         'color': _getColorBasedOnPriority(), // Menggunakan fungsi untuk mendapatkan warna
       };
       widget.onTodoAdded(task);
-      Navigator.of(context).pop();
     }
   }
 
