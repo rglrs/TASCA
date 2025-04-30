@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import bgImage from "../assets/animation/OT_bg.png";
 
 const teamMembers = [
   {
@@ -43,11 +44,15 @@ const teamMembers = [
 const OurTeam = () => {
   return (
     <div
-      className="pt-36 pb-36 py-10 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-cover bg-top bg-no-repeat"
+      className="pt-36 pb-10 py-36 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-no-repeat bg-top"
       style={{
-        backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg)`,
-      }}>
-      <h2 className="text-3xl font-bold text-white mb-10">Our Team</h2>
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "contain",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "top center",
+      }}
+    >
+      <h2 className="text-3xl font-bold text-black mb-10">Our Team</h2>
 
       <div className="max-w-5xl mx-auto space-y-8 px-4 sm:px-0">
         {/* Baris pertama */}
@@ -64,21 +69,23 @@ const OurTeam = () => {
                 className="flex flex-col items-center"
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}>
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
                 <motion.div
-                  className="w-32 h-32 sm:w-40 sm:h-40"
+                  className="w-40 h-40 sm:w-48 sm:h-48 flex justify-center items-center"
                   whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.3 }}>
+                  transition={{ duration: 0.3 }}
+                >
                   <img
                     src={member.img}
                     alt={member.name}
                     className="w-full h-full object-contain"
                   />
                 </motion.div>
-                <h3 className="mt-3 text-sm md:text-base font-semibold text-white">
+                <h3 className="mt-3 text-sm md:text-base font-semibold text-black">
                   {member.name}
                 </h3>
-                <p className="text-xs md:text-sm text-white text-center max-w-[200px]">
+                <p className="text-xs md:text-sm text-black text-center max-w-[200px]">
                   {member.role}
                 </p>
               </motion.div>
@@ -102,21 +109,23 @@ const OurTeam = () => {
                 }`}
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                transition={{ duration: 0.5, delay: (index + 4) * 0.1 }}>
+                transition={{ duration: 0.5, delay: (index + 4) * 0.1 }}
+              >
                 <motion.div
-                  className="w-32 h-32 sm:w-40 sm:h-40"
+                  className="w-40 h-40 sm:w-48 sm:h-48 flex justify-center items-center"
                   whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.3 }}>
+                  transition={{ duration: 0.3 }}
+                >
                   <img
                     src={member.img}
                     alt={member.name}
                     className="w-full h-full object-contain"
                   />
                 </motion.div>
-                <h3 className="mt-3 text-sm md:text-base font-semibold text-white">
+                <h3 className="mt-3 text-sm md:text-base font-semibold text-black">
                   {member.name}
                 </h3>
-                <p className="text-xs md:text-sm text-white text-center max-w-[200px]">
+                <p className="text-xs md:text-sm text-black text-center max-w-[200px]">
                   {member.role}
                 </p>
               </motion.div>

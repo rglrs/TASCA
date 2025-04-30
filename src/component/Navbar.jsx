@@ -14,7 +14,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["home", "about", "features", "ourteams"];
+      const sections = ["home", "about", "features", "ourteams", "testimoni"];
       const scrollPosition = window.scrollY + 200; 
 
       for (const section of sections) {
@@ -44,6 +44,7 @@ export default function Navbar() {
       about: 20,
       features: 59,
       ourteams: 180,
+      testimoni: 150,
       download: 100,
     };
 
@@ -92,6 +93,7 @@ export default function Navbar() {
             { label: "About", id: "about" },
             { label: "Features", id: "features" },
             { label: "Our Teams", id: "ourteams" },
+            { label: "Testimoni", id: "testimoni" },
           ].map((item) => (
             <button
               key={item.id}

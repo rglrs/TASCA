@@ -57,12 +57,12 @@ const Testimoni = () => {
 
   return (
     <section
-      className="py-16 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
+      className="py-50 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
       style={{
         backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg)`,
       }}
     >
-      <div className="text-center mb-12">
+      <div className="text-center mb-25">
         <h2 className="text-4xl font-bold text-white">
           <span className="inline-flex items-center">
             <span className="text-[#007BFF]">T</span>
@@ -89,13 +89,13 @@ const Testimoni = () => {
           {[...Array(3)].flatMap(() => testimonials).map((item, idx) => (
             <div
               key={idx}
-              className="min-w-[280px] max-w-[280px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
+              className="min-w-[280px] max-w-[280px] min-h-[260px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
             >
               <div className="flex items-center mb-4">
                 <img
                   src={item.avatar}
                   alt="Avatar"
-                  className="w-8 h-8 rounded-full mr-2"
+                  className="w-16 h-16 rounded-full mr-4"
                 />
                 <h3 className="font-semibold text-md text-black">{item.name}</h3>
               </div>
