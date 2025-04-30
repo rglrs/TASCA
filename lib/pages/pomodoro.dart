@@ -38,7 +38,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   AudioPlayer audioPlayer = AudioPlayer();
 
   // Todo variables
-  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> incompleteTasks = [];
   String? selectedTask;
   String? _errorMessage;
 
@@ -47,36 +47,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Register observer
     _initializeNotifications();
-    _fetchTasks(); // Fetch todos on initialization
-  }
-
-  // --- Lifecycle Method ---
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    // Stop sound if the app is paused or inactive (user navigated away, app in background)
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      if (isRunning && !isMuted) {
-        audioPlayer
-            .pause(); // Use pause instead of stop to potentially resume later if needed
-      }
-    }
-    // Optional: Handle resuming if needed, e.g., when state becomes AppLifecycleState.resumed
-    // else if (state == AppLifecycleState.resumed) {
-    //   if (isRunning && !isMuted && currentSoundPath.isNotEmpty) {
-    //      audioPlayer.resume(); // Or playSound(...) if starting fresh
-    //   }
-    // }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Unregister observer
-    timer?.cancel();
-    audioPlayer.stop(); // Ensure sound is stopped
-    audioPlayer.dispose(); // Release audio player resources
-    super.dispose();
+    _fetchIncompleteTasks(); // Fetch todos on initialization
   }
 
   void _initializeNotifications() async {
@@ -98,8 +69,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
         );
   }
 
-  Future<void> _fetchTasks() async {
-    // ... (rest of the fetchTasks method remains the same)
+  Future<void> _fetchIncompleteTasks() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -119,10 +89,10 @@ class _PomodoroTimerState extends State<PomodoroTimer>
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> tasksData = responseBody['data'];
+        final List tasksData = responseBody['data'];
 
         setState(() {
-          tasks =
+          incompleteTasks =
               tasksData.map((task) {
                 return {
                   'id': task['id'],
@@ -320,7 +290,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                       maxWidth: 150,
                     ), // Set a maximum width
                     child: CustomDropdown(
-                      items: tasks,
+                      items: incompleteTasks,
                       selectedValue: selectedTask,
                       onChanged: (String? newValue) {
                         setState(() {
