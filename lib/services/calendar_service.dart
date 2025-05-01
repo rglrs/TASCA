@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -120,7 +121,7 @@ class CalendarService {
         }
       } catch (e) {
         // Silently handle errors for individual days
-        print(
+        debugPrint(
           'Error fetching tasks for ${DateFormat('yyyy-MM-dd').format(day)}: $e',
         );
       }
@@ -167,6 +168,11 @@ class CalendarService {
     }
 
     return days;
+  }
+  // Method baru untuk menghapus semua cache
+  void clearCache() {
+    _taskCache.clear();
+    debugPrint('CalendarService: Semua cache task telah dihapus');
   }
 }
 

@@ -2,6 +2,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tasca_mobile1/providers/task_provider.dart';
 
 class TaskService {
   static const String baseUrl = 'https://api.tascaid.com/api';
@@ -16,6 +18,24 @@ class TaskService {
     }
 
     return token;
+  }
+
+  void _updateProvider(BuildContext context) {
+    try {
+      // Jangan langsung panggil Provider saat build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.dataChanged = true;
+          taskProvider.syncTaskChanges();
+        }
+      });
+    } catch (e) {
+      debugPrint('Provider sync error (non-critical): $e');
+    }
   }
 
   // Sort tasks by priority and deadline
@@ -91,8 +111,12 @@ class TaskService {
     }
   }
 
-  // Update todo title
-  Future<void> updateTodoTitle(int todoId, String newTitle) async {
+  // Update todo title with provider sync
+  Future<void> updateTodoTitle(
+    BuildContext context,
+    int todoId,
+    String newTitle,
+  ) async {
     if (newTitle.isEmpty) {
       throw Exception('Title cannot be empty');
     }
@@ -180,14 +204,22 @@ class TaskService {
         }
         throw Exception(errorMessage);
       }
+
+      // Sync dengan TaskProvider untuk update kalender
+      try {
+        final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+        await taskProvider.syncTaskChanges();
+      } catch (e) {
+        debugPrint('Provider sync error (non-critical): $e');
+      }
     } finally {
       // Always close the client when done
       client.close();
     }
   }
 
-  // Delete todo
-  Future<void> deleteTodo(int todoId) async {
+  // Delete todo with provider sync
+  Future<void> deleteTodo(BuildContext context, int todoId) async {
     try {
       final token = await _getToken();
 
@@ -214,6 +246,16 @@ class TaskService {
         debugPrint('Delete Todo Response Body: ${response.body}');
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Sync dengan TaskProvider untuk update kalender
+          try {
+            final taskProvider = Provider.of<TaskProvider>(
+              context,
+              listen: false,
+            );
+            await taskProvider.syncTaskChanges();
+          } catch (e) {
+            debugPrint('Provider sync error (non-critical): $e');
+          }
           return; // Success
         } else {
           // Try alternative approach if first method fails
@@ -239,6 +281,17 @@ class TaskService {
               'Failed to delete todo: Status ${response.statusCode}, ${response.body}',
             );
           }
+
+          // Sync dengan TaskProvider untuk update kalender
+          try {
+            final taskProvider = Provider.of<TaskProvider>(
+              context,
+              listen: false,
+            );
+            await taskProvider.syncTaskChanges();
+          } catch (e) {
+            debugPrint('Provider sync error (non-critical): $e');
+          }
         }
       } finally {
         client.close();
@@ -249,8 +302,9 @@ class TaskService {
     }
   }
 
-  // Toggle task completion status
+  // Toggle task completion status with provider sync
   Future<void> toggleTaskCompletion(
+    BuildContext context,
     int todoId,
     int taskId,
     bool currentStatus,
@@ -270,14 +324,163 @@ class TaskService {
       if (response.statusCode != 200) {
         throw Exception('Failed to update task: ${response.body}');
       }
+
+      // Update Provider
+      _updateProvider(context);
     } catch (e) {
       debugPrint('Error toggling task completion: $e');
       throw e;
     }
   }
 
-  // Delete task
-  Future<void> deleteTask(int todoId, int taskId) async {
+  // Add new task with provider sync
+  Future<Map<String, dynamic>> addTask(
+    BuildContext context,
+    int todoId,
+    Map<String, dynamic> taskData,
+  ) async {
+    try {
+      final token = await _getToken();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/todos/$todoId/tasks/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(taskData),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final responseData = json.decode(response.body);
+
+        // Update Provider
+        _updateProvider(context);
+
+        return responseData;
+      } else {
+        String errorMessage;
+        try {
+          final responseData = json.decode(response.body);
+          errorMessage = responseData['error'] ?? 'Unknown error occurred';
+        } catch (e) {
+          errorMessage = 'Error: ${response.body}';
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('Error adding task: $e');
+      throw e;
+    }
+  }
+
+  // Update task with provider sync
+  Future<Map<String, dynamic>> updateTask(
+    BuildContext context,
+    int todoId,
+    int taskId,
+    Map<String, dynamic> taskData,
+  ) async {
+    // Create http client that will be used and closed later
+    final client = http.Client();
+
+    try {
+      final token = await _getToken();
+
+      final url = '$baseUrl/todos/$todoId/tasks/$taskId/';
+      debugPrint('Update Task - URL: $url');
+      debugPrint('Update Task - Body: ${json.encode(taskData)}');
+
+      // Create a PATCH request
+      final request = http.Request('PATCH', Uri.parse(url));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Content-Type'] = 'application/json';
+      request.body = json.encode(taskData);
+
+      // Send the request and get the stream response
+      final streamedResponse = await client.send(request);
+
+      http.Response response;
+
+      // If we get a redirect, manually follow it while maintaining the PATCH method
+      if (streamedResponse.statusCode == 307) {
+        final redirectUrl = streamedResponse.headers['location'];
+        if (redirectUrl != null) {
+          debugPrint('Redirecting PATCH to: $redirectUrl');
+
+          Uri redirectUri;
+          if (redirectUrl.startsWith('http')) {
+            redirectUri = Uri.parse(redirectUrl);
+          } else {
+            final baseUri = Uri.parse(url);
+            final baseUrl = '${baseUri.scheme}://${baseUri.host}';
+
+            final cleanRedirectUrl =
+                redirectUrl.startsWith('/')
+                    ? redirectUrl.substring(1)
+                    : redirectUrl;
+            redirectUri = Uri.parse('$baseUrl/$cleanRedirectUrl');
+          }
+
+          debugPrint('Full redirect URL: $redirectUri');
+
+          final redirectRequest = http.Request('PATCH', redirectUri);
+          redirectRequest.headers['Authorization'] = 'Bearer $token';
+          redirectRequest.headers['Content-Type'] = 'application/json';
+          redirectRequest.body = json.encode(taskData);
+
+          final redirectResponse = await client.send(redirectRequest);
+          response = await http.Response.fromStream(redirectResponse);
+        } else {
+          response = await http.Response.fromStream(streamedResponse);
+        }
+      } else {
+        response = await http.Response.fromStream(streamedResponse);
+      }
+
+      debugPrint('Update Response Status: ${response.statusCode}');
+      debugPrint('Update Response Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final responseData =
+            response.body.isNotEmpty ? json.decode(response.body) : {};
+
+        // Sync dengan TaskProvider untuk update kalender
+        try {
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          await taskProvider.syncTaskChanges();
+        } catch (e) {
+          debugPrint('Provider sync error (non-critical): $e');
+        }
+        _updateProvider(context);
+        return responseData is Map<String, dynamic> ? responseData : {};
+      } else {
+        String errorMessage;
+        try {
+          if (response.body.isNotEmpty) {
+            final responseData = json.decode(response.body);
+            errorMessage = responseData['error'] ?? 'Unknown error occurred';
+          } else {
+            errorMessage = 'Server returned status ${response.statusCode}';
+          }
+        } catch (e) {
+          errorMessage = 'Error: ${response.body}';
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('Update Task Error: $e');
+      throw e;
+    } finally {
+      client.close();
+    }
+  }
+
+  // Delete task with provider sync
+  Future<void> deleteTask(BuildContext context, int todoId, int taskId) async {
     try {
       final token = await _getToken();
 
@@ -303,6 +506,16 @@ class TaskService {
         debugPrint('Delete Task Response Status: ${response.statusCode}');
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Sync dengan TaskProvider untuk update kalender
+          try {
+            final taskProvider = Provider.of<TaskProvider>(
+              context,
+              listen: false,
+            );
+            await taskProvider.syncTaskChanges();
+          } catch (e) {
+            debugPrint('Provider sync error (non-critical): $e');
+          }
           return; // Success
         } else {
           // Try alternative approach if first method fails
@@ -329,6 +542,17 @@ class TaskService {
             throw Exception(
               'Failed to delete task: Status ${response.statusCode}',
             );
+          }
+
+          // Sync dengan TaskProvider untuk update kalender
+          try {
+            final taskProvider = Provider.of<TaskProvider>(
+              context,
+              listen: false,
+            );
+            await taskProvider.syncTaskChanges();
+          } catch (e) {
+            debugPrint('Provider sync error (non-critical): $e');
           }
         }
       } finally {

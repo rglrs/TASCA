@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:tasca_mobile1/widgets/add_todo/add_todo_coach_mark.dart';
 
 class AddTodoPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onTodoAdded;
@@ -13,8 +15,48 @@ class _AddTodoPageState extends State<AddTodoPage> {
   final TextEditingController _titleController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  // Global keys untuk coach mark
+  final GlobalKey _titleInputKey = GlobalKey();
+  final GlobalKey _priorityColorKey = GlobalKey();
+  final GlobalKey _prioritySelectionKey = GlobalKey();
+  final GlobalKey _addTaskButtonKey = GlobalKey();
+
+  // Coach mark manager
+  AddTodoCoachMark? _coachMark;
+
   String? _selectedUrgency;
   String? _selectedImportance;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inisialisasi coach mark setelah build pertama selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initCoachMark();
+    });
+  }
+
+  // Inisialisasi coach mark
+  void _initCoachMark() {
+    _coachMark = AddTodoCoachMark(
+      context: context,
+      titleInputKey: _titleInputKey,
+      priorityColorKey: _priorityColorKey,
+      prioritySelectionKey: _prioritySelectionKey,
+      addTaskButtonKey: _addTaskButtonKey,
+    );
+
+    _coachMark?.showCoachMarkIfNeeded();
+  }
+
+  // Method untuk menampilkan coach mark saat tombol bantuan diklik
+  void _showCoachMark() {
+    if (_coachMark != null) {
+      AddTodoCoachMark.resetCoachMarkStatus().then((_) {
+        _coachMark!.showCoachMark();
+      });
+    }
+  }
 
   // Fungsi untuk mendapatkan warna berdasarkan prioritas
   String _getColorBasedOnPriority() {
@@ -60,9 +102,23 @@ class _AddTodoPageState extends State<AddTodoPage> {
         'title': _titleController.text.trim(),
         'urgency': _selectedUrgency,
         'importance': _selectedImportance,
-        'color': _getColorBasedOnPriority(), // Menggunakan fungsi untuk mendapatkan warna
+        'color': _getColorBasedOnPriority(),
       };
       widget.onTodoAdded(task);
+    }
+  }
+
+  // Fungsi untuk mendapatkan deskripsi prioritas
+  String _getPriorityDescription() {
+    if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
+      return "High Priority (Red)";
+    } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
+               (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
+      return "Medium Priority (Yellow)";
+    } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
+      return "Low Priority (Green)";
+    } else {
+      return "No Priority (Grey)";
     }
   }
 
@@ -87,6 +143,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
+                key: _titleInputKey,
                 controller: _titleController,
                 decoration: InputDecoration(
                   hintText: 'To Do title...',
@@ -101,10 +158,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               
               // Preview warna berdasarkan prioritas
               Row(
+                key: _priorityColorKey,
                 children: [
                   Text(
                     'Priority Color: ',
@@ -113,7 +171,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                       color: Colors.deepPurple,
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Container(
                     width: 30,
                     height: 30,
@@ -123,7 +181,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                       border: Border.all(color: Colors.grey.shade300),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text(
                     _getPriorityDescription(),
                     style: TextStyle(
@@ -133,7 +191,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               
               Text(
                 'Prioritize',
@@ -142,76 +200,83 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   color: Colors.deepPurple,
                 ),
               ),
-              SizedBox(height: 10),
-              Text(
-                'Urgency',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
+              const SizedBox(height: 10),
+              Column(
+                key: _prioritySelectionKey,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _PriorityChip(
-                    label: 'Urgently',
-                    isSelected: _selectedUrgency == 'Urgently',
-                    onSelected: () {
-                      setState(() {
-                        _selectedUrgency = _selectedUrgency == 'Urgently'
-                            ? null
-                            : 'Urgently';
-                      });
-                    },
+                  Text(
+                    'Urgency',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  _PriorityChip(
-                    label: 'Not urgently',
-                    isSelected: _selectedUrgency == 'Not urgently',
-                    onSelected: () {
-                      setState(() {
-                        _selectedUrgency = _selectedUrgency == 'Not urgently'
-                            ? null
-                            : 'Not urgently';
-                      });
-                    },
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _PriorityChip(
+                        label: 'Urgently',
+                        isSelected: _selectedUrgency == 'Urgently',
+                        onSelected: () {
+                          setState(() {
+                            _selectedUrgency = _selectedUrgency == 'Urgently'
+                                ? null
+                                : 'Urgently';
+                          });
+                        },
+                      ),
+                      _PriorityChip(
+                        label: 'Not urgently',
+                        isSelected: _selectedUrgency == 'Not urgently',
+                        onSelected: () {
+                          setState(() {
+                            _selectedUrgency = _selectedUrgency == 'Not urgently'
+                                ? null
+                                : 'Not urgently';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Importance',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _PriorityChip(
+                        label: 'Important',
+                        isSelected: _selectedImportance == 'Important',
+                        onSelected: () {
+                          setState(() {
+                            _selectedImportance =
+                                _selectedImportance == 'Important'
+                                    ? null
+                                    : 'Important';
+                          });
+                        },
+                      ),
+                      _PriorityChip(
+                        label: 'Not important',
+                        isSelected: _selectedImportance == 'Not important',
+                        onSelected: () {
+                          setState(() {
+                            _selectedImportance =
+                                _selectedImportance == 'Not important'
+                                    ? null
+                                    : 'Not important';
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              Text(
-                'Importance',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  _PriorityChip(
-                    label: 'Important',
-                    isSelected: _selectedImportance == 'Important',
-                    onSelected: () {
-                      setState(() {
-                        _selectedImportance =
-                            _selectedImportance == 'Important'
-                                ? null
-                                : 'Important';
-                      });
-                    },
-                  ),
-                  _PriorityChip(
-                    label: 'Not important',
-                    isSelected: _selectedImportance == 'Not important',
-                    onSelected: () {
-                      setState(() {
-                        _selectedImportance =
-                            _selectedImportance == 'Not important'
-                                ? null
-                                : 'Not important';
-                      });
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
+                key: _addTaskButtonKey,
                 onPressed: _addTodo,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
@@ -223,26 +288,57 @@ class _AddTodoPageState extends State<AddTodoPage> {
                 ),
                 child: Text('Add Task'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 10),
+              // Tombol Bantuan
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: InkWell(
+                    onTap: _showCoachMark,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 1,
+                            blurRadius: 3,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.help_outline,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Bantuan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
-  }
-
-  // Fungsi untuk mendapatkan deskripsi prioritas
-  String _getPriorityDescription() {
-    if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
-      return "High Priority (Red)";
-    } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
-               (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
-      return "Medium Priority (Yellow)";
-    } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
-      return "Low Priority (Green)";
-    } else {
-      return "No Priority (Grey)";
-    }
   }
 }
 

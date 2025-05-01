@@ -10,7 +10,6 @@ import 'package:tasca_mobile1/services/pomodoro.dart';
 import 'dart:io';
 import 'package:tasca_mobile1/pages/login_page.dart';
 import 'package:tasca_mobile1/widgets/pomodoro/pomodoro_coach_mark.dart';
-import 'package:google_fonts/google_fonts.dart'; // Impor google_fonts untuk tombol bantuan
 
 // Konstanta untuk mode pengujian coach mark
 const bool TESTING_MODE = false;
@@ -287,19 +286,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     }
   }
 
-  // Method untuk manual menampilkan coach mark (untuk tombol bantuan)
-  void _showCoachMark() {
-    if (_coachMark != null) {
-      if (!TESTING_MODE) {
-        PomodoroCoachMark.resetCoachMarkStatus().then((_) {
-          _coachMark!.showCoachMark();
-        });
-      } else {
-        _coachMark!.showCoachMark();
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -529,48 +515,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                 ),
                 Navbar(initialActiveIndex: 0),
               ],
-            ),
-            // Tombol bantuan
-            Positioned(
-              top: 16,
-              right: 16,
-              child: InkWell(
-                onTap: _showCoachMark,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.help_outline,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Bantuan',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
           ],
         ),
