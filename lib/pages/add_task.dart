@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:tasca_mobile1/providers/task_provider.dart';
+import 'package:tasca_mobile1/services/task_service.dart';
 
 class AddTaskPage extends StatefulWidget {
   final int todoId;
@@ -25,6 +25,7 @@ class AddTaskPage extends StatefulWidget {
 class _AddTaskPageState extends State<AddTaskPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final TaskService _taskService = TaskService();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -118,12 +119,22 @@ class _AddTaskPageState extends State<AddTaskPage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    // Fix: Ensure initialDate is not before firstDate
+    final DateTime now = DateTime.now();
+    final DateTime firstDate = now;
+    
+    // Ensure initialDate is valid (not before firstDate)
+    final DateTime initialDate = (_selectedDate != null && _selectedDate!.isAfter(now)) 
+        ? _selectedDate! 
+        : now;
+    
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: initialDate,
+      firstDate: firstDate,
       lastDate: DateTime(2101),
     );
+    
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -178,7 +189,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     return requestBody;
   }
 
-  // Add a new task
+  // Add a new task using TaskService with Provider
   Future<void> _addTask() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -192,48 +203,39 @@ class _AddTaskPageState extends State<AddTaskPage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      // URL for creating a new task
-      final url = 'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/';
+      // Prepare request body
       final requestBody = _prepareRequestBody();
 
-      print('Add Task - URL: $url');
-      print('Add Task - Body: ${json.encode(requestBody)}');
+      // Use TaskService with Provider support
+      await _taskService.addTask(context, widget.todoId, requestBody);
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(requestBody),
-      );
+      // Call the callback
+      widget.onTaskAdded();
 
-      print('Add Response Status: ${response.statusCode}');
-      print('Add Response Body: ${response.body}');
+      // Show success message and navigate back
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Task added successfully')));
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        widget.onTaskAdded();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Task added successfully')));
-      } else {
-        String errorMessage;
+      // Menggunakan WidgetsBinding untuk memastikan sinkronisasi terjadi setelah build selesai
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Manually sync the provider
         try {
-          final responseData = json.decode(response.body);
-          errorMessage = responseData['error'] ?? 'Unknown error occurred';
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.dataChanged = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              taskProvider.syncTaskChanges();
+            }
+          });
         } catch (e) {
-          errorMessage = 'Error: ${response.body}';
+          debugPrint('Provider sync error (non-critical): $e');
         }
-        throw Exception(errorMessage);
-      }
+      });
     } catch (e) {
       print('Add Task Error: $e');
       ScaffoldMessenger.of(
@@ -246,7 +248,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
   }
 
-  // Update an existing task
+  // Update an existing task using TaskService with Provider
   Future<void> _updateTask() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -259,102 +261,47 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _isLoading = true;
     });
 
-    // Create http client that will be used and closed later
-    final client = http.Client();
-
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      // URL for updating an existing task
-      final url =
-          'https://api.tascaid.com/api/todos/${widget.todoId}/tasks/${widget.taskId}/';
+      // Prepare request body
       final requestBody = _prepareRequestBody();
 
-      print('Update Task - URL: $url');
-      print('Update Task - Body: ${json.encode(requestBody)}');
+      // Use TaskService with Provider support
+      await _taskService.updateTask(
+        context,
+        widget.todoId,
+        widget.taskId!,
+        requestBody,
+      );
 
-      // Create a PATCH request
-      final request = http.Request('PATCH', Uri.parse(url));
-      request.headers['Authorization'] = 'Bearer $token';
-      request.headers['Content-Type'] = 'application/json';
-      request.body = json.encode(requestBody);
+      // Call the callback
+      widget.onTaskAdded();
 
-      // Send the request and get the stream response
-      final streamedResponse = await client.send(request);
+      // Show success message and navigate back
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Task updated successfully')));
 
-      http.Response response;
-
-      // If we get a redirect, manually follow it while maintaining the PATCH method
-      if (streamedResponse.statusCode == 307) {
-        final redirectUrl = streamedResponse.headers['location'];
-        if (redirectUrl != null) {
-          print('Redirecting PATCH to: $redirectUrl');
-
-          // Handle both absolute and relative URLs
-          Uri redirectUri;
-          if (redirectUrl.startsWith('http')) {
-            // It's an absolute URL
-            redirectUri = Uri.parse(redirectUrl);
-          } else {
-            // It's a relative URL - we need to combine it with the base URL
-            // Extract the base URL from the original request
-            final baseUri = Uri.parse(url);
-            final baseUrl = '${baseUri.scheme}://${baseUri.host}';
-
-            // Remove leading slash if present in both
-            final cleanRedirectUrl =
-                redirectUrl.startsWith('/')
-                    ? redirectUrl.substring(1)
-                    : redirectUrl;
-            redirectUri = Uri.parse('$baseUrl/$cleanRedirectUrl');
-          }
-
-          print('Full redirect URL: $redirectUri');
-
-          final redirectRequest = http.Request('PATCH', redirectUri);
-          redirectRequest.headers['Authorization'] = 'Bearer $token';
-          redirectRequest.headers['Content-Type'] = 'application/json';
-          redirectRequest.body = json.encode(requestBody);
-
-          final redirectResponse = await client.send(redirectRequest);
-          response = await http.Response.fromStream(redirectResponse);
-        } else {
-          // If no location header, just use the original response
-          response = await http.Response.fromStream(streamedResponse);
-        }
-      } else {
-        // If no redirect, just get the response
-        response = await http.Response.fromStream(streamedResponse);
-      }
-
-      print('Update Response Status: ${response.statusCode}');
-      print('Update Response Body: ${response.body}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        widget.onTaskAdded();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Task updated successfully')));
-      } else {
-        String errorMessage;
+      // Menggunakan WidgetsBinding untuk memastikan sinkronisasi terjadi setelah build selesai
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Manually sync the provider
         try {
-          if (response.body.isNotEmpty) {
-            final responseData = json.decode(response.body);
-            errorMessage = responseData['error'] ?? 'Unknown error occurred';
-          } else {
-            errorMessage = 'Server returned status ${response.statusCode}';
-          }
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.dataChanged = true; // Set flag bahwa data telah berubah
+
+          // Gunakan WidgetsBinding untuk menghindari error build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              taskProvider.syncTaskChanges();
+            }
+          });
         } catch (e) {
-          errorMessage = 'Error: ${response.body}';
+          debugPrint('Provider sync error (non-critical): $e');
         }
-        throw Exception(errorMessage);
-      }
+      });
     } catch (e) {
       print('Update Task Error: $e');
       ScaffoldMessenger.of(
@@ -364,8 +311,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
       setState(() {
         _isLoading = false;
       });
-      // Always close the client when done
-      client.close();
     }
   }
 

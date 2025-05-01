@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'add_task.dart';
 import 'package:tasca_mobile1/services/task_service.dart';
 import 'package:tasca_mobile1/utils/task_utils.dart';
+import 'package:provider/provider.dart';
+import 'package:tasca_mobile1/providers/task_provider.dart';
 
 class DetailTodoPage extends StatefulWidget {
   final int todoId;
@@ -25,7 +27,7 @@ class DetailTodoPage extends StatefulWidget {
 
 class _DetailTodoPageState extends State<DetailTodoPage> {
   final TaskService _taskService = TaskService();
-  
+
   List<dynamic> tasks = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -51,10 +53,11 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
 
     try {
       final fetchedTasks = await _taskService.fetchTodoTasks(widget.todoId);
-      
+
       setState(() {
         tasks = fetchedTasks;
-        _completedTasks = tasks.where((task) => task['is_complete'] == true).length;
+        _completedTasks =
+            tasks.where((task) => task['is_complete'] == true).length;
         _isLoading = false;
       });
 
@@ -76,9 +79,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   // Update todo title
   Future<void> _updateTodoTitle(String newTitle) async {
     if (newTitle.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Judul tidak boleh kosong'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Judul tidak boleh kosong')));
       return;
     }
 
@@ -87,8 +90,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     });
 
     try {
-      await _taskService.updateTodoTitle(widget.todoId, newTitle);
-      
+      // Passing context as first argument
+      await _taskService.updateTodoTitle(context, widget.todoId, newTitle);
+
       setState(() {
         _currentTitle = newTitle;
         _isEditingTitle = false;
@@ -104,9 +108,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       );
     } catch (e) {
       debugPrint('Update Todo Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
       // Reset to previous title
       _titleController.text = _currentTitle;
     } finally {
@@ -119,11 +123,12 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
   // Method to delete current todo
   Future<void> _deleteTodo() async {
     try {
-      await _taskService.deleteTodo(widget.todoId);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Todo berhasil dihapus'))
-      );
+      // Passing context as first argument
+      await _taskService.deleteTodo(context, widget.todoId);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Todo berhasil dihapus')));
 
       // Trigger callback to update parent if exists
       if (widget.onTodoUpdated != null) {
@@ -134,9 +139,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       Navigator.pop(context);
     } catch (e) {
       debugPrint('Error deleting todo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus todo: $e'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
     }
   }
 
@@ -177,32 +182,33 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                'Hapus Todo',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet
-                _showDeleteConfirmation();
-              },
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text(
+                    'Hapus Todo',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                    _showDeleteConfirmation();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.cancel),
+                  title: const Text('Batal'),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.cancel),
-              title: const Text('Batal'),
-              onTap: () {
-                Navigator.pop(context); // Close bottom sheet
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -210,51 +216,100 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddTaskPage(
-          todoId: widget.todoId,
-          onTaskAdded: () {
-            _fetchTodoTasks();
-            // Also update the parent todo list
-            if (widget.onTodoUpdated != null) {
-              widget.onTodoUpdated!();
-            }
-          },
-        ),
+        builder:
+            (context) => AddTaskPage(
+              todoId: widget.todoId,
+              onTaskAdded: () {
+                _fetchTodoTasks();
+                // Update the parent todo list
+                if (widget.onTodoUpdated != null) {
+                  widget.onTodoUpdated!();
+                }
+
+                // Sync dengan TaskProvider untuk update kalender
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  // Sync dengan TaskProvider untuk update kalender
+                  try {
+                    final taskProvider = Provider.of<TaskProvider>(
+                      context,
+                      listen: false,
+                    );
+                    taskProvider.syncTaskChanges();
+                  } catch (e) {
+                    debugPrint('Provider sync error (non-critical): $e');
+                  }
+                });
+              },
+            ),
       ),
     ).then((_) {
       // Refresh tasks when returning from add task screen
       _fetchTodoTasks();
-      // Also refresh parent list
+      // Refresh parent list
       if (widget.onTodoUpdated != null) {
         widget.onTodoUpdated!();
       }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Sync dengan TaskProvider untuk update kalender
+        try {
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.syncTaskChanges();
+        } catch (e) {
+          debugPrint('Provider sync error (non-critical): $e');
+        }
+      });
     });
   }
 
   Future<void> _toggleTaskCompletion(int taskId, bool currentStatus) async {
     try {
-      await _taskService.toggleTaskCompletion(widget.todoId, taskId, currentStatus);
+      // Passing context as first argument and correcting parameter order
+      await _taskService.toggleTaskCompletion(
+        context,
+        widget.todoId,
+        taskId,
+        currentStatus,
+      );
       await _fetchTodoTasks();
 
       // Trigger callback to update parent if exists
       if (widget.onTodoUpdated != null) {
         widget.onTodoUpdated!();
       }
+
+      // Gunakan WidgetsBinding untuk memastikan sinkronisasi terjadi setelah build selesai
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Sync dengan TaskProvider untuk update kalender
+        try {
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.syncTaskChanges();
+        } catch (e) {
+          debugPrint('Provider sync error (non-critical): $e');
+        }
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   // Method to delete task
   Future<void> _deleteTask(int taskId) async {
     try {
-      await _taskService.deleteTask(widget.todoId, taskId);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task berhasil dihapus'))
-      );
+      // Passing context as first argument
+      await _taskService.deleteTask(context, widget.todoId, taskId);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Task berhasil dihapus')));
 
       // Refresh task list
       await _fetchTodoTasks();
@@ -263,11 +318,32 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       if (widget.onTodoUpdated != null) {
         widget.onTodoUpdated!();
       }
+
+      // Gunakan WidgetsBinding untuk memastikan sinkronisasi terjadi setelah build selesai
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Sync dengan TaskProvider untuk update kalender
+        try {
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
+          taskProvider.dataChanged = true; // Set flag bahwa data telah berubah
+
+          // Gunakan WidgetsBinding untuk menghindari error build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              taskProvider.syncTaskChanges();
+            }
+          });
+        } catch (e) {
+          debugPrint('Provider sync error (non-critical): $e');
+        }
+      });
     } catch (e) {
       debugPrint('Error deleting task: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus task: $e'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error menghapus task: $e')));
     }
   }
 
@@ -278,7 +354,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
       completionPercentage = (_completedTasks / tasks.length) * 100;
     }
 
-    final Color backgroundColor = TaskUtils.getColorFromString(widget.todoColor);
+    final Color backgroundColor = TaskUtils.getColorFromString(
+      widget.todoColor,
+    );
 
     return Scaffold(
       body: CustomScrollView(
@@ -300,94 +378,103 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                         _isEditingTitle = true;
                         _titleController.text = _currentTitle;
                         Future.delayed(const Duration(milliseconds: 50), () {
-                          _titleController.selection = TextSelection.fromPosition(
+                          _titleController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: _titleController.text.length),
                           );
                         });
                       });
                     },
-                    child: _isEditingTitle
-                        ? SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.7,
-                            height: 40,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _titleController,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    autofocus: true,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 8,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderSide: const BorderSide(
-                                          color: Colors.white,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderSide: const BorderSide(
-                                          color: Colors.white,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderSide: const BorderSide(
-                                          color: Colors.white,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    onSubmitted: (value) {
-                                      _updateTodoTitle(value);
-                                    },
-                                  ),
-                                ),
-                                if (_isSavingTitle)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8.0),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
+                    child:
+                        _isEditingTitle
+                            ? SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              height: 40,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _titleController,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
                                         color: Colors.white,
-                                        strokeWidth: 2,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                      autofocus: true,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderSide: const BorderSide(
+                                            color: Colors.white,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: const BorderSide(
+                                            color: Colors.white,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: const BorderSide(
+                                            color: Colors.white,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                      ),
+                                      onSubmitted: (value) {
+                                        _updateTodoTitle(value);
+                                      },
                                     ),
-                                  )
-                                else
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      _updateTodoTitle(_titleController.text);
-                                    },
                                   ),
-                              ],
+                                  if (_isSavingTitle)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        _updateTodoTitle(_titleController.text);
+                                      },
+                                    ),
+                                ],
+                              ),
+                            )
+                            : Text(
+                              _currentTitle,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          )
-                        : Text(
-                            _currentTitle,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
@@ -395,7 +482,9 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                     child: LinearProgressIndicator(
                       value: completionPercentage / 100,
                       backgroundColor: Colors.red.shade300,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -477,7 +566,10 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.delete, color: Colors.white),
+                                    const Icon(
+                                      Icons.delete,
+                                      color: Colors.white,
+                                    ),
                                     const SizedBox(height: 4),
                                     const Text(
                                       'Delete',
@@ -533,18 +625,34 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AddTaskPage(
-                                        todoId: widget.todoId,
-                                        taskId: task['id'],
-                                        initialData: task,
-                                        onTaskAdded: () {
-                                          _fetchTodoTasks();
-                                          // Also update the parent todo list
-                                          if (widget.onTodoUpdated != null) {
-                                            widget.onTodoUpdated!();
-                                          }
-                                        },
-                                      ),
+                                      builder:
+                                          (context) => AddTaskPage(
+                                            todoId: widget.todoId,
+                                            taskId: task['id'],
+                                            initialData: task,
+                                            onTaskAdded: () {
+                                              _fetchTodoTasks();
+                                              // Also update the parent todo list
+                                              if (widget.onTodoUpdated !=
+                                                  null) {
+                                                widget.onTodoUpdated!();
+                                              }
+
+                                              // Sync dengan TaskProvider untuk update kalender
+                                              try {
+                                                final taskProvider =
+                                                    Provider.of<TaskProvider>(
+                                                      context,
+                                                      listen: false,
+                                                    );
+                                                taskProvider.syncTaskChanges();
+                                              } catch (e) {
+                                                debugPrint(
+                                                  'Provider sync error (non-critical): $e',
+                                                );
+                                              }
+                                            },
+                                          ),
                                     ),
                                   ).then((_) {
                                     // Refresh tasks when returning from edit screen
@@ -553,14 +661,29 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                     if (widget.onTodoUpdated != null) {
                                       widget.onTodoUpdated!();
                                     }
+
+                                    // Sync dengan TaskProvider untuk update kalender
+                                    try {
+                                      final taskProvider =
+                                          Provider.of<TaskProvider>(
+                                            context,
+                                            listen: false,
+                                          );
+                                      taskProvider.syncTaskChanges();
+                                    } catch (e) {
+                                      debugPrint(
+                                        'Provider sync error (non-critical): $e',
+                                      );
+                                    }
                                   });
                                 },
                                 child: Container(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   decoration: BoxDecoration(
-                                    color: task['is_complete']
-                                        ? Colors.grey.shade100
-                                        : Colors.white,
+                                    color:
+                                        task['is_complete']
+                                            ? Colors.grey.shade100
+                                            : Colors.white,
                                     borderRadius: BorderRadius.circular(10),
                                     boxShadow: [
                                       BoxShadow(
@@ -574,10 +697,11 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                     children: [
                                       // Move is_complete button to the left
                                       GestureDetector(
-                                        onTap: () => _toggleTaskCompletion(
-                                          task['id'],
-                                          task['is_complete'],
-                                        ),
+                                        onTap:
+                                            () => _toggleTaskCompletion(
+                                              task['id'],
+                                              task['is_complete'],
+                                            ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(16.0),
                                           child: Container(
@@ -586,24 +710,28 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               border: Border.all(
-                                                color: task['is_complete']
-                                                    ? Colors.green
-                                                    : Colors.grey.shade300,
+                                                color:
+                                                    task['is_complete']
+                                                        ? Colors.green
+                                                        : Colors.grey.shade300,
                                                 width: 2,
                                               ),
-                                              color: task['is_complete']
-                                                  ? Colors.green.withOpacity(0.2)
-                                                  : Colors.transparent,
+                                              color:
+                                                  task['is_complete']
+                                                      ? Colors.green
+                                                          .withOpacity(0.2)
+                                                      : Colors.transparent,
                                             ),
-                                            child: task['is_complete']
-                                                ? const Center(
-                                                    child: Icon(
-                                                      Icons.check,
-                                                      color: Colors.green,
-                                                      size: 16,
-                                                    ),
-                                                  )
-                                                : null,
+                                            child:
+                                                task['is_complete']
+                                                    ? const Center(
+                                                      child: Icon(
+                                                        Icons.check,
+                                                        color: Colors.green,
+                                                        size: 16,
+                                                      ),
+                                                    )
+                                                    : null,
                                           ),
                                         ),
                                       ),
@@ -614,29 +742,41 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                             vertical: 12.0,
                                           ),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 task['title'] ?? 'Unnamed Task',
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w500,
-                                                  color: task['is_complete']
-                                                      ? Colors.grey
-                                                      : Colors.black,
+                                                  color:
+                                                      task['is_complete']
+                                                          ? Colors.grey
+                                                          : Colors.black,
                                                 ),
                                               ),
                                               // Description section
                                               if (task['description'] != null &&
-                                                  task['description'].toString().isNotEmpty)
+                                                  task['description']
+                                                      .toString()
+                                                      .isNotEmpty)
                                                 Padding(
-                                                  padding: const EdgeInsets.only(top: 4),
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4,
+                                                      ),
                                                   child: Text(
                                                     task['description'],
                                                     style: TextStyle(
-                                                      color: task['is_complete']
-                                                          ? Colors.grey.shade500
-                                                          : Colors.grey.shade600,
+                                                      color:
+                                                          task['is_complete']
+                                                              ? Colors
+                                                                  .grey
+                                                                  .shade500
+                                                              : Colors
+                                                                  .grey
+                                                                  .shade600,
                                                       fontSize: 12,
                                                     ),
                                                   ),
@@ -646,15 +786,21 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                                 children: [
                                                   // Priority indicator
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
-                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 4,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: TaskUtils.getPriorityColor(
-                                                        task['priority'] ?? 0,
-                                                      ),
-                                                      borderRadius: BorderRadius.circular(20),
+                                                      color:
+                                                          TaskUtils.getPriorityColor(
+                                                            task['priority'] ??
+                                                                0,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       TaskUtils.getPriorityShortText(
@@ -663,7 +809,8 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 12,
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -674,15 +821,20 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
                                                   // Deadline container
                                                   if (task['deadline'] != null)
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: TaskUtils.getDeadlineColor(
-                                                          task['deadline'],
-                                                        ),
-                                                        borderRadius: BorderRadius.circular(20),
+                                                        color:
+                                                            TaskUtils.getDeadlineColor(
+                                                              task['deadline'],
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              20,
+                                                            ),
                                                       ),
                                                       child: Text(
                                                         TaskUtils.formatDeadline(

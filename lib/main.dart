@@ -4,6 +4,8 @@ import 'package:tasca_mobile1/pages/sliding_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tasca_mobile1/pages/todo.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import 'package:tasca_mobile1/providers/task_provider.dart';
 
 // Custom PageRouteBuilder for slide animations 
 class SlidePageRoute extends PageRouteBuilder {
@@ -107,7 +109,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeNotifications();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 Future<void> _initializeNotifications() async {
@@ -134,11 +136,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'TASCA',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const StartScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'TASCA',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: const StartScreen(),
+      ),
     );
   }
 }
