@@ -59,13 +59,66 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadTimerSettings();
     _initializeNotifications();
     _fetchIncompleteTasks();
+  }
 
-    // Inisialisasi coach mark setelah build pertama selesai
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initCoachMark();
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Saat aplikasi di-resume, cek pengaturan timer (jika berubah)
+      _loadTimerSettings();
+    }
+  }
+
+  Future<void> _loadTimerSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Coba ambil nilai secara langsung
+    final savedFocusDuration = prefs.getInt('focus_duration');
+    final savedRestDuration = prefs.getInt('rest_duration');
+
+    if (savedFocusDuration != null && savedRestDuration != null) {
+      setState(() {
+        focusDuration = savedFocusDuration;
+        restDuration = savedRestDuration;
+
+        // Update timeLeft jika belum menjalankan timer
+        if (!isRunning) {
+          timeLeft = isFocusSession ? focusDuration : restDuration;
+        }
+      });
+    } else {
+      // Fallback ke metode lama (kompatibilitas ke belakang)
+      final savedInterval = prefs.getInt('focus_interval') ?? 0;
+
+      setState(() {
+        if (savedInterval == 0) {
+          // 25 menit fokus, 5 menit istirahat
+          focusDuration = 25 * 60;
+          restDuration = 5 * 60;
+        } else {
+          // 50 menit fokus, 10 menit istirahat
+          focusDuration = 50 * 60;
+          restDuration = 10 * 60;
+        }
+
+        // Update timeLeft jika belum menjalankan timer
+        if (!isRunning) {
+          timeLeft = isFocusSession ? focusDuration : restDuration;
+        }
+      });
+
+      // Simpan nilai eksplisit untuk penggunaan di masa depan
+      await prefs.setInt('focus_duration', focusDuration);
+      await prefs.setInt('rest_duration', restDuration);
+    }
+
+    debugPrint(
+      'Loaded timer settings: Focus=$focusDuration, Rest=$restDuration',
+    );
   }
 
   void _initializeNotifications() async {
@@ -284,6 +337,14 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     } else {
       _coachMark?.showCoachMarkIfNeeded();
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    timer?.cancel();
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   @override

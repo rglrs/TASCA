@@ -27,6 +27,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   tutorial_coach_mark: ^1.2.7
   provider: ^6.1.5
+  onesignal_flutter: ^5.3.0
 
 dev_dependencies:
   flutter_test:
