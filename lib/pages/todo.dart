@@ -1,13 +1,24 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/pages/detail_todo.dart';
-import 'package:tasca_mobile1/pages/add_todo.dart';
-import 'package:tasca_mobile1/widgets/navbar.dart';
-import 'package:tasca_mobile1/pages/login_page.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'login_page.dart';
+import 'detail_todo.dart';
+import '../widgets/navbar.dart';
+import '../services/todo_service.dart';
+import '../widgets/todo/todo_state_manager.dart';
+import '../widgets/todo/todo_header.dart';
+import '../widgets/todo/todo_search_bar.dart';
+import '../widgets/todo/todo_search_results.dart';
+import '../widgets/todo/todo_empty_state.dart';
+import '../widgets/todo/todo_grid.dart';
+import '../widgets/todo/todo_selection_fab.dart';
+import '../widgets/todo/todo_delete_dialog.dart';
+import '../widgets/todo/todo_coach_mark.dart';
+import '../pages/add_todo.dart';
+
+// Konstanta untuk mode pengujian coach mark
+// Set ke false untuk production, true untuk pengujian
+const bool TESTING_MODE = false;
 
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
@@ -17,389 +28,318 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
-  List<Map<String, dynamic>> tasks = [];
-  List<Map<String, dynamic>> searchResults = [];
-  bool _isLoading = true;
-  bool _isSearching = false;
-  String? _errorMessage;
-  bool _isInSelectionMode = false;
-  Set<int> _selectedTodoIds = {};
-  final TextEditingController _searchController = TextEditingController();
-
+  // Inisialisasi state manager
+  final TodoStateManager stateManager = TodoStateManager();
+  
+  // Global keys untuk coach mark
+  final GlobalKey _searchKey = GlobalKey();
+  final GlobalKey _deleteKey = GlobalKey();
+  final GlobalKey _addKey = GlobalKey();
+  
+  // Coach mark manager
+  TodoCoachMark? _coachMark;
+  
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _fetchTodos();
+    
+    // Setup state manager
+    stateManager.mounted = true;
+    stateManager.init(
+      fetchCallback: _fetchTodosAndTasks,
+      setStateCallback: () {
+        if (mounted) setState(() {});
+      }
+    );
+    
+    // Fetch data setelah inisialisasi
+    _fetchTodosAndTasks();
+    
+    // Inisialisasi coach mark setelah build pertama selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initCoachMark();
+    });
+  }
+
+  // Inisialisasi coach mark
+  void _initCoachMark() {
+    _coachMark = TodoCoachMark(
+      context: context,
+      searchKey: _searchKey,
+      deleteKey: _deleteKey,
+      addKey: _addKey,
+    );
+    
+    // Tampilkan coach mark sesuai mode
+    if (TESTING_MODE) {
+      // Untuk pengujian, selalu tampilkan
+      _coachMark?.showCoachMark();
+    } else {
+      // Untuk produksi, cek shared preference
+      _coachMark?.showCoachMarkIfNeeded();
+    }
   }
 
   @override
   void dispose() {
+    stateManager.mounted = false;
     WidgetsBinding.instance.removeObserver(this);
-    _searchController.dispose();
+    stateManager.searchController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _fetchTodos();
+    if (state == AppLifecycleState.resumed && stateManager.mounted && stateManager.isCurrent) {
+      _fetchTodosAndTasks();
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final route = ModalRoute.of(context);
-    if (route != null && route.isCurrent) {
-      _fetchTodos();
+    if (stateManager.mounted) {
+      final route = ModalRoute.of(context);
+      stateManager.isCurrent = route != null && route.isCurrent;
+
+      if (stateManager.isCurrent) {
+        _fetchTodosAndTasks();
+      }
     }
   }
 
-  Future<void> _fetchTodos() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = tasks.isEmpty;
-        _errorMessage = null;
-      });
-    }
+  // Fetch todos and tasks 
+  Future<void> _fetchTodosAndTasks() async {
+    if (!stateManager.mounted) return;
+
+    setState(() {
+      stateManager.isLoading = stateManager.todos.isEmpty;
+      stateManager.errorMessage = null;
+    });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      // Fetch todos and tasks
+      final fetchedTodos = await TodoService.fetchTodos();
+      final fetchedTasks = await TodoService.fetchAllTasks();
 
-      if (token == null) {
-        _redirectToLogin();
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/todos/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> todosData = responseBody['data'];
-
-        if (mounted) {
-          setState(() {
-            tasks = todosData.map((todo) {
-              return {
-                'id': todo['id'],
-                'title': todo['title'] ?? 'Unnamed Todo',
-                'taskCount': todo['task_count'] ?? 0,
-                'color': _getColorForTodo(todo['id']),
-              };
-            }).toList();
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 401) {
-        _redirectToLogin();
-      } else {
-        throw Exception('Failed to load todos: ${response.body}');
-      }
-    } on SocketException {
-      if (mounted) {
+      if (stateManager.mounted) {
         setState(() {
-          _errorMessage = 'Kesalahan Koneksi: Periksa koneksi internet Anda.';
-          _isLoading = false;
+          stateManager.todos = fetchedTodos;
+          stateManager.allTasks = fetchedTasks;
+          stateManager.isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (stateManager.mounted) {
+        if (e.toString().contains('Unauthorized')) {
+          _redirectToLogin();
+          return;
+        }
+
         setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
+          stateManager.errorMessage = e.toString();
+          stateManager.isLoading = false;
         });
       }
     }
   }
 
-  Future<void> _searchTasks(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _isSearching = false;
-        searchResults.clear();
-      });
+  // Redirect to login
+  void _redirectToLogin() {
+    if (!stateManager.mounted) return;
+
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('auth_token');
+      if (stateManager.mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginPage()),
+          (route) => false,
+        );
+      }
+    });
+  }
+
+  // Delete single todo
+  Future<void> _deleteTodo(int todoId) async {
+    if (!stateManager.mounted) return;
+
+    try {
+      final success = await TodoService.deleteTodo(todoId);
+
+      if (stateManager.mounted && success) {
+        await _fetchTodosAndTasks();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Todo berhasil dihapus')));
+      }
+    } catch (e) {
+      if (stateManager.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
+      }
+    }
+  }
+
+  // Delete multiple todos
+  Future<void> _deleteMultipleTodos() async {
+    if (!stateManager.mounted) return;
+
+    if (stateManager.selectedTodoIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak ada todo yang dipilih')),
+      );
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        _redirectToLogin();
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/tasks/search?search=$query'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+      final result = await TodoService.deleteMultipleTodos(
+        List<int>.from(stateManager.selectedTodoIds),
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> tasksData = responseBody['data'];
+      if (!stateManager.mounted) return;
 
-        if (mounted) {
-          setState(() {
-            searchResults = tasksData.map((task) {
-              return {
-                'id': task['id'],
-                'title': task['title'] ?? 'Unnamed Task',
-                'is_complete': task['is_complete'] ?? false,
-                'todo_id': task['todo_id'], // Changed from todo_title to todo_id
-              };
-            }).toList();
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 401) {
-        _redirectToLogin();
+      await _fetchTodosAndTasks();
+
+      setState(() {
+        stateManager.isInSelectionMode = false;
+        stateManager.selectedTodoIds.clear();
+      });
+
+      if (result['failed'] == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua todo berhasil dihapus')),
+        );
+      } else if (result['success'] > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${result['success']} todo berhasil dihapus, ${result['failed']} gagal',
+            ),
+          ),
+        );
       } else {
-        throw Exception('Failed to search tasks: ${response.body}');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Gagal menghapus todo')));
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+      if (stateManager.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
       }
     }
   }
 
-  void _redirectToLogin() {
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.remove('auth_token');
-    });
+  // Show add todo bottom sheet
+  void _showAddTodoBottomSheet() {
+    if (!stateManager.mounted) return;
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => LoginPage()),
-      (route) => false,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (dialogContext) => AddTodoPage(
+        onTodoAdded: (todoData) async {
+          try {
+            final success = await TodoService.createTodo(todoData);
+
+            if (success) {
+              if (Navigator.canPop(dialogContext)) {
+                Navigator.pop(dialogContext);
+              }
+
+              if (stateManager.mounted) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (stateManager.mounted) {
+                    _fetchTodosAndTasks();
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              SnackBar(content: Text('Failed to add todo: $e')),
+            );
+          }
+        },
+      ),
     );
   }
 
-  String _getColorForTodo(int todoId) {
-    final colors = ["#FC0101", "#007BFF", "#FFC107"];
-    return colors[todoId % colors.length];
-  }
+  // Navigate to detail page
+  void _navigateToDetailPage(Map<String, dynamic> todo) {
+    if (!stateManager.mounted) return;
 
-  Future<void> _deleteTodo(int todoId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      final client = http.Client();
-      try {
-        final request = http.Request(
-          'DELETE',
-          Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
-        );
-        request.headers['Authorization'] = 'Bearer $token';
-        request.headers['Content-Type'] = 'application/json';
-
-        final streamedResponse = await client.send(request);
-        final response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          await _fetchTodos();
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Todo berhasil dihapus')));
-        } else {
-          final alternativeResponse = await http.delete(
-            Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          );
-
-          if (alternativeResponse.statusCode >= 200 &&
-              alternativeResponse.statusCode < 300) {
-            await _fetchTodos();
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Todo berhasil dihapus')));
-          } else {
-            throw Exception(
-                'Failed to delete todo: Status ${response.statusCode}');
-          }
-        }
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error menghapus todo: $e')));
-    }
-  }
-
-  Future<void> _deleteMultipleTodos() async {
-    if (_selectedTodoIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak ada todo yang dipilih')),
-      );
-      return;
-    }
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) {
-        throw Exception('No JWT token found');
-      }
-
-      final client = http.Client();
-      int successCount = 0;
-      List<int> failedIds = [];
-
-      for (int todoId in _selectedTodoIds) {
-        try {
-          final request = http.Request(
-            'DELETE',
-            Uri.parse('https://api.tascaid.com/api/todos/$todoId/'),
-          );
-          request.headers['Authorization'] = 'Bearer $token';
-          request.headers['Content-Type'] = 'application/json';
-
-          final streamedResponse = await client.send(request);
-          final response = await http.Response.fromStream(streamedResponse);
-
-          if (response.statusCode >= 200 && response.statusCode < 300) {
-            successCount++;
-          } else {
-            final alternativeResponse = await http.delete(
-              Uri.parse('https://api.tascaid.com/api/todos/$todoId'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            );
-
-            if (alternativeResponse.statusCode >= 200 &&
-                alternativeResponse.statusCode < 300) {
-              successCount++;
-            } else {
-              failedIds.add(todoId);
-            }
-          }
-        } catch (e) {
-          failedIds.add(todoId);
-        }
-      }
-
-      await _fetchTodos();
-      setState(() {
-        _isInSelectionMode = false;
-        _selectedTodoIds.clear();
-      });
-
-      if (successCount == _selectedTodoIds.length) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Semua todo berhasil dihapus')),
-        );
-      } else if (successCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  '$successCount todo berhasil dihapus, ${failedIds.length} gagal')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus todo')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error menghapus todo: $e')),
-      );
-    }
-  }
-
-  void _showTodoOptions(int todoId) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text(
-                'Hapus Todo',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('Hapus Todo'),
-                    content: Text(
-                      'Apakah Anda yakin ingin menghapus todo ini?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Batal'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _deleteTodo(todoId);
-                        },
-                        child: Text(
-                          'Hapus',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.cancel),
-              title: Text('Batal'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailTodoPage(
+          todoId: todo['id'],
+          todoTitle: todo['title'],
+          taskCount: todo['taskCount'],
+          todoColor: todo['color'],
+          onTodoUpdated: _fetchTodosAndTasks,
         ),
       ),
     );
   }
 
+  // Toggle selection mode
   void _toggleSelectionMode() {
+    if (!stateManager.mounted) return;
+
     setState(() {
-      _isInSelectionMode = !_isInSelectionMode;
-      _selectedTodoIds.clear();
+      stateManager.isInSelectionMode = !stateManager.isInSelectionMode;
+      stateManager.selectedTodoIds.clear();
     });
+  }
+
+  // Show delete confirmation dialog
+  void _showDeleteDialog(int todoId) {
+    if (!stateManager.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => TodoDeleteDialog(
+        isSingleTodo: true,
+        onDelete: () {
+          Navigator.pop(context);
+          _deleteTodo(todoId);
+        },
+      ),
+    );
+  }
+
+  // Show multiple delete confirmation
+  void _showMultiDeleteDialog() {
+    if (!stateManager.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => TodoDeleteDialog(
+        isSingleTodo: false,
+        count: stateManager.selectedTodoIds.length,
+        onDelete: () {
+          Navigator.pop(context);
+          _deleteMultipleTodos();
+        },
+      ),
+    );
+  }
+
+  // Method untuk manual menampilkan coach mark
+  void _showCoachMark() {
+    if (_coachMark != null) {
+      // Reset status untuk menampilkan ulang
+      if (!TESTING_MODE) {
+        TodoCoachMark.resetCoachMarkStatus().then((_) {
+          _coachMark!.showCoachMark();
+        });
+      } else {
+        _coachMark!.showCoachMark();
+      }
+    }
   }
 
   @override
@@ -409,507 +349,261 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            _buildSearchBar(),
-            Expanded(
-              child: _isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                      ? Center(child: Text('Error: $_errorMessage'))
-                      : _isSearching
-                          ? _buildSearchResults()
-                          : tasks.isEmpty
-                              ? _buildEmptyState()
-                              : _buildTodoGrid(),
-            ),
-            Navbar(initialActiveIndex: 1),
-          ],
-        ),
-      ),
-      floatingActionButton: _isInSelectionMode && _selectedTodoIds.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 90.0),
-              child: FloatingActionButton.extended(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Hapus Todo'),
-                      content: Text(
-                        'Apakah Anda yakin ingin menghapus ${_selectedTodoIds.length} todo yang dipilih?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Batal'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _deleteMultipleTodos();
-                          },
-                          child: Text(
-                            'Hapus',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                backgroundColor: Colors.red,
-                icon: Icon(Icons.delete_outline, color: Colors.white),
-                label: Text('Hapus (${_selectedTodoIds.length})',
-                    style: TextStyle(color: Colors.white)),
-                extendedPadding: EdgeInsets.symmetric(horizontal: 16),
-              ),
-            )
-          : null,
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'To Do',
-            style: GoogleFonts.poppins(
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Row(
-            children: [
-              if (_isInSelectionMode)
-                Container(
-                  margin: EdgeInsets.only(right: 12),
-                  child: Text(
-                    '${_selectedTodoIds.length} dipilih',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ),
-              InkWell(
-                onTap: _toggleSelectionMode,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _isInSelectionMode
-                        ? Color(0xFFEEE8F8)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _isInSelectionMode ? Icons.close : Icons.delete_outline,
-                    size: 24,
-                    color: _isInSelectionMode ? Color(0xFF8B7DFA) : Colors.red,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8),
-              InkWell(
-                onTap: _isInSelectionMode ? null : _showAddTodoBottomSheet,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _isInSelectionMode
-                        ? Colors.grey.withOpacity(0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.add,
-                    size: 24,
-                    color: _isInSelectionMode ? Colors.grey : Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Cari Task....',
-          prefixIcon: Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _searchTasks('');
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.white,
-        ),
-        onChanged: (value) {
-          _searchTasks(value);
-        },
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    if (searchResults.isEmpty) {
-      return Center(
-        child: Text(
-          'No tasks found',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: searchResults.length,
-      itemBuilder: (context, index) {
-        final task = searchResults[index];
-        return Card(
-          elevation: 2,
-          margin: EdgeInsets.symmetric(vertical: 4),
-          child: ListTile(
-            title: Text(
-              task['title'],
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: Text(
-              task['is_complete'] ? 'Completed' : 'Pending',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: task['is_complete'] ? Colors.green : Colors.red,
-              ),
-            ),
-            onTap: () {
-              // Find the corresponding todo for color
-              final todo = tasks.firstWhere(
-                (t) => t['id'] == task['todo_id'],
-                orElse: () => {'color': '#007BFF', 'title': 'Unknown Todo'},
-              );
-              
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context)  => DetailTodoPage(
-                    todoId: task['todo_id'],
-                    todoTitle: todo['title'],
-                    taskCount: 0, // You might want to fetch actual task count
-                    todoColor: todo['color'],
-                    onTodoUpdated: _fetchTodos,
-                  ),
-                ),
-              );
-            },
-            trailing: Icon(
-              task['is_complete'] ? Icons.check_circle : Icons.circle_outlined,
-              color: task['is_complete'] ? Colors.green : Colors.grey,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showAddTodoBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => AddTodoPage(
-        onTodoAdded: (task) async {
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final token = prefs.getString('auth_token');
-
-            if (token == null) {
-              throw Exception('No JWT token found');
-            }
-
-            final response = await http.post(
-              Uri.parse('https://api.tascaid.com/api/todos/'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-              body: json.encode({
-                'title': task['title'],
-                'urgency': task['urgency'],
-                'importance': task['importance'],
-              }),
-            );
-
-            if (response.statusCode == 201) {
-              await _fetchTodos();
-              Navigator.pop(context);
-            } else {
-              throw Exception('Failed to create todo: ${response.body}');
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to add todo: $e')),
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset(
-          'images/empty.png',
-          width: 250,
-          height: 250,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'There are no scheduled tasks.',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF6A6A6A),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
-          child: Text(
-            'Create a new task or activity to ensure it is always scheduled.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.normal,
-              color: const Color(0xFF6A6A6A),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTodoGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1,
-        ),
-        itemCount: tasks.length,
-        itemBuilder: (context, index) {
-          final todo = tasks[index];
-          Color cardColor = _getCardColor(todo['color']);
-          final todoId = todo['id'];
-          final isSelected = _selectedTodoIds.contains(todoId);
-
-          return GestureDetector(
-            onTap: () {
-              if (_isInSelectionMode) {
-                setState(() {
-                  if (isSelected) {
-                    _selectedTodoIds.remove(todoId);
-                  } else {
-                    _selectedTodoIds.add(todoId);
-                  }
-                });
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DetailTodoPage(
-                      todoId: todo['id'],
-                      todoTitle: todo['title'],
-                      taskCount: todo['taskCount'],
-                      todoColor: todo['color'],
-                      onTodoUpdated: _fetchTodos,
-                    ),
-                  ),
-                );
-              }
-            },
-            onLongPress: () {
-              if (!_isInSelectionMode) {
-                setState(() {
-                  _isInSelectionMode = true;
-                  _selectedTodoIds.add(todoId);
-                });
-              }
-            },
-            child: Card(
-              color: cardColor,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Stack(
+            // Header dengan GlobalKey untuk coach mark
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Spacer(),
-                        Text(
-                          todo['title'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${todo['taskCount']} ${todo['taskCount'] == 1 ? 'task' : 'tasks'}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'To Do',
+                    style: GoogleFonts.poppins(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (!_isInSelectionMode)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.more_horiz,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: Text('Hapus Todo'),
-                              content: Text(
-                                'Apakah Anda yakin ingin menghapus todo ini?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _deleteTodo(todo['id']);
-                                  },
-                                  child: Text(
-                                    'Hapus',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
+                  Row(
+                    children: [
+                      if (stateManager.isInSelectionMode)
+                        Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          child: Text(
+                            '${stateManager.selectedTodoIds.length} dipilih',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).primaryColor,
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  if (_isInSelectionMode)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: Stack(
+                      InkWell(
+                        key: _deleteKey, // GlobalKey untuk coach mark
+                        onTap: _toggleSelectionMode,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: stateManager.isInSelectionMode
+                                ? const Color(0xFFEEE8F8)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            stateManager.isInSelectionMode ? Icons.close : Icons.delete_outline,
+                            size: 24,
+                            color: stateManager.isInSelectionMode
+                                ? const Color(0xFF8B7DFA)
+                                : Colors.red,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        key: _addKey, // GlobalKey untuk coach mark
+                        onTap: stateManager.isInSelectionMode ? null : _showAddTodoBottomSheet,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: stateManager.isInSelectionMode
+                                ? Colors.grey.withOpacity(0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            size: 24,
+                            color: stateManager.isInSelectionMode ? Colors.grey : Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Search Bar dengan GlobalKey untuk coach mark
+            Padding(
+              key: _searchKey, // GlobalKey untuk coach mark
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              child: TextField(
+                controller: stateManager.searchController,
+                decoration: InputDecoration(
+                  hintText: 'Cari Task....',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: stateManager.searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            stateManager.searchController.clear();
+                            stateManager.searchTasks('', setState);
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                onChanged: (value) {
+                  stateManager.searchTasks(value, setState);
+                },
+              ),
+            ),
+            
+            // Main Content
+            Expanded(
+              child: stateManager.isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : stateManager.errorMessage != null 
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Error: ${stateManager.errorMessage}'),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _fetchTodosAndTasks,
+                            child: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : stateManager.isSearching 
+                    ? TodoSearchResults(
+                        searchResults: stateManager.searchResults,
+                        searchText: stateManager.searchController.text,
+                        todos: stateManager.todos,
+                        onTodoTap: _navigateToDetailPage,
+                      )
+                    : stateManager.todos.isEmpty 
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (isSelected)
-                              Positioned(
-                                top: 8,
-                                right: 8,
+                            const TodoEmptyState(),
+                            
+                            // Tombol untuk menampilkan panduan
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: _showCoachMark,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).primaryColor,
+                                foregroundColor: Colors.white,
+                                textStyle: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                elevation: 2,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.help_outline, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text('Tampilkan Panduan'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : Stack(
+                          children: [
+                            TodoGrid(
+                              todos: stateManager.todos,
+                              isInSelectionMode: stateManager.isInSelectionMode,
+                              selectedTodoIds: stateManager.selectedTodoIds,
+                              onTodoTap: (todo) {
+                                if (stateManager.isInSelectionMode) {
+                                  setState(() {
+                                    final todoId = todo['id'];
+                                    if (stateManager.selectedTodoIds.contains(todoId)) {
+                                      stateManager.selectedTodoIds.remove(todoId);
+                                    } else {
+                                      stateManager.selectedTodoIds.add(todoId);
+                                    }
+                                  });
+                                } else {
+                                  _navigateToDetailPage(todo);
+                                }
+                              },
+                              onTodoLongPress: (todo) {
+                                if (!stateManager.isInSelectionMode) {
+                                  setState(() {
+                                    stateManager.isInSelectionMode = true;
+                                    stateManager.selectedTodoIds.add(todo['id']);
+                                  });
+                                }
+                              },
+                              onTodoMenuPressed: _showDeleteDialog,
+                            ),
+                            
+                            // Tombol bantuan modern
+                            Positioned(
+                              bottom: 16,
+                              right: 16,
+                              child: InkWell(
+                                onTap: _showCoachMark,
                                 child: Container(
-                                  width: 24,
-                                  height: 24,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
+                                    color: Theme.of(context).primaryColor,
+                                    borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.2),
                                         spreadRadius: 1,
-                                        blurRadius: 2,
-                                        offset: Offset(0, 1),
+                                        blurRadius: 3,
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(Icons.check,
-                                      color: Theme.of(context).primaryColor,
-                                      size: 16),
-                                ),
-                              )
-                            else
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.3),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: Colors.white, width: 1.5),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.help_outline,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Bantuan',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
+                            ),
                           ],
                         ),
-                      ),
-                    ),
-                ],
-              ),
             ),
-          );
-        },
+            
+            // Navigation Bar
+            const Navbar(initialActiveIndex: 1),
+          ],
+        ),
       ),
+      
+      // Floating Action Button for multiple delete
+      floatingActionButton: stateManager.isInSelectionMode && stateManager.selectedTodoIds.isNotEmpty
+          ? TodoSelectionFAB(
+              selectedCount: stateManager.selectedTodoIds.length,
+              onPressed: _showMultiDeleteDialog,
+            )
+          : null,
     );
-  }
-
-  Color _getCardColor(String colorCode) {
-    switch (colorCode) {
-      case "#FC0101":
-        return const Color(0xFFFC0101);
-      case "#007BFF":
-        return const Color(0xFF007BFF);
-      case "#FFC107":
-        return const Color(0xFFFFC107);
-      default:
-        return const Color(0xFF808080);
-    }
   }
 }
