@@ -26,6 +26,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
 
   String? _selectedUrgency;
   String? _selectedImportance;
+  
+  // Tambahkan state untuk validation error
+  bool _showValidationError = false;
 
   @override
   void initState() {
@@ -89,14 +92,17 @@ class _AddTodoPageState extends State<AddTodoPage> {
   void _addTodo() {
     if (_formKey.currentState!.validate()) {
       if (_selectedUrgency == null || _selectedImportance == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select both urgency and importance'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // Tampilkan error dalam form alih-alih SnackBar
+        setState(() {
+          _showValidationError = true;
+        });
         return;
       }
+      
+      // Reset error state jika validasi berhasil
+      setState(() {
+        _showValidationError = false;
+      });
       
       final task = {
         'title': _titleController.text.trim(),
@@ -197,7 +203,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                 'Prioritize',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  color: _showValidationError ? Colors.red : Colors.deepPurple,
                 ),
               ),
               const SizedBox(height: 10),
@@ -207,7 +213,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                 children: [
                   Text(
                     'Urgency',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _selectedUrgency == null && _showValidationError ? Colors.red : Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -221,6 +230,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                             _selectedUrgency = _selectedUrgency == 'Urgently'
                                 ? null
                                 : 'Urgently';
+                            // Reset validation error saat pilihan diubah
+                            if (_selectedImportance != null && _selectedUrgency != null) {
+                              _showValidationError = false;
+                            }
                           });
                         },
                       ),
@@ -232,6 +245,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                             _selectedUrgency = _selectedUrgency == 'Not urgently'
                                 ? null
                                 : 'Not urgently';
+                            // Reset validation error saat pilihan diubah
+                            if (_selectedImportance != null && _selectedUrgency != null) {
+                              _showValidationError = false;
+                            }
                           });
                         },
                       ),
@@ -240,7 +257,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   const SizedBox(height: 16),
                   Text(
                     'Importance',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _selectedImportance == null && _showValidationError ? Colors.red : Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -255,6 +275,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
                                 _selectedImportance == 'Important'
                                     ? null
                                     : 'Important';
+                            // Reset validation error saat pilihan diubah
+                            if (_selectedImportance != null && _selectedUrgency != null) {
+                              _showValidationError = false;
+                            }
                           });
                         },
                       ),
@@ -267,11 +291,29 @@ class _AddTodoPageState extends State<AddTodoPage> {
                                 _selectedImportance == 'Not important'
                                     ? null
                                     : 'Not important';
+                            // Reset validation error saat pilihan diubah
+                            if (_selectedImportance != null && _selectedUrgency != null) {
+                              _showValidationError = false;
+                            }
                           });
                         },
                       ),
                     ],
                   ),
+                  
+                  // Pesan error untuk prioritas
+                  if (_showValidationError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Please select both urgency and importance',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -286,52 +328,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text('Add Task'),
-              ),
-              const SizedBox(height: 10),
-              // Tombol Bantuan
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: InkWell(
-                    onTap: _showCoachMark,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 3,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.help_outline,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Bantuan',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                child: Text('Add Todo'),
               ),
               const SizedBox(height: 20),
             ],

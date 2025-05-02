@@ -7,7 +7,7 @@ import 'package:tasca_mobile1/providers/task_provider.dart';
 import 'package:tasca_mobile1/widgets/detail_todo/detail_todo_coach_mark.dart';
 import 'package:tasca_mobile1/widgets/detail_todo/todo_title_widget.dart';
 import 'package:tasca_mobile1/widgets/detail_todo/task_list_widget.dart';
-import 'package:tasca_mobile1/widgets/detail_todo/help_button_widget.dart';
+// Import HelpButtonWidget dihapus
 
 class DetailTodoPage extends StatefulWidget {
   final int todoId;
@@ -432,64 +432,58 @@ class _DetailTodoPageState extends State<DetailTodoPage> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  TaskListWidget(
-                    key: _taskListKey,
-                    addNewTaskKey: _addNewTaskKey,
-                    isLoading: _isLoading,
-                    errorMessage: _errorMessage,
-                    tasks: tasks,
-                    onAddTaskTapped: _navigateToAddTask,
-                    onTaskTapped: (task) {
-                      Navigator.push(
+              child: TaskListWidget(
+                key: _taskListKey,
+                addNewTaskKey: _addNewTaskKey,
+                isLoading: _isLoading,
+                errorMessage: _errorMessage,
+                tasks: tasks,
+                onAddTaskTapped: _navigateToAddTask,
+                onTaskTapped: (task) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddTaskPage(
+                        todoId: widget.todoId,
+                        taskId: task['id'],
+                        initialData: task,
+                        onTaskAdded: () {
+                          _fetchTodoTasks();
+                          if (widget.onTodoUpdated != null) {
+                            widget.onTodoUpdated!();
+                          }
+                          try {
+                            final taskProvider = Provider.of<TaskProvider>(
+                              context,
+                              listen: false,
+                            );
+                            taskProvider.syncTaskChanges();
+                          } catch (e) {
+                            debugPrint(
+                                'Provider sync error (non-critical): $e');
+                          }
+                        },
+                      ),
+                    ),
+                  ).then((_) {
+                    _fetchTodoTasks();
+                    if (widget.onTodoUpdated != null) {
+                      widget.onTodoUpdated!();
+                    }
+                    try {
+                      final taskProvider = Provider.of<TaskProvider>(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => AddTaskPage(
-                            todoId: widget.todoId,
-                            taskId: task['id'],
-                            initialData: task,
-                            onTaskAdded: () {
-                              _fetchTodoTasks();
-                              if (widget.onTodoUpdated != null) {
-                                widget.onTodoUpdated!();
-                              }
-                              try {
-                                final taskProvider = Provider.of<TaskProvider>(
-                                  context,
-                                  listen: false,
-                                );
-                                taskProvider.syncTaskChanges();
-                              } catch (e) {
-                                debugPrint(
-                                    'Provider sync error (non-critical): $e');
-                              }
-                            },
-                          ),
-                        ),
-                      ).then((_) {
-                        _fetchTodoTasks();
-                        if (widget.onTodoUpdated != null) {
-                          widget.onTodoUpdated!();
-                        }
-                        try {
-                          final taskProvider = Provider.of<TaskProvider>(
-                            context,
-                            listen: false,
-                          );
-                          taskProvider.syncTaskChanges();
-                        } catch (e) {
-                          debugPrint(
-                              'Provider sync error (non-critical): $e');
-                        }
-                      });
-                    },
-                    onToggleCompletion: _toggleTaskCompletion,
-                    onDeleteTask: _deleteTask,
-                  ),
-                  const SizedBox(height: 16),
-                  HelpButtonWidget(onHelpTapped: _showCoachMark),
-                ],
+                        listen: false,
+                      );
+                      taskProvider.syncTaskChanges();
+                    } catch (e) {
+                      debugPrint(
+                          'Provider sync error (non-critical): $e');
+                    }
+                  });
+                },
+                onToggleCompletion: _toggleTaskCompletion,
+                onDeleteTask: _deleteTask,
               ),
             ),
           ),

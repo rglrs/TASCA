@@ -74,18 +74,7 @@ class TodoGrid extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (!isInSelectionMode)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.more_horiz,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                        onPressed: () => onTodoMenuPressed(todo['id']),
-                      ),
-                    ),
+                  // Ikon titik tiga telah dihapus dari sini
                   if (isInSelectionMode)
                     Positioned.fill(
                       child: Container(
