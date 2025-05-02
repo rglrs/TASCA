@@ -27,6 +27,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   Future<void> _saveInterval(int interval) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('focus_interval', interval);
+
+    if (interval == 0) {
+      await prefs.setInt('focus_duration', 25 * 60);
+      await prefs.setInt('rest_duration', 5 * 60);
+    } else {
+      await prefs.setInt('focus_duration', 50 * 60);
+      await prefs.setInt('rest_duration', 10 * 60);
+    }
+
     setState(() {
       selectedInterval = interval;
     });

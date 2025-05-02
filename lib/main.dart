@@ -6,8 +6,9 @@ import 'package:tasca_mobile1/pages/todo.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:tasca_mobile1/providers/task_provider.dart';
+import 'package:tasca_mobile1/services/notification_service.dart';
 
-// Custom PageRouteBuilder for slide animations 
+// Custom PageRouteBuilder for slide animations
 class SlidePageRoute extends PageRouteBuilder {
   final Widget page;
   final AxisDirection direction;
@@ -25,11 +26,17 @@ class SlidePageRoute extends PageRouteBuilder {
           switch (direction) {
             case AxisDirection.right:
               begin = const Offset(1.0, 0.0); // From right
-              beginSecondary = const Offset(-0.3, 0.0); // Current page slides slightly left
+              beginSecondary = const Offset(
+                -0.3,
+                0.0,
+              ); // Current page slides slightly left
               break;
             case AxisDirection.left:
               begin = const Offset(-1.0, 0.0); // From left
-              beginSecondary = const Offset(0.3, 0.0); // Current page slides slightly right
+              beginSecondary = const Offset(
+                0.3,
+                0.0,
+              ); // Current page slides slightly right
               break;
             case AxisDirection.up:
               begin = const Offset(0.0, 1.0); // From bottom
@@ -46,15 +53,30 @@ class SlidePageRoute extends PageRouteBuilder {
           const curve = Curves.easeOutCubic;
           const secondaryCurve = Curves.easeInCubic;
 
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var secondaryTween = Tween(begin: end, end: beginSecondary).chain(CurveTween(curve: secondaryCurve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var secondaryTween = Tween(
+            begin: end,
+            end: beginSecondary,
+          ).chain(CurveTween(curve: secondaryCurve));
 
           // Add subtle scale effect for depth
-          var scaleTween = Tween(begin: 0.95, end: 1.0).chain(CurveTween(curve: curve));
-          var secondaryScaleTween = Tween(begin: 1.0, end: 0.95).chain(CurveTween(curve: secondaryCurve));
+          var scaleTween = Tween(
+            begin: 0.95,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
+          var secondaryScaleTween = Tween(
+            begin: 1.0,
+            end: 0.95,
+          ).chain(CurveTween(curve: secondaryCurve));
 
           // Subtle fade for smoothness
-          var fadeTween = Tween(begin: 0.5, end: 1.0).chain(CurveTween(curve: curve));
+          var fadeTween = Tween(
+            begin: 0.5,
+            end: 1.0,
+          ).chain(CurveTween(curve: curve));
 
           // For the current page (the one being replaced)
           Widget currentPage = SlideTransition(
@@ -100,7 +122,9 @@ void navigateReplaceWithSlide(
   Widget page, {
   AxisDirection direction = AxisDirection.right,
 }) {
-  Navigator.of(context).pushReplacement(SlidePageRoute(page: page, direction: direction));
+  Navigator.of(
+    context,
+  ).pushReplacement(SlidePageRoute(page: page, direction: direction));
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -109,25 +133,49 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeNotifications();
-  runApp(const MyApp());
+  final notificationService = NotificationService(
+    'https://api.tascaid.com',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('auth_token') ?? '';
+    },
+  );
+
+  await notificationService.initializeOneSignal(
+    'c3856067-4248-4f33-9547-198da753f8d4',
+  );
+  runApp(
+    // Gunakan Provider untuk membuat notificationService tersedia di seluruh aplikasi
+    Provider<NotificationService>.value(
+      value: notificationService,
+      child: MultiProvider(
+        providers: [ChangeNotifierProvider(create: (_) => TaskProvider())],
+        child: const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'TASCA',
+          home: StartScreen(),
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _initializeNotifications() async {
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
-  
+
   const DarwinInitializationSettings initializationSettingsIOS =
       DarwinInitializationSettings(
-    requestSoundPermission: true,
-    requestBadgePermission: true,
-    requestAlertPermission: true,
-  );
+        requestSoundPermission: true,
+        requestBadgePermission: true,
+        requestAlertPermission: true,
+      );
 
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
     iOS: initializationSettingsIOS,
   );
-  
+
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
@@ -137,9 +185,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => TaskProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => TaskProvider())],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'TASCA',
@@ -169,14 +215,14 @@ class _StartScreenState extends State<StartScreen> {
     try {
       // Show StartScreen for 5 seconds
       await Future.delayed(const Duration(seconds: 5));
-      
+
       if (!mounted) return;
-      
+
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
+
       if (!mounted) return;
-      
+
       if (token != null) {
         // User is logged in, navigate to TodoPage
         Navigator.of(context).pushReplacement(
@@ -185,19 +231,19 @@ class _StartScreenState extends State<StartScreen> {
       } else {
         // User is not logged in, navigate to SlicingScreen with slide animation
         navigateReplaceWithSlide(
-          context, 
+          context,
           const SlicingScreen(initialPage: 0),
-          direction: AxisDirection.right
+          direction: AxisDirection.right,
         );
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       // If error occurs, still navigate to SlicingScreen with slide animation
       navigateReplaceWithSlide(
-        context, 
+        context,
         const SlicingScreen(initialPage: 0),
-        direction: AxisDirection.right
+        direction: AxisDirection.right,
       );
     }
   }
@@ -213,10 +259,7 @@ class _StartScreenState extends State<StartScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFE8E2FF),
-                  Color(0xFFF5F3FF),
-                ],
+                colors: [Color(0xFFE8E2FF), Color(0xFFF5F3FF)],
               ),
             ),
           ),
@@ -275,11 +318,7 @@ class _StartScreenState extends State<StartScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Logo from assets folder
-                        Image.asset(
-                          'images/logo.png',
-                          width: 280,
-                          height: 280,
-                        ),
+                        Image.asset('images/logo.png', width: 280, height: 280),
                         const SizedBox(height: 40),
                         // Application name with colored text and Poppins font
                         Row(

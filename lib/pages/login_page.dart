@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io'; // Import for SocketException
-import 'package:tasca_mobile1/pages/register_page.dart';
-import 'package:tasca_mobile1/pages/pomodoro.dart';
+import 'dart:io';
+import 'package:provider/provider.dart';
+import 'register_page.dart';
+import 'pomodoro.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/pages/forgot_pw.dart';
+import 'forgot_pw.dart';
+import 'package:tasca_mobile1/services/notification_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,11 +22,22 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  late NotificationService _notificationService;
 
   @override
   void initState() {
     super.initState();
     _checkToken();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Dapatkan notificationService dari provider
+    _notificationService = Provider.of<NotificationService>(
+      context,
+      listen: false,
+    );
   }
 
   Future<void> _checkToken() async {
@@ -43,22 +56,21 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (response.statusCode == 200) {
-          // Token valid
+          await _notificationService.registerDevice();
+
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => PomodoroTimer()),
           );
         } else {
-          // Token invalid / expired
           await prefs.remove('auth_token');
+          if (!mounted) return;
           _showErrorMessage('Sesi telah berakhir, silakan login ulang.');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginPage()),
-          );
         }
       } catch (e) {
-        _showErrorMessage('Terjadi kesalahan jaringan.');
+        if (!mounted) return;
+        _showErrorMessage('Terjadi kesalahan jaringan: ${e.toString()}');
       }
     }
   }
@@ -106,24 +118,39 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
+        // Daftarkan device untuk notifikasi setelah login berhasil
+        await _notificationService.registerDevice();
+
+        if (!mounted) return;
         _showSuccessMessage('Login berhasil!');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PomodoroTimer()),
         );
       } else {
-        _showErrorMessage(
-          'Login gagal: Periksa kembali email/username dan password Anda.',
-        );
+        // Coba decode response untuk mendapatkan pesan error yang lebih spesifik
+        String errorMessage =
+            'Login gagal: Periksa kembali email/username dan password Anda.';
+        try {
+          final Map<String, dynamic> errorData = jsonDecode(response.body);
+          if (errorData.containsKey('error')) {
+            errorMessage = errorData['error'];
+          }
+        } catch (_) {
+          // Gunakan pesan default jika tidak bisa decode
+        }
+        _showErrorMessage(errorMessage);
       }
     } on SocketException {
       _showErrorMessage('Kesalahan Koneksi: Periksa koneksi internet Anda.');
     } catch (e) {
-      _showErrorMessage('Terjadi kesalahan: Silakan coba lagi nanti.');
+      _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -291,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                           ),
                         ),
-                        SizedBox(height: 10),                      
+                        SizedBox(height: 10),
                         TextButton(
                           onPressed: () {
                             Navigator.push(
