@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasca_mobile1/providers/pomodoro_provider.dart';
 
-class FocusTimerScreen extends StatefulWidget {
+class FocusTimerScreen extends ConsumerStatefulWidget {
   const FocusTimerScreen({super.key});
 
   @override
-  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
+  ConsumerState<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
-class _FocusTimerScreenState extends State<FocusTimerScreen> {
-  int selectedInterval = 0; // 0 for 25min, 1 for 50min
+class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
+  int selectedInterval = 0;
 
   @override
   void initState() {
@@ -27,6 +29,17 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   Future<void> _saveInterval(int interval) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('focus_interval', interval);
+
+    if (interval == 0) {
+      await prefs.setInt('focus_duration', 25 * 60);
+      await prefs.setInt('rest_duration', 5 * 60);
+    } else {
+      await prefs.setInt('focus_duration', 50 * 60);
+      await prefs.setInt('rest_duration', 10 * 60);
+    }
+
+    await ref.read(pomodoroProvider.notifier).updateTimerSettings();
+
     setState(() {
       selectedInterval = interval;
     });

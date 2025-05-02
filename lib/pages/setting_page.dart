@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'profile_settings_page.dart';
 import 'focus_timer_page.dart';
@@ -18,6 +19,7 @@ import 'package:tasca_mobile1/widgets/setting/profile_tile.dart';
 import 'package:tasca_mobile1/widgets/setting/settings_section.dart';
 import 'package:tasca_mobile1/widgets/setting/settings_tile.dart';
 import 'package:tasca_mobile1/widgets/setting/logout_tile.dart';
+import 'package:tasca_mobile1/services/notification_service.dart';
 
 enum LoadingState { loading, loaded, error, noInternet }
 
@@ -180,6 +182,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
+      final notificationService = Provider.of<NotificationService>(
+        context,
+        listen: false,
+      );
+      await notificationService.unregisterDevice();
+
       final response = await http.post(
         Uri.parse('https://api.tascaid.com/api/logout'),
         headers: {
@@ -188,27 +196,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
       );
 
-      if (response.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('auth_token');
+      // Hapus token bahkan jika permintaan gagal
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
 
+      if (response.statusCode == 200) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => LoginPage()),
           (Route<dynamic> route) => false,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Logout gagal, coba lagi nanti')),
+        // Masih hapus device dan lanjutkan ke login page meskipun API logout gagal
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => LoginPage()),
+          (Route<dynamic> route) => false,
         );
-        setState(() {
-          _loadingState = LoadingState.loaded;
-        });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
+      // Masih hapus token lokal meskipun error
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+
+      Navigator.pushAndRemoveUntil(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error saat logout: $e')));
+        MaterialPageRoute(builder: (context) => LoginPage()),
+        (Route<dynamic> route) => false,
+      );
+    } finally {
       setState(() {
         _loadingState = LoadingState.loaded;
       });
@@ -301,9 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Leave Rating',
               iconColor: iconColor,
               onTap: () {
-                context.showRatingModal(
-                  username: _userProfile?.username ?? '',
-                );
+                context.showRatingModal(username: _userProfile?.username ?? '');
               },
             ),
           ],
@@ -323,9 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ChangePasswordPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage()),
                 );
               },
             ),
@@ -335,9 +347,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 20),
 
         // Logout Button
-        LogoutTile(
-          onTap: () => _logout(context),
-        ),
+        LogoutTile(onTap: () => _logout(context)),
 
         const SizedBox(height: 20),
       ],

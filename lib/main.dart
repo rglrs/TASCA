@@ -4,9 +4,13 @@ import 'package:tasca_mobile1/pages/sliding_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tasca_mobile1/pages/todo.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// GUNAKAN ALIAS UNTUK PROVIDER LAMA
+import 'package:provider/provider.dart' as old_provider;
+import 'package:tasca_mobile1/providers/task_provider.dart';
+import 'package:tasca_mobile1/services/notification_service.dart';
+// Riverpod
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Custom PageRouteBuilder for slide animations
 class SlidePageRoute extends PageRouteBuilder {
   final Widget page;
   final AxisDirection direction;
@@ -17,37 +21,29 @@ class SlidePageRoute extends PageRouteBuilder {
         transitionDuration: const Duration(milliseconds: 800),
         reverseTransitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Set different offsets based on direction
           late Offset begin;
           late Offset beginSecondary;
 
           switch (direction) {
             case AxisDirection.right:
-              begin = const Offset(1.0, 0.0); // From right
-              beginSecondary = const Offset(
-                -0.3,
-                0.0,
-              ); // Current page slides slightly left
+              begin = const Offset(1.0, 0.0);
+              beginSecondary = const Offset(-0.3, 0.0);
               break;
             case AxisDirection.left:
-              begin = const Offset(-1.0, 0.0); // From left
-              beginSecondary = const Offset(
-                0.3,
-                0.0,
-              ); // Current page slides slightly right
+              begin = const Offset(-1.0, 0.0);
+              beginSecondary = const Offset(0.3, 0.0);
               break;
             case AxisDirection.up:
-              begin = const Offset(0.0, 1.0); // From bottom
+              begin = const Offset(0.0, 1.0);
               beginSecondary = const Offset(0.0, -0.3);
               break;
             case AxisDirection.down:
-              begin = const Offset(0.0, -1.0); // From top
+              begin = const Offset(0.0, -1.0);
               beginSecondary = const Offset(0.0, 0.3);
               break;
           }
 
           const end = Offset.zero;
-          // Using cubic curves for more natural motion
           const curve = Curves.easeOutCubic;
           const secondaryCurve = Curves.easeInCubic;
 
@@ -59,8 +55,6 @@ class SlidePageRoute extends PageRouteBuilder {
             begin: end,
             end: beginSecondary,
           ).chain(CurveTween(curve: secondaryCurve));
-
-          // Add subtle scale effect for depth
           var scaleTween = Tween(
             begin: 0.95,
             end: 1.0,
@@ -69,14 +63,11 @@ class SlidePageRoute extends PageRouteBuilder {
             begin: 1.0,
             end: 0.95,
           ).chain(CurveTween(curve: secondaryCurve));
-
-          // Subtle fade for smoothness
           var fadeTween = Tween(
             begin: 0.5,
             end: 1.0,
           ).chain(CurveTween(curve: curve));
 
-          // For the current page (the one being replaced)
           Widget currentPage = SlideTransition(
             position: secondaryAnimation.drive(secondaryTween),
             child: ScaleTransition(
@@ -85,7 +76,6 @@ class SlidePageRoute extends PageRouteBuilder {
             ),
           );
 
-          // For the new page coming in
           Widget newPage = SlideTransition(
             position: animation.drive(tween),
             child: ScaleTransition(
@@ -106,7 +96,6 @@ class SlidePageRoute extends PageRouteBuilder {
       );
 }
 
-// Helper function for navigation with slide animation
 void navigateWithSlide(
   BuildContext context,
   Widget page, {
@@ -131,7 +120,35 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeNotifications();
-  runApp(ProviderScope(child: MyApp()));
+  final notificationService = NotificationService(
+    'https://api.tascaid.com',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('auth_token') ?? '';
+    },
+  );
+
+  await notificationService.initializeOneSignal(
+    'c3856067-4248-4f33-9547-198da753f8d4',
+  );
+
+  runApp(
+    ProviderScope(
+      child: old_provider.MultiProvider(
+        providers: [
+          old_provider.ChangeNotifierProvider(create: (_) => TaskProvider()),
+          old_provider.Provider<NotificationService>.value(
+            value: notificationService,
+          ),
+        ],
+        child: const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'TASCA',
+          home: StartScreen(),
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _initializeNotifications() async {
@@ -158,11 +175,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'TASCA',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const StartScreen(),
+    return old_provider.MultiProvider(
+      providers: [
+        old_provider.ChangeNotifierProvider(create: (_) => TaskProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'TASCA',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: const StartScreen(),
+      ),
     );
   }
 }
@@ -178,29 +200,23 @@ class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
-    // Check login status and auto navigate
     _checkLoginAndNavigate();
   }
 
   Future<void> _checkLoginAndNavigate() async {
     try {
-      // Show StartScreen for 5 seconds
       await Future.delayed(const Duration(seconds: 5));
-
       if (!mounted) return;
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-
       if (!mounted) return;
 
       if (token != null) {
-        // User is logged in, navigate to TodoPage
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const TodoPage()),
         );
       } else {
-        // User is not logged in, navigate to SlicingScreen with slide animation
         navigateReplaceWithSlide(
           context,
           const SlicingScreen(initialPage: 0),
@@ -209,8 +225,6 @@ class _StartScreenState extends State<StartScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-
-      // If error occurs, still navigate to SlicingScreen with slide animation
       navigateReplaceWithSlide(
         context,
         const SlicingScreen(initialPage: 0),
@@ -224,7 +238,6 @@ class _StartScreenState extends State<StartScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -234,8 +247,6 @@ class _StartScreenState extends State<StartScreen> {
               ),
             ),
           ),
-
-          // Purple moon shadow in the top right corner
           Positioned(
             top: -50,
             right: -50,
@@ -254,8 +265,6 @@ class _StartScreenState extends State<StartScreen> {
               ),
             ),
           ),
-
-          // Purple moon shadow in the bottom left corner
           Positioned(
             bottom: 0,
             left: -40,
@@ -274,24 +283,17 @@ class _StartScreenState extends State<StartScreen> {
               ),
             ),
           ),
-
-          // Main content (logo and text)
           SafeArea(
             child: Column(
               children: [
-                // Add space at the top to push logo down
                 const SizedBox(height: 80),
-
-                // Logo and text in a centered column
                 Expanded(
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo from assets folder
                         Image.asset('images/logo.png', width: 280, height: 280),
                         const SizedBox(height: 40),
-                        // Application name with colored text and Poppins font
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -337,7 +339,6 @@ class _StartScreenState extends State<StartScreen> {
                             ),
                           ],
                         ),
-                        // Removed "Tap to continue" text
                       ],
                     ),
                   ),

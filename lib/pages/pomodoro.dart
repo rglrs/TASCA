@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tasca_mobile1/providers/pomodoro_provider.dart';
-import 'package:tasca_mobile1/pages/login_page.dart';
 import 'package:tasca_mobile1/widgets/navbar.dart';
-import 'package:tasca_mobile1/services/pomodoro.dart';
+import 'package:tasca_mobile1/pages/login_page.dart';
 
 class PomodoroTimer extends ConsumerStatefulWidget {
   const PomodoroTimer({Key? key}) : super(key: key);
@@ -14,25 +13,35 @@ class PomodoroTimer extends ConsumerStatefulWidget {
 
 class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
     with WidgetsBindingObserver {
+  final GlobalKey _skipKey = GlobalKey();
+  final GlobalKey _playKey = GlobalKey();
+  final GlobalKey _endKey = GlobalKey();
+  final GlobalKey _soundKey = GlobalKey();
+  final GlobalKey _selectTaskKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Fetch tasks saat halaman pertama kali dibuka
-    Future.microtask(() {
-      ref
-          .read(pomodoroProvider.notifier)
-          .fetchTasks(
-            onUnauthorized: () {
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => LoginPage()),
-                  (route) => false,
-                );
-              }
-            },
-          );
-    });
+    // Provider sudah otomatis fetch task dan load timer settings di constructor
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final pomodoroNotifier = ref.read(pomodoroProvider.notifier);
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      // Pause timer saat app keluar/di-background
+      // pomodoroNotifier.pauseTimer();
+    } else if (state == AppLifecycleState.resumed) {
+      // (Opsional) fetch ulang data atau resume timer
+      pomodoroNotifier.fetchIncompleteTasks();
+      pomodoroNotifier.loadTimerSettings();
+      // Jika ingin auto-resume timer, bisa tambahkan logic di sini
+    }
   }
 
   @override
@@ -42,24 +51,270 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    // Optional: Pause sound if needed
-    // final pomodoro = ref.read(pomodoroProvider);
-    // if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-    //   if (pomodoro.isRunning && !pomodoro.isMuted) {
-    //     ref.read(pomodoroProvider.notifier).pauseTimer();
-    //   }
-    // }
+  Widget build(BuildContext context) {
+    final pomodoro = ref.watch(pomodoroProvider);
+    final pomodoroNotifier = ref.read(pomodoroProvider.notifier);
+
+    // Redirect ke login jika unauthorized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pomodoro.unauthorized) {
+        pomodoroNotifier.pauseTimer();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      }
+    });
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3E5F5),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    const Center(
+                      child: Text(
+                        "POMODORO",
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Container(
+                        key: _selectTaskKey,
+                        constraints: const BoxConstraints(maxWidth: 150),
+                        child: CustomDropdown(
+                          items: pomodoro.incompleteTasks,
+                          selectedValue: pomodoro.selectedTask,
+                          onChanged: (String? newValue) {
+                            pomodoroNotifier.selectTask(newValue);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 300,
+                            height: 300,
+                            child: CircularProgressIndicator(
+                              value:
+                                  1 -
+                                  (pomodoro.timeLeft /
+                                      (pomodoro.isFocusSession
+                                          ? pomodoro.focusDuration
+                                          : pomodoro.restDuration)),
+                              strokeWidth: 10,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.orange,
+                              ),
+                              backgroundColor: Colors.white.withOpacity(0.5),
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              const SizedBox(height: 5),
+                              Text(
+                                pomodoro.isFocusSession
+                                    ? "Stay Focused"
+                                    : "Take a Break",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  for (var i = 0; i < 3; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 2.0,
+                                      ),
+                                      child: Image.asset(
+                                        'images/tomat.png',
+                                        width: 24,
+                                        height: 24,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 25),
+                              Text(
+                                pomodoroNotifier.formatTime(pomodoro.timeLeft),
+                                style: const TextStyle(
+                                  fontSize: 60,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  GestureDetector(
+                                    key: _soundKey,
+                                    onTap:
+                                        () => showSoundOptions(
+                                          context,
+                                          pomodoro,
+                                          pomodoroNotifier,
+                                        ),
+                                    child: Image.asset(
+                                      pomodoro.isMuted
+                                          ? 'images/mute.png'
+                                          : 'images/on.png',
+                                      width: 50,
+                                      height: 50,
+                                    ),
+                                  ),
+                                  if (pomodoro.currentSoundTitle.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        pomodoro.currentSoundTitle,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 90),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            key: _skipKey,
+                            onTap: pomodoroNotifier.resetTimer,
+                            child: Container(
+                              width: 55,
+                              height: 55,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                "Skip",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            key: _playKey,
+                            onTap:
+                                pomodoro.isRunning
+                                    ? pomodoroNotifier.pauseTimer
+                                    : pomodoroNotifier.startTimer,
+                            child: Container(
+                              width: 75,
+                              height: 75,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.orange,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                pomodoro.isRunning
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                size: 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            key: _endKey,
+                            onTap: pomodoroNotifier.endCurrentSession,
+                            child: Container(
+                              width: 55,
+                              height: 55,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                "End",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Navbar(initialActiveIndex: 0),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  String formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int sec = seconds % 60;
-    return '$minutes:${sec.toString().padLeft(2, '0')}';
-  }
-
-  void showSoundOptions(BuildContext context, PomodoroNotifier notifier) {
+  void showSoundOptions(
+    BuildContext context,
+    PomodoroState pomodoro,
+    PomodoroNotifier notifier,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -132,7 +387,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
-                    icon: Icon(Icons.close),
+                    icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -151,273 +406,28 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.asset(imagePath, width: 60, height: 60),
-          SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 16)),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 16)),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pomodoro = ref.watch(pomodoroProvider);
-    final pomodoroNotifier = ref.read(pomodoroProvider.notifier);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3E5F5),
-      body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              children: [
-                const SizedBox(height: 20),
-                const Center(
-                  child: Text(
-                    "POMODORO",
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Center(
-                  child: Container(
-                    constraints: BoxConstraints(maxWidth: 150),
-                    child: CustomDropdown(
-                      items: pomodoro.tasks,
-                      selectedValue: pomodoro.selectedTask,
-                      onChanged: (String? newValue) {
-                        pomodoroNotifier.setSelectedTask(newValue);
-                      },
-                    ),
-                  ),
-                ),
-                if (pomodoro.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      pomodoro.errorMessage!,
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-              ],
-            ),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        height: 300,
-                        child: CircularProgressIndicator(
-                          value:
-                              1 -
-                              (pomodoro.timeLeft /
-                                  (pomodoro.isFocusSession
-                                      ? PomodoroNotifier.focusDuration
-                                      : PomodoroNotifier.restDuration)),
-                          strokeWidth: 10,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.orange,
-                          ),
-                          backgroundColor: Colors.white.withOpacity(0.5),
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          const SizedBox(height: 5),
-                          Text(
-                            pomodoro.isFocusSession
-                                ? "Stay Focused"
-                                : "Take a Break",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              for (var i = 0; i < 3; i++)
-                                Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 2.0,
-                                  ),
-                                  child: Image.asset(
-                                    'images/tomat.png',
-                                    width: 24,
-                                    height: 24,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 25),
-                          Text(
-                            formatTime(pomodoro.timeLeft),
-                            style: const TextStyle(
-                              fontSize: 60,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap:
-                                    () => showSoundOptions(
-                                      context,
-                                      pomodoroNotifier,
-                                    ),
-                                child: Image.asset(
-                                  pomodoro.isMuted
-                                      ? 'images/mute.png'
-                                      : 'images/on.png',
-                                  width: 50,
-                                  height: 50,
-                                ),
-                              ),
-                              if (pomodoro.currentSoundTitle.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 8.0),
-                                  child: Text(
-                                    pomodoro.currentSoundTitle,
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 90),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: pomodoroNotifier.resetTimer,
-                        child: Container(
-                          width: 55,
-                          height: 55,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            "Skip",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap:
-                            pomodoro.isRunning
-                                ? pomodoroNotifier.pauseTimer
-                                : pomodoroNotifier.startTimer,
-                        child: Container(
-                          width: 75,
-                          height: 75,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.orange,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            pomodoro.isRunning ? Icons.pause : Icons.play_arrow,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: pomodoroNotifier.endCurrentSession,
-                        child: Container(
-                          width: 55,
-                          height: 55,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            "End",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Navbar(initialActiveIndex: 0),
-          ],
-        ),
       ),
     );
   }
 }
 
-// --- CustomDropdown Widget ---
 class CustomDropdown extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final String? selectedValue;
   final ValueChanged<String?> onChanged;
 
-  CustomDropdown({
+  const CustomDropdown({
     required this.items,
     required this.selectedValue,
     required this.onChanged,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
-  _CustomDropdownState createState() => _CustomDropdownState();
+  State<CustomDropdown> createState() => _CustomDropdownState();
 }
 
 class _CustomDropdownState extends State<CustomDropdown> {
@@ -460,14 +470,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
               child: Material(
                 elevation: 4.0,
                 child: Container(
-                  decoration: BoxDecoration(color: Colors.purple),
+                  decoration: const BoxDecoration(color: Colors.purple),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:
                         _isNoTaskState
                             ? [
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 8,
                                 ),
@@ -487,13 +497,13 @@ class _CustomDropdownState extends State<CustomDropdown> {
                                   _toggleDropdown();
                                 },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
                                   ),
                                   child: Text(
                                     task['title'],
-                                    style: TextStyle(color: Colors.white),
+                                    style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
                               );
@@ -504,6 +514,12 @@ class _CustomDropdownState extends State<CustomDropdown> {
             ),
           ),
     );
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
   }
 
   @override
@@ -526,14 +542,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
             color: Colors.purple,
             borderRadius: BorderRadius.circular(4.0),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   displayValue,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
