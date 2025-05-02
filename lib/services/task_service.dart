@@ -598,7 +598,7 @@ class TaskService {
   Future<List<int>> getWeeklyCompletedTaskCount() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = prefs.getString('auth_token');      
 
       if (token == null) {
         print('No authentication token found');
@@ -610,15 +610,22 @@ class TaskService {
         headers: {'Authorization': 'Bearer $token'},
       );
 
+      print('API Response Code: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
+        print('Raw response data: $responseData');
 
         List<int> dailyTasks =
             (responseData['daily_tasks'] as List?)
                 ?.map((e) => int.tryParse(e.toString()) ?? 0)
                 .toList() ??
-            [];
+            List.filled(7, 0);
 
+        print('Parsed daily tasks: $dailyTasks');
+
+        // Normalisasi array
         while (dailyTasks.length < 7) {
           dailyTasks.insert(0, 0);
         }
@@ -627,14 +634,19 @@ class TaskService {
           dailyTasks = dailyTasks.sublist(dailyTasks.length - 7);
         }
 
+        print('Final daily tasks: $dailyTasks');
+        print('Total tasks: ${dailyTasks.fold(0, (sum, item) => sum + item)}');
+
         return dailyTasks;
       } else if (response.statusCode == 401) {
         return Future.error('Unauthorized access');
       } else {
-        return [0, 0, 0, 0, 0, 0, 0];
+        print('API error: ${response.body}');
+        return List.filled(7, 0);
       }
     } catch (e) {
-      return [0, 0, 0, 0, 0, 0, 0];
+      print('Exception in getWeeklyCompletedTaskCount: $e');
+      return List.filled(7, 0);
     }
   }
 }

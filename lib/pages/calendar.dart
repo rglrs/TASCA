@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tasca_mobile1/providers/task_provider.dart';
-import 'package:tasca_mobile1/services/calendar_service.dart' as calendar_service;
+import 'package:tasca_mobile1/services/calendar_service.dart'
+    as calendar_service;
 import 'package:tasca_mobile1/widgets/navbar.dart';
 import 'package:tasca_mobile1/widgets/calendar/calendar_coach_mark.dart';
 
@@ -14,7 +15,8 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObserver {
+class _CalendarScreenState extends State<CalendarScreen>
+    with WidgetsBindingObserver {
   late DateTime _selectedMonth;
   late DateTime _focusedDay;
   bool _initialized = false;
@@ -56,7 +58,10 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
     if (state == AppLifecycleState.resumed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+          final taskProvider = Provider.of<TaskProvider>(
+            context,
+            listen: false,
+          );
           taskProvider.dataChanged = true;
           taskProvider.fetchTasksForDate(_focusedDay);
         }
@@ -286,7 +291,8 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                     ),
                                     child: Row(
                                       key: _monthNavigationKey,
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.chevron_left),
@@ -297,7 +303,9 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                         Row(
                                           children: [
                                             Text(
-                                              monthFormat.format(_selectedMonth),
+                                              monthFormat.format(
+                                                _selectedMonth,
+                                              ),
                                               style: GoogleFonts.poppins(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -305,7 +313,8 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                             ),
 
                                             // Small loading indicator next to month name when background fetching
-                                            if (taskProvider.isBackgroundFetching)
+                                            if (taskProvider
+                                                .isBackgroundFetching)
                                               Padding(
                                                 padding: const EdgeInsets.only(
                                                   left: 8.0,
@@ -315,9 +324,13 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                                   width: 14,
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: 2,
-                                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                                      Colors.purple.withOpacity(0.5),
-                                                    ),
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(
+                                                          Colors.purple
+                                                              .withOpacity(0.5),
+                                                        ),
                                                   ),
                                                 ),
                                               ),
@@ -338,16 +351,18 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                       horizontal: 16.0,
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         GestureDetector(
                                           key: _refreshButtonKey,
                                           onTap: () {
                                             // Manual refresh functionality
-                                            final taskProvider = Provider.of<TaskProvider>(
-                                              context,
-                                              listen: false,
-                                            );
+                                            final taskProvider =
+                                                Provider.of<TaskProvider>(
+                                                  context,
+                                                  listen: false,
+                                                );
                                             taskProvider.dataChanged = true;
                                             taskProvider.fetchTasksForDate(
                                               _focusedDay,
@@ -376,9 +391,8 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                               color: Colors.purple.withOpacity(
                                                 0.1,
                                               ),
-                                              borderRadius: BorderRadius.circular(
-                                                20,
-                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
@@ -411,27 +425,29 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                       vertical: 8.0,
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                      children: [
-                                            'Sun',
-                                            'Mon',
-                                            'Tue',
-                                            'Wed',
-                                            'Thu',
-                                            'Fri',
-                                            'Sat',
-                                          ]
-                                          .map(
-                                            (day) => Text(
-                                              day,
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          )
-                                          .toList(),
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children:
+                                          [
+                                                'Sun',
+                                                'Mon',
+                                                'Tue',
+                                                'Wed',
+                                                'Thu',
+                                                'Fri',
+                                                'Sat',
+                                              ]
+                                              .map(
+                                                (day) => Text(
+                                                  day,
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
                                     ),
                                   ),
 
@@ -443,17 +459,18 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                         padding: const EdgeInsets.all(8),
                                         gridDelegate:
                                             const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 7,
-                                          mainAxisSpacing: 4,
-                                          crossAxisSpacing: 4,
-                                          childAspectRatio: 1,
-                                        ),
+                                              crossAxisCount: 7,
+                                              mainAxisSpacing: 4,
+                                              crossAxisSpacing: 4,
+                                              childAspectRatio: 1,
+                                            ),
                                         itemCount: days.length,
                                         itemBuilder: (context, index) {
                                           final day = days[index];
                                           final isCurrentMonth =
                                               day.month == _selectedMonth.month;
-                                          final isSelected = _focusedDay.year == day.year &&
+                                          final isSelected =
+                                              _focusedDay.year == day.year &&
                                               _focusedDay.month == day.month &&
                                               _focusedDay.day == day.day;
                                           final dateKey = DateTime(
@@ -461,7 +478,8 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                             day.month,
                                             day.day,
                                           );
-                                          final tasksForDay = tasksByDate[dateKey] ?? [];
+                                          final tasksForDay =
+                                              tasksByDate[dateKey] ?? [];
 
                                           return GestureDetector(
                                             onTap: () {
@@ -474,41 +492,67 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                             child: Container(
                                               decoration: BoxDecoration(
                                                 shape: BoxShape.circle,
-                                                color: isSelected ? Colors.purple[100] : null,
+                                                color:
+                                                    isSelected
+                                                        ? Colors.purple[100]
+                                                        : null,
                                               ),
                                               child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   Text(
                                                     day.day.toString(),
                                                     style: GoogleFonts.poppins(
                                                       fontSize: 14,
                                                       fontWeight:
-                                                          isSelected ? FontWeight.bold : FontWeight.normal,
-                                                      color: isCurrentMonth
-                                                          ? (isSelected ? Colors.purple : Colors.black)
-                                                          : Colors.grey[400],
+                                                          isSelected
+                                                              ? FontWeight.bold
+                                                              : FontWeight
+                                                                  .normal,
+                                                      color:
+                                                          isCurrentMonth
+                                                              ? (isSelected
+                                                                  ? Colors
+                                                                      .purple
+                                                                  : Colors
+                                                                      .black)
+                                                              : Colors
+                                                                  .grey[400],
                                                     ),
                                                   ),
                                                   if (tasksForDay.isNotEmpty)
                                                     Row(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
                                                         Container(
                                                           width: 4,
                                                           height: 4,
-                                                          decoration: const BoxDecoration(
-                                                            shape: BoxShape.circle,
-                                                            color: Colors.purple,
-                                                          ),
+                                                          decoration:
+                                                              const BoxDecoration(
+                                                                shape:
+                                                                    BoxShape
+                                                                        .circle,
+                                                                color:
+                                                                    Colors
+                                                                        .purple,
+                                                              ),
                                                         ),
-                                                        const SizedBox(width: 4),
+                                                        const SizedBox(
+                                                          width: 4,
+                                                        ),
                                                         Text(
-                                                          tasksForDay.length.toString(),
-                                                          style: GoogleFonts.poppins(
-                                                            fontSize: 10,
-                                                            color: Colors.purple,
-                                                          ),
+                                                          tasksForDay.length
+                                                              .toString(),
+                                                          style:
+                                                              GoogleFonts.poppins(
+                                                                fontSize: 10,
+                                                                color:
+                                                                    Colors
+                                                                        .purple,
+                                                              ),
                                                         ),
                                                       ],
                                                     ),
@@ -557,136 +601,165 @@ class _CalendarScreenState extends State<CalendarScreen> with WidgetsBindingObse
                                 ),
                               ),
                               Expanded(
-                                child: isLoading
-                                    ? Center(
-                                        child: CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Colors.purple,
-                                          ),
-                                        ),
-                                      )
-                                    : currentDayTasks.isEmpty
+                                child:
+                                    isLoading
                                         ? Center(
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  'No Tasks',
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.grey,
-                                                  ),
+                                          child: CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.purple,
                                                 ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  'Create a new task for this day',
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 14,
-                                                    color: Colors.grey,
-                                                  ),
+                                          ),
+                                        )
+                                        : currentDayTasks.isEmpty
+                                        ? Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'No Tasks',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey,
                                                 ),
-                                              ],
-                                            ),
-                                          )
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Create a new task for this day',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
                                         : ListView.builder(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            itemCount: currentDayTasks.length,
-                                            itemBuilder: (context, index) {
-                                              final task = currentDayTasks[index];
-                                              return Card(
-                                                elevation: 2,
-                                                margin: const EdgeInsets.symmetric(
-                                                  vertical: 8,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: ListTile(
-                                                  contentPadding: const EdgeInsets.all(12),
-                                                  leading: Icon(
-                                                    task.isComplete
-                                                        ? Icons.check_circle
-                                                        : Icons.circle_outlined,
-                                                    color: task.isComplete ? Colors.green : Colors.grey,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          itemCount: currentDayTasks.length,
+                                          itemBuilder: (context, index) {
+                                            final task = currentDayTasks[index];
+                                            return Card(
+                                              elevation: 2,
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
                                                   ),
-                                                  title: Text(
-                                                    task.title,
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
-                                                      decoration: task.isComplete
-                                                          ? TextDecoration.lineThrough
-                                                          : null,
-                                                      color:
-                                                          task.isComplete ? Colors.grey : Colors.black,
-                                                    ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: ListTile(
+                                                contentPadding:
+                                                    const EdgeInsets.all(12),
+                                                leading: Icon(
+                                                  task.isComplete
+                                                      ? Icons.check_circle
+                                                      : Icons.circle_outlined,
+                                                  color:
+                                                      task.isComplete
+                                                          ? Colors.green
+                                                          : Colors.grey,
+                                                ),
+                                                title: Text(
+                                                  task.title,
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        task.isComplete
+                                                            ? Colors.grey
+                                                            : Colors.black,
                                                   ),
-                                                  subtitle: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      if (task.description.isNotEmpty)
-                                                        Padding(
-                                                          padding: const EdgeInsets.only(
-                                                            top: 8.0,
-                                                          ),
-                                                          child: Text(
-                                                            task.description,
-                                                            style: GoogleFonts.poppins(
-                                                              fontSize: 14,
-                                                              color: task.isComplete
-                                                                  ? Colors.grey
-                                                                  : Colors.black54,
+                                                ),
+                                                subtitle: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    if (task
+                                                        .description
+                                                        .isNotEmpty)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              top: 8.0,
                                                             ),
+                                                        child: Text(
+                                                          task.description,
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 14,
+                                                            color:
+                                                                task.isComplete
+                                                                    ? Colors
+                                                                        .grey
+                                                                    : Colors
+                                                                        .black54,
                                                           ),
                                                         ),
-                                                      const SizedBox(height: 8),
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: _getPriorityColor(
-                                                                task.priority,
-                                                              ),
-                                                              borderRadius: BorderRadius.circular(
-                                                                16,
-                                                              ),
-                                                            ),
-                                                            child: Text(
-                                                              _getPriorityLabel(
-                                                                task.priority,
-                                                              ),
-                                                              style: GoogleFonts.poppins(
-                                                                fontSize: 12,
-                                                                color: Colors.white,
-                                                                fontWeight: FontWeight.w500,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(width: 8),
-                                                          Text(
-                                                            DateFormat(
-                                                              'HH:mm',
-                                                            ).format(task.deadline),
-                                                            style: GoogleFonts.poppins(
-                                                              fontSize: 12,
-                                                              color: Colors.grey[600],
-                                                            ),
-                                                          ),
-                                                        ],
                                                       ),
-                                                    ],
-                                                  ),
+                                                    const SizedBox(height: 8),
+                                                    Row(
+                                                      children: [
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                _getPriorityColor(
+                                                                  task.priority,
+                                                                ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  16,
+                                                                ),
+                                                          ),
+                                                          child: Text(
+                                                            _getPriorityLabel(
+                                                              task.priority,
+                                                            ),
+                                                            style:
+                                                                GoogleFonts.poppins(
+                                                                  fontSize: 12,
+                                                                  color:
+                                                                      Colors
+                                                                          .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 8,
+                                                        ),
+                                                        Text(
+                                                          DateFormat(
+                                                            'HH:mm',
+                                                          ).format(
+                                                            task.deadline,
+                                                          ),
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 12,
+                                                            color:
+                                                                Colors
+                                                                    .grey[600],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
                                                 ),
-                                              );
-                                            },
-                                          ),
+                                              ),
+                                            );
+                                          },
+                                        ),
                               ),
                             ],
                           ),

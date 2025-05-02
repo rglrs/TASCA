@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // Add this import
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -59,66 +60,28 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadTimerSettings();
     _initializeNotifications();
+    _loadSavedSettings();
     _fetchIncompleteTasks();
+
+    // Inisialisasi coach mark setelah build pertama selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initCoachMark();
+    });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // Saat aplikasi di-resume, cek pengaturan timer (jika berubah)
-      _loadTimerSettings();
-    }
-  }
-
-  Future<void> _loadTimerSettings() async {
+  Future<void> _loadSavedSettings() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Coba ambil nilai secara langsung
-    final savedFocusDuration = prefs.getInt('focus_duration');
-    final savedRestDuration = prefs.getInt('rest_duration');
-
-    if (savedFocusDuration != null && savedRestDuration != null) {
+    
+    // Load saved focus/rest durations
+    focusDuration = prefs.getInt('focus_duration') ?? 1500;
+    restDuration = prefs.getInt('rest_duration') ?? 300;
+    
+    if (mounted) {
       setState(() {
-        focusDuration = savedFocusDuration;
-        restDuration = savedRestDuration;
-
-        // Update timeLeft jika belum menjalankan timer
-        if (!isRunning) {
-          timeLeft = isFocusSession ? focusDuration : restDuration;
-        }
+        timeLeft = isFocusSession ? focusDuration : restDuration;
       });
-    } else {
-      // Fallback ke metode lama (kompatibilitas ke belakang)
-      final savedInterval = prefs.getInt('focus_interval') ?? 0;
-
-      setState(() {
-        if (savedInterval == 0) {
-          // 25 menit fokus, 5 menit istirahat
-          focusDuration = 25 * 60;
-          restDuration = 5 * 60;
-        } else {
-          // 50 menit fokus, 10 menit istirahat
-          focusDuration = 50 * 60;
-          restDuration = 10 * 60;
-        }
-
-        // Update timeLeft jika belum menjalankan timer
-        if (!isRunning) {
-          timeLeft = isFocusSession ? focusDuration : restDuration;
-        }
-      });
-
-      // Simpan nilai eksplisit untuk penggunaan di masa depan
-      await prefs.setInt('focus_duration', focusDuration);
-      await prefs.setInt('rest_duration', restDuration);
     }
-
-    debugPrint(
-      'Loaded timer settings: Focus=$focusDuration, Rest=$restDuration',
-    );
   }
 
   void _initializeNotifications() async {
@@ -138,6 +101,25 @@ class _PomodoroTimerState extends State<PomodoroTimer>
           android: initializationSettingsAndroid,
           iOS: initializationSettingsIOS,
         );
+        
+    await localNotifications.initialize(initializationSettings);
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // App going to background or navigating away
+      if (isRunning) {
+        pauseTimer();
+      }
+    } else if (state == AppLifecycleState.detached) {
+      // App being terminated
+      _sendPomodoroSession();
+      timer?.cancel();
+      audioPlayer.stop();
+    }
   }
 
   Future<void> _fetchIncompleteTasks() async {
@@ -260,14 +242,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   void endCurrentSession() {
-    int actualDuration =
-        isFocusSession
-            ? (focusDuration - timeLeft) ~/ 60
-            : (restDuration - timeLeft) ~/ 60;
-
-    if (actualDuration > 0) {
-      _pomodoroService.completePomodoroSession(actualDuration);
-    }
+    _sendPomodoroSession();
 
     timer?.cancel();
     setState(() {
@@ -297,8 +272,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       currentSoundTitle = '';
       currentSoundPath = '';
       audioPlayer.stop();
-
-      print('Switched to session: ${isFocusSession ? "Focus" : "Relax"}');
     });
 
     try {
@@ -308,7 +281,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
             ? "Time for a focus session."
             : "Time for a relax session.",
       );
-      print("Notification scheduled successfully.");
     } catch (e) {
       print("Failed to schedule notification: $e");
     }
@@ -341,9 +313,10 @@ class _PomodoroTimerState extends State<PomodoroTimer>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
+    audioPlayer.stop();
     audioPlayer.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
