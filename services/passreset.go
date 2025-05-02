@@ -84,7 +84,7 @@ func SendBrevoEmail(email, name, token string) error {
 		return errors.New("BREVO_API_KEY tidak ditemukan di environment")
 	}
 
-	resetURL := fmt.Sprintf("https://tascaid.site/forgot-password?token=%s", token)
+	resetURL := fmt.Sprintf("https://tascaid.com/forgot-password?token=%s", token)
 
 	// Create the email request
 	emailReq := BrevoEmailRequest{

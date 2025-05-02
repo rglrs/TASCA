@@ -9,7 +9,6 @@ type User struct {
 	Email            string     `gorm:"uniqueIndex;not null" json:"email"`
 	Phone            *string    `gorm:"type:text" json:"phone,omitempty"`
 	Password         string     `gorm:"not null" json:"-"`
-	GoogleID         *string    `gorm:"uniqueIndex;type:text;default:null" json:"google_id,omitempty"`
 	Picture          *string    `gorm:"type:text;default:null" json:"picture,omitempty"`
 	Provider         string     `gorm:"type:text;default:'local'" json:"provider"`
 	Todos            []Todo     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"todos"`

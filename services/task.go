@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 	"tasca/models"
 	"tasca/repositories"
 
@@ -26,6 +27,20 @@ func GetCompleteTasks(db *gorm.DB, userID uint) ([]map[string]interface{}, error
 
 func GetTaskByID(db *gorm.DB, id uint) (*models.Task, error) {
 	return repositories.GetTaskByID(db, id)
+}
+
+func GetTasksByDate(db *gorm.DB, dateStr string, userID uint) ([]models.Task, error) {
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return nil, errors.New("format tanggal tidak valid, gunakan YYYY-MM-DD")
+	}
+	
+	tasks, err := repositories.GetTasksByDate(db, date, userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return tasks, nil
 }
 
 func CreateTask(db *gorm.DB, task *models.Task) error {
@@ -69,6 +84,13 @@ func TaskConplete(db *gorm.DB, taskID uint, isComplete bool) error {
 	}
 
 	return repositories.UpdateTodo(db, todo.ID, updateTodoData)
+}
+
+func SearchTasks(db *gorm.DB, query string, userID uint) ([]map[string]interface{}, error) {
+    if query == "" {
+        return nil, nil
+    }
+    return repositories.SearchTasks(db, query, userID)
 }
 
 func DeleteTask(db *gorm.DB, id uint) error {

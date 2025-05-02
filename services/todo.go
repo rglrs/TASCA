@@ -3,9 +3,9 @@ package services
 import (
 	"errors"
 
+	"gorm.io/gorm"
 	"tasca/models"
 	"tasca/repositories"
-	"gorm.io/gorm"
 )
 
 func GetTodos(db *gorm.DB, userID uint) ([]models.Todo, error) {
@@ -25,7 +25,13 @@ func CreateTodo(db *gorm.DB, userID uint, todo *models.Todo) error {
 		return errors.New("judul tidak boleh kosong")
 	}
 	todo.UserID = userID
-	return repositories.CreateTodo(db, todo)
+
+	result := db.Create(todo)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
 
 func UpdateTodo(db *gorm.DB, todoID uint, updateData map[string]interface{}) error {

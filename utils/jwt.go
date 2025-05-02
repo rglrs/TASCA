@@ -18,7 +18,7 @@ func GenerateJWT(user models.User) (string, error) {
 		"username":  user.Username,
 		"email":     user.Email,
 		"google_id": user.GoogleID,
-		"exp":       time.Now().Add(time.Hour * 24).Unix(),
+		"exp":       time.Now().Add(time.Hour * 24 * 30).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -55,4 +55,8 @@ func ParseJWT(tokenString string) (*jwt.Token, *models.User, error) {
 	}
 
 	return token, user, nil
+}
+
+func RefreshJWT(user models.User) (string, error) {
+	return GenerateJWT(user)
 }

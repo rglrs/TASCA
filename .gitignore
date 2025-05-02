@@ -1,5 +1,5 @@
 go*
-.env.*
 .env
-.dockerignore
+.env*
+tasca
 .DS_Store

@@ -29,12 +29,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		// Auth
 		api.POST("/register", controllers.RegisterUser)
 		api.POST("/login", controllers.LoginUser)
-		api.GET("/google/login", controllers.GoogleLogin)
-		api.GET("/google/callback", controllers.GoogleCallback)
 		api.POST("/forgot-password", controllers.ForgotPassword)
 		api.POST("/reset-password", controllers.ResetPassword)
 		api.POST("/validate-token", controllers.ValidateToken)
-
+		
 		auth := api.Group("/")
 		auth.Use(middleware.AuthMiddleware())
 		{
@@ -43,13 +41,21 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			auth.GET("/pomodoro/stats", controllers.GetDailyStats)
 			auth.GET("/pomodoro/stats/weekly", controllers.GetWeeklyStats)
 			auth.GET("/tasks/complete", controllers.GetCompleteTasks)
+			auth.GET("/tasks/:date", controllers.GetTasksByDate)
 			auth.GET("/tasks/stats", controllers.GetWeeklyTaskStats)
-			
+			auth.GET("/tasks/incomplete", controllers.GetIncompleteTasks)
+			auth.GET("/tasks/search", controllers.GetTasksBySearch)
+
+			// Tambahkan route untuk device token (notifikasi)
+			devices := auth.Group("/devices")
+			{
+				devices.POST("/register", controllers.RegisterDevice)
+				devices.POST("/unregister", controllers.UnregisterDevice)
+			}
+
 			profile := auth.Group("/profile")
 			{
 				profile.GET("/", controllers.GetUserProfile)
-				profile.POST("/link-google", controllers.LinkGoogleAccount)
-				profile.PATCH("/unlink-google", controllers.UnlinkGoogleAccount)
 				profile.PATCH("/change-password", controllers.ChangePassword)
 				profile.PATCH("/update", controllers.UpdateProfile)
 				profile.DELETE("/delete-picture", controllers.DeleteProfilePicture)
@@ -69,7 +75,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				task := todo.Group("/:id/tasks")
 				{
 					task.GET("/", controllers.GetTasksByTodoID)
-					task.GET("/incomplete", controllers.GetIncompleteTasks)
 					task.GET("/:task_id", controllers.GetTaskByID)
 					task.PATCH("/:task_id/complete", controllers.TaskComplete)
 					task.POST("/", controllers.CreateTask)

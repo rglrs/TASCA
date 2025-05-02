@@ -58,10 +58,9 @@ func GetWeeklyStats(db *gorm.DB, userID uint) (map[string]interface{}, error) {
     }
 
     now := time.Now()
-    weekStart := now.AddDate(0, 0, -int(now.Weekday()))
-    if now.Weekday() == time.Sunday {
-        weekStart = weekStart.AddDate(0, 0, -7)
-    }
+    
+    offset := (int(now.Weekday()) + 6) % 7
+    weekStart := now.AddDate(0, 0, -offset)
     weekEnd := weekStart.AddDate(0, 0, 6)
 
     err := db.Raw(`

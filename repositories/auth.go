@@ -49,14 +49,6 @@ func GetUserByPhone(db *gorm.DB, phone string) (*models.User, error) {
     return &user, nil
 }
 
-func GetUserByGoogleID(db *gorm.DB, googleID string) (*models.User, error) {
-	var user models.User
-	if err := db.Where("google_id = ?", googleID).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
 func CreateUser(db *gorm.DB, user *models.User) error {
 	return db.Create(user).Error
 }

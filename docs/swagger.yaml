@@ -1,5 +1,70 @@
 basePath: /api
 definitions:
+  models.Pomodoro:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: integer
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
+  models.Task:
+    properties:
+      created_at:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_complete:
+        type: boolean
+      priority:
+        description: 0=rendah, 1=sedang, 2=tinggi,3=paling tinggi
+        type: integer
+      title:
+        type: string
+      todo:
+        $ref: '#/definitions/models.Todo'
+      todo_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.Todo:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_complete:
+        type: boolean
+      priority:
+        description: 0=rendah, 1=sedang, 2=tinggi,3=paling tinggi
+        type: integer
+      progress:
+        type: integer
+      tasks:
+        items:
+          $ref: '#/definitions/models.Task'
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
   models.User:
     properties:
       created_at:
@@ -16,44 +81,97 @@ definitions:
         type: string
       picture:
         type: string
+      pomodoros:
+        items:
+          $ref: '#/definitions/models.Pomodoro'
+        type: array
       provider:
         type: string
+      todos:
+        items:
+          $ref: '#/definitions/models.Todo'
+        type: array
       updated_at:
         type: string
       username:
         type: string
     type: object
-host: localhost:8080
+host: api.tascaid.com
 info:
   contact: {}
   description: API untuk aplikasi Tasca A4 AGILE menggunakan gin
   title: Tag Tasca API
   version: "1.0"
 paths:
-  /api/google/callback:
+  /api/calendar/day/{date}:
     get:
-      description: Handle callback from Google OAuth
+      description: Get all tasks for a specific date
+      parameters:
+      - description: Date (YYYY-MM-DD)
+        in: path
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          description: 'message: Login berhasil'
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Task'
+            type: array
+        "400":
+          description: 'error: Format tanggal tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: 'error: Failed to authenticate'
+          description: 'error: Gagal mengambil data'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Google Authentication Callback
+      security:
+      - ApiKeyAuth: []
+      summary: Get tasks by date
       tags:
-      - auth
-  /api/google/login:
-    get:
-      description: Redirect user to Google authentication page
-      responses: {}
-      summary: Google Login
+      - calendar
+  /api/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send a password reset email to the user
+      parameters:
+      - description: Email for password reset
+        in: body
+        name: email
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Link reset password telah dikirim ke email Anda'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Format email tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request password reset
       tags:
       - auth
   /api/login:
@@ -94,6 +212,279 @@ paths:
       summary: Login user
       tags:
       - auth
+  /api/logout:
+    post:
+      description: Remove authentication token
+      responses:
+        "200":
+          description: 'message: Logout berhasil'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Logout user
+      tags:
+      - auth
+  /api/pomodoro/complete:
+    post:
+      consumes:
+      - application/json
+      description: Record a completed pomodoro session
+      parameters:
+      - description: Session details
+        in: body
+        name: session
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Session completed'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Failed to save session'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Complete pomodoro session
+      tags:
+      - pomodoro
+  /api/pomodoro/stats:
+    get:
+      description: Get daily pomodoro statistics for a user
+      parameters:
+      - description: Date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'date: Date, total_minutes: Total focus minutes'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid date format'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Failed to fetch data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get daily pomodoro stats
+      tags:
+      - pomodoro
+  /api/pomodoro/stats/weekly:
+    get:
+      description: Get weekly pomodoro and task statistics for a user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'task_done: Number of completed tasks, focused: Total focus
+            time'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Failed to fetch weekly summary'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get weekly pomodoro stats
+      tags:
+      - pomodoro
+  /api/profile:
+    get:
+      description: Retrieve user profile data
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user profile
+      tags:
+      - profile
+  /api/profile/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Allow authenticated user to change password
+      parameters:
+      - description: Password Update
+        in: body
+        name: password
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Password berhasil diubah'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Bad request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Change user password
+      tags:
+      - profile
+  /api/profile/delete:
+    delete:
+      description: Delete an authenticated user account
+      responses:
+        "200":
+          description: 'message: Akun berhasil dihapus'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Bad request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user account
+      tags:
+      - profile
+  /api/profile/delete-picture:
+    delete:
+      description: Remove user's profile picture and set to default
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Foto profil berhasil dihapus, picture: nopp.png'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: User tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal menghapus foto profil'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user profile picture
+      tags:
+      - profile
+  /api/profile/update:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload and update user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Foto profil berhasil diperbarui,: filename'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: File tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: User tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal menyimpan file'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user profile
+      tags:
+      - profile
   /api/register:
     post:
       consumes:
@@ -122,6 +513,746 @@ paths:
               type: string
             type: object
       summary: Register user
+      tags:
+      - auth
+  /api/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using token from email
+      parameters:
+      - description: Password reset data
+        in: body
+        name: reset
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Password berhasil diperbarui, silakan login kembali,
+            redirect: /login'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Input tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reset password
+      tags:
+      - auth
+  /api/tasks/complete:
+    get:
+      description: Get all complete tasks (is_complete = true) with only ID and title
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []map[string]interface{}'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal mengambil data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get incomplete tasks
+      tags:
+      - tasks
+  /api/tasks/incomplete:
+    get:
+      description: Get all incomplete tasks (is_complete = false) with only ID and
+        title
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []map[string]interface{}'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal mengambil data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get incomplete tasks
+      tags:
+      - tasks
+  /api/tasks/search:
+    get:
+      description: Get all tasks for a specific search
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Task'
+            type: array
+        "400":
+          description: 'error: Nama tidak val'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal mengambil data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get tasks by search
+      tags:
+      - calendar
+  /api/tasks/weekly-stats:
+    patch:
+      consumes:
+      - application/json
+      description: Mark a task as complete or incomplete
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: Completion status
+        in: body
+        name: completion
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Task completion status updated, todo_id: Todo ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid task ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke task ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Task tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Update failed'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get task completion
+      tags:
+      - tasks
+  /api/todos:
+    get:
+      description: Get all todos for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []models.Todo'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal fetch data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      description: Create a new todo
+      parameters:
+      - description: Todo data
+        in: body
+        name: todo
+        required: true
+        schema:
+          $ref: '#/definitions/models.Todo'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Todo berhasil dibuat'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Input tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create todo
+      tags:
+      - todos
+  /api/todos/{id}:
+    delete:
+      description: Delete a todo
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Todo berhasil dihapus'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: ID tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Todo tidak ditemukan atau bukan milik Anda'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete todo
+      tags:
+      - todos
+    get:
+      description: Get a specific todo by ID
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: models.Todo'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: ID tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Todo tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get todo by ID
+      tags:
+      - todos
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing todo
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Todo update data
+        in: body
+        name: todo
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Todo updated successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid todo ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke todo ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Update failed'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update todo
+      tags:
+      - todos
+  /api/todos/{id}/tasks:
+    get:
+      description: Get all tasks for a specific todo
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []models.Task, id: Todo ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Todo ID tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke todo ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Gagal mengambil data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get tasks by todo ID
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Create a new task for a todo
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task data
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/models.Task'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Task berhasil dibuat, id: Todo ID, data: Task'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Input tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke todo ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create task
+      tags:
+      - tasks
+  /api/todos/{id}/tasks/{task_id}:
+    delete:
+      description: Delete a task
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Task berhasil dihapus'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Task ID tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke task ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Task tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete task
+      tags:
+      - tasks
+    get:
+      description: Get a specific task by ID
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: models.Task, id: Todo ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Task ID tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke task ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Task tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get task by ID
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing task
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: Task update data
+        in: body
+        name: task
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Task updated successfully, todo_id: Todo ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid task ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke task ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Task tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Update failed'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update task
+      tags:
+      - tasks
+  /api/todos/{id}/tasks/{task_id}/complete:
+    patch:
+      consumes:
+      - application/json
+      description: Mark a task as complete or incomplete
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: Completion status
+        in: body
+        name: completion
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Task completion status updated, todo_id: Todo ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid task ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Tidak memiliki akses ke task ini'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Task tidak ditemukan'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Update failed'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update task completion
+      tags:
+      - tasks
+  /api/validate-token:
+    post:
+      consumes:
+      - application/json
+      description: Validate if a password reset token is valid and not expired
+      parameters:
+      - description: Token to validate
+        in: body
+        name: token
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Token valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Token tidak valid'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Validate reset token
       tags:
       - auth
 swagger: "2.0"

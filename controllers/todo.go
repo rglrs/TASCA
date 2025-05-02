@@ -108,6 +108,10 @@ func CreateTodo(c *gin.Context) {
 		return
 	}
 
+	if todo.Priority < 0 || todo.Priority > 3 {
+		todo.Priority = 0
+	}
+
 	if err := services.CreateTodo(db, userID, &todo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

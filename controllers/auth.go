@@ -6,7 +6,6 @@ import (
 	"tasca/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/markbates/goth/gothic"
 	"gorm.io/gorm"
 )
 
@@ -115,40 +114,4 @@ func LoginUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": token})
-}
-
-// GoogleLogin godoc
-// @Summary Google Login
-// @Description Redirect user to Google authentication page
-// @Tags auth
-// @Router /api/google/login [get]
-func GoogleLogin(c *gin.Context) {
-	gothic.BeginAuthHandler(c.Writer, c.Request)
-}
-
-// GoogleCallback godoc
-// @Summary Google Authentication Callback
-// @Description Handle callback from Google OAuth
-// @Tags auth
-// @Success 200 {object} map[string]string "message: Login berhasil"
-// @Failure 500 {object} map[string]string "error: Failed to authenticate"
-// @Router /api/google/callback [get]
-func GoogleCallback(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
-
-	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate"})
-		return
-	}
-
-	token, err := services.AuthenticateGoogleUser(db, gothUser)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.SetCookie("auth_token", token, 3600, "/", "", false, true)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Login berhasil", "token": token})
 }

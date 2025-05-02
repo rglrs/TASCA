@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"tasca/models"
@@ -100,8 +101,7 @@ func GetTaskByID(c *gin.Context) {
 // @Router /api/tasks/incomplete [get]
 func GetIncompleteTasks(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
-	
-	// Get the user ID from the JWT token context
+
 	userID := c.MustGet("user_id").(uint)
 
 	incompleteTasks, err := services.GetIncompleteTasks(db, userID)
@@ -125,7 +125,7 @@ func GetIncompleteTasks(c *gin.Context) {
 // @Router /api/tasks/complete [get]
 func GetCompleteTasks(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
-	
+
 	userID := c.MustGet("user_id").(uint)
 
 	CompleteTask, err := services.GetCompleteTasks(db, userID)
@@ -181,6 +181,73 @@ func CreateTask(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Task berhasil dibuat", "id": todoID, "data": task})
+}
+
+// GetTasksByDate godoc
+// @Summary Get tasks by date
+// @Description Get all tasks for a specific date
+// @Tags calendar
+// @Security ApiKeyAuth
+// @Produce json
+// @Param date path string true "Date (YYYY-MM-DD)"
+// @Success 200 {array} models.Task
+// @Failure 400 {object} map[string]string "error: Format tanggal tidak valid"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Gagal mengambil data"
+// @Router /api/calendar/day/{date} [get]
+func GetTasksByDate(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	userID := c.MustGet("user_id").(uint)
+	
+	dateStr := c.Param("date")
+	if dateStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Parameter tanggal diperlukan"})
+		return
+	}
+	
+	tasks, err := services.GetTasksByDate(db, dateStr, userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"date": dateStr,
+		"tasks": tasks,
+	})
+}
+
+// GetTasksBySearch godoc
+// @Summary Get tasks by search
+// @Description Get all tasks for a specific search
+// @Tags calendar
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} models.Task
+// @Failure 400 {object} map[string]string "error: Nama tidak val"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Gagal mengambil data"
+// @Router /api/tasks/search [get] 
+func GetTasksBySearch(c *gin.Context) {
+    db := c.MustGet("db").(*gorm.DB)
+    userID := c.MustGet("user_id").(uint)
+
+    query := c.Query("search")
+    if query == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Search query is required"})
+        return
+    }
+
+    tasks, err := services.SearchTasks(db, query, userID)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "data": tasks,
+        "total": len(tasks),
+    })
 }
 
 // UpdateTask godoc
@@ -312,70 +379,91 @@ func TaskComplete(c *gin.Context) {
 // @Failure 500 {object} map[string]string "error: Update failed"
 // @Router /api/tasks/weekly-stats [patch]
 func GetWeeklyTaskStats(c *gin.Context) {
-    db := c.MustGet("db").(*gorm.DB)
-    userID := c.MustGet("user_id").(uint)
+	db := c.MustGet("db").(*gorm.DB)
+	userID := c.MustGet("user_id").(uint)
 
-    var totalTasks int64
-    db.Model(&models.Task{}).
-        Joins("JOIN todos ON tasks.todo_id = todos.id").
-        Where("tasks.is_complete = ? AND todos.user_id = ?", true, userID).
-        Count(&totalTasks)
+	// Get total tasks
+	var totalTasks int64
+	db.Model(&models.Task{}).
+		Joins("JOIN todos ON tasks.todo_id = todos.id").
+		Where("tasks.is_complete = ? AND todos.user_id = ?", true, userID).
+		Count(&totalTasks)
 
-    now := time.Now()
-    weekStart := now.AddDate(0, 0, -int(now.Weekday()+6)%7)
-    weekStart = time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, now.Location())
-    weekEnd := weekStart.AddDate(0, 0, 7)
+	// Calculate week range (Monday to Sunday)
+	now := time.Now()
+	offset := (int(now.Weekday()) + 6) % 7
+	weekStart := now.AddDate(0, 0, -offset)
+	weekStart = time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, now.Location())
+	weekEnd := weekStart.AddDate(0, 0, 7)
 
-    var dailyTasks []int
-    rows, err := db.Raw(`
-        WITH date_series AS (
-            SELECT generate_series(
-                date_trunc('day', $1::timestamp), 
-                date_trunc('day', $2::timestamp), 
-                '1 day'::interval
+	// Debug logging
+	log.Printf("Week range: %s to %s", weekStart.Format("2006-01-02"), weekEnd.Format("2006-01-02"))
+
+	// Initialize daily tasks array
+	dailyTasks := make([]int, 7)
+
+	// Use a query that's less likely to have issues
+	query := `
+        WITH dates AS (
+            SELECT day::date 
+            FROM generate_series(
+                $1::timestamp, 
+                $2::timestamp - interval '1 day', 
+                interval '1 day'
             ) AS day
         )
         SELECT 
-            date_series.day,
+            EXTRACT(DOW FROM dates.day)::int as dow,
             COALESCE(COUNT(tasks.id), 0) as task_count
         FROM 
-            date_series
+            dates
         LEFT JOIN tasks ON 
-            date_trunc('day', tasks.created_at) = date_series.day
-        JOIN todos ON tasks.todo_id = todos.id
-        WHERE 
-            tasks.is_complete = true 
+            DATE(tasks.updated_at) = dates.day
+            AND tasks.is_complete = true
+        LEFT JOIN todos ON 
+            tasks.todo_id = todos.id
             AND todos.user_id = $3
-            AND tasks.created_at BETWEEN $1 AND $2
         GROUP BY 
-            date_series.day
+            dates.day
         ORDER BY 
-            date_series.day
-    `, weekStart, weekEnd, userID).Rows()
+            dates.day
+    `
 
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to fetch weekly task stats",
-        })
-        return
-    }
-    defer rows.Close()
+	rows, err := db.Raw(query, weekStart, weekEnd, userID).Rows()
+	if err != nil {
+		log.Printf("Error executing query: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch weekly task stats",
+		})
+		return
+	}
+	defer rows.Close()
 
-    dailyTasks = make([]int, 7)
+	// Process results
+	for rows.Next() {
+		var dow int
+		var count int
+		if err := rows.Scan(&dow, &count); err != nil {
+			log.Printf("Error scanning row: %v", err)
+			continue
+		}
 
-    for rows.Next() {
-        var taskCount int
-        var dayDate time.Time
-        rows.Scan(&dayDate, &taskCount)
-        
-        dayIndex := int((dayDate.Weekday() + 6) % 7)
-        dailyTasks[dayIndex] = taskCount
-    }
+		// Map PostgreSQL DOW (0=Sunday) to our array (0=Monday)
+		dayIndex := (dow + 6) % 7
+		log.Printf("Day of week: %d, Index: %d, Count: %d", dow, dayIndex, count)
 
-    c.JSON(http.StatusOK, gin.H{
-        "total_tasks": totalTasks,
-        "daily_tasks": dailyTasks,
-    })
+		if dayIndex >= 0 && dayIndex < 7 {
+			dailyTasks[dayIndex] = count
+		}
+	}
+
+	// Log the final array for debugging
+	log.Printf("Daily tasks array: %v", dailyTasks)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_tasks": totalTasks,
+		"daily_tasks": dailyTasks,
+	})
 }
 
 // DeleteTask godoc

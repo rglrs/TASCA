@@ -2,7 +2,7 @@ package utils
 
 import (
 	"regexp"
-
+	"strings"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,9 +22,9 @@ func IsValidPassword(password string) bool {
 }
 
 func IsValidUsername(username string) bool {
-	usernameRegex := `^[A-Za-z]{4,}$`
+	usernameRegex := `^[A-Za-z0-9 ]{4,}$`
 	re := regexp.MustCompile(usernameRegex)
-	return re.MatchString(username)
+	return re.MatchString(username) && strings.TrimSpace(username) != ""
 }
 
 func IsValidPhone(phone string) bool {
