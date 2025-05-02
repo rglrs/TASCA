@@ -17,7 +17,6 @@ func GenerateJWT(user models.User) (string, error) {
 		"id":        user.ID,
 		"username":  user.Username,
 		"email":     user.Email,
-		"google_id": user.GoogleID,
 		"exp":       time.Now().Add(time.Hour * 24 * 30).Unix(),
 	}
 
@@ -42,16 +41,11 @@ func ParseJWT(tokenString string) (*jwt.Token, *models.User, error) {
 
 	username, _ := claims["username"].(string)
 	email, _ := claims["email"].(string)
-	var googleIDPtr *string
-	if googleID, ok := claims["google_id"].(string); ok && googleID != "" {
-		googleIDPtr = &googleID
-	}
 
 	user := &models.User{
 		ID:       uint(idFloat),
 		Username: username,
 		Email:    email,
-		GoogleID: googleIDPtr,
 	}
 
 	return token, user, nil
