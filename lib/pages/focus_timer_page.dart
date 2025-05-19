@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasca_mobile1/providers/pomodoro_provider.dart';
 
-class FocusTimerScreen extends ConsumerStatefulWidget {
+class FocusTimerScreen extends StatefulWidget {
   const FocusTimerScreen({super.key});
 
   @override
-  ConsumerState<FocusTimerScreen> createState() => _FocusTimerScreenState();
+  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
-class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
-  int selectedInterval = 0;
+class _FocusTimerScreenState extends State<FocusTimerScreen> {
+  int selectedInterval = 0; // 0 for 25min, 1 for 50min
 
   @override
   void initState() {
@@ -37,8 +35,6 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
       await prefs.setInt('focus_duration', 50 * 60);
       await prefs.setInt('rest_duration', 10 * 60);
     }
-
-    await ref.read(pomodoroProvider.notifier).updateTimerSettings();
 
     setState(() {
       selectedInterval = interval;
