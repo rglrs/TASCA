@@ -1,7 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import bgImage from "../assets/animation/OT_bg.png";
+
+const bgImage =
+  "https://res.cloudinary.com/dqci5udgl/image/upload/v1748190761/OT_bg_2_dzlc9a.png";
 
 const teamMembers = [
   {
