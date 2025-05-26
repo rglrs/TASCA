@@ -7,6 +7,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TodoService {
   static const String _baseUrl = 'https://api.tascaid.com/api';
 
+  // Function untuk debug color - bisa dipanggil dari UI
+  static String debugGetColor(int priority) {
+    String color = _getColorFromPriority(priority);
+    debugPrint('DEBUG: Priority $priority should be color $color');
+    return color;
+  }
+  
+  // Function untuk test semua priority colors
+  static void testAllColors() {
+    debugPrint('=== TESTING ALL PRIORITY COLORS ===');
+    debugPrint('Priority 0: ${_getColorFromPriority(0)}'); // Should be green
+    debugPrint('Priority 1: ${_getColorFromPriority(1)}'); // Should be yellow  
+    debugPrint('Priority 2: ${_getColorFromPriority(2)}'); // Should be red
+    debugPrint('=====================================');
+  }
+
   // Get auth token from SharedPreferences
   static Future<String?> _getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -51,11 +67,23 @@ class TodoService {
         final List<dynamic> todosData = responseBody['data'];
 
         return todosData.map((todo) {
+          // Explicit handling untuk priority - pastikan 0 tidak dianggap null
+          int priority = 0; // Default priority
+          if (todo['priority'] != null) {
+            priority = todo['priority'] as int;
+          }
+          
+          debugPrint('Todo ID: ${todo['id']}, Priority: $priority'); // Debug log
+          
+          String todoColor = _getColorForTodo(todo['id'], priority: priority);
+          debugPrint('Final color for Todo ${todo['id']}: $todoColor'); // Debug final color
+          
           return {
             'id': todo['id'],
             'title': todo['title'] ?? 'Unnamed Todo',
             'taskCount': todo['task_count'] ?? 0,
-            'color': _getColorForTodo(todo['id']),
+            'color': todoColor,
+            'priority': priority,
           };
         }).toList();
       } else if (response.statusCode == 401) {
@@ -131,7 +159,7 @@ class TodoService {
     }
   }
 
-  // Create a new todo
+  // Create a new todo - Updated to use priority system
   static Future<bool> createTodo(Map<String, dynamic> todoData) async {
     try {
       final headers = await _getHeaders();
@@ -141,8 +169,7 @@ class TodoService {
         headers: headers,
         body: json.encode({
           'title': todoData['title'],
-          'urgency': todoData['urgency'],
-          'importance': todoData['importance'],
+          'priority': todoData['priority'], // Kirim priority sebagai integer
         }),
       );
 
@@ -249,8 +276,41 @@ class TodoService {
     }
   }
 
-  static String _getColorForTodo(int todoId) {
-    final colors = ["#FC0101", "#007BFF", "#FFC107"];
+  // Updated to use priority-based color system
+  static String _getColorForTodo(int todoId, {int? priority}) {
+    debugPrint('_getColorForTodo called with todoId: $todoId, priority: $priority'); // Debug log
+    
+    // Jika priority tersedia dari API response, gunakan itu
+    if (priority != null) {
+      debugPrint('Using priority-based color for priority: $priority'); // Debug log
+      return _getColorFromPriority(priority);
+    }
+    
+    debugPrint('Priority is null, using fallback color system'); // Debug log
+    // Fallback ke sistem lama jika priority tidak tersedia
+    final colors = ["#28A745", "#FFC107", "#FC0101"]; // Hijau, Kuning, Merah (index 0, 1, 2)
     return colors[todoId % colors.length];
+  }
+  
+  // Helper function untuk mendapatkan warna berdasarkan priority level
+  static String _getColorFromPriority(int priority) {
+    debugPrint('Getting color for priority: $priority'); // Debug log
+    String color;
+    
+    // Explicit check untuk priority 0 agar pasti hijau
+    if (priority == 0) {
+      color = "#28A745"; // HIJAU - Low Priority (Not important + Not urgently)
+      debugPrint('Priority 0 detected - FORCING GREEN: $color');
+    } else if (priority == 1) {
+      color = "#FFC107"; // Kuning - Medium Priority
+    } else if (priority == 2) {
+      color = "#FC0101"; // Merah - High Priority
+    } else {
+      debugPrint('Unknown priority: $priority, returning grey'); // Debug log
+      color = "#808080"; // Abu-abu - Default/Unknown priority
+    }
+    
+    debugPrint('Returning color: $color for priority: $priority'); // Debug log
+    return color;
   }
 }

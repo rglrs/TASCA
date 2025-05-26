@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:tasca_mobile1/widgets/add_todo/add_todo_coach_mark.dart';
 
 class AddTodoPage extends StatefulWidget {
@@ -61,17 +60,32 @@ class _AddTodoPageState extends State<AddTodoPage> {
     }
   }
 
-  // Fungsi untuk mendapatkan warna berdasarkan prioritas
-  String _getColorBasedOnPriority() {
+  // Fungsi untuk mendapatkan priority berdasarkan pilihan urgency dan importance
+  int _getPriorityLevel() {
     if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
-      return "#FC0101"; // Merah
+      return 2; // High Priority - Merah
     } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
                (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
-      return "#FFC107"; // Kuning
+      return 1; // Medium Priority - Kuning
     } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
-      return "#28A745"; // Hijau
+      return 0; // Low Priority - Hijau
     } else {
-      return "#808080"; // Abu-abu (default jika tidak memilih)
+      return -1; // No selection
+    }
+  }
+
+  // Fungsi untuk mendapatkan warna berdasarkan priority level
+  String _getColorBasedOnPriority() {
+    int priority = _getPriorityLevel();
+    switch (priority) {
+      case 2:
+        return "#FC0101"; // Merah - High Priority
+      case 1:
+        return "#FFC107"; // Kuning - Medium Priority
+      case 0:
+        return "#28A745"; // Hijau - Low Priority
+      default:
+        return "#808080"; // Abu-abu - No Priority
     }
   }
 
@@ -104,10 +118,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
         _showValidationError = false;
       });
       
+      // Kirim data dengan priority level alih-alih urgency/importance string
       final task = {
         'title': _titleController.text.trim(),
-        'urgency': _selectedUrgency,
-        'importance': _selectedImportance,
+        'priority': _getPriorityLevel(), // Kirim priority sebagai integer
         'color': _getColorBasedOnPriority(),
       };
       widget.onTodoAdded(task);
@@ -116,15 +130,16 @@ class _AddTodoPageState extends State<AddTodoPage> {
 
   // Fungsi untuk mendapatkan deskripsi prioritas
   String _getPriorityDescription() {
-    if (_selectedUrgency == 'Urgently' && _selectedImportance == 'Important') {
-      return "High Priority (Red)";
-    } else if ((_selectedUrgency == 'Urgently' && _selectedImportance == 'Not important') ||
-               (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Important')) {
-      return "Medium Priority (Yellow)";
-    } else if (_selectedUrgency == 'Not urgently' && _selectedImportance == 'Not important') {
-      return "Low Priority (Green)";
-    } else {
-      return "No Priority (Grey)";
+    int priority = _getPriorityLevel();
+    switch (priority) {
+      case 2:
+        return "High Priority (Red)";
+      case 1:
+        return "Medium Priority (Yellow)";
+      case 0:
+        return "Low Priority (Green)";
+      default:
+        return "No Priority (Grey)";
     }
   }
 
