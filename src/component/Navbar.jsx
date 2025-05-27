@@ -114,10 +114,10 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Demo Apps Button - Desktop */}
+      {/* Button - Desktop */}
       <button
         onClick={handleDemoAppsClick}
-        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg font-poppins font-medium transition-colors duration-300 hover:bg-blue-700"
+        className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
       >
         Demo Apps
       </button>
@@ -127,7 +127,7 @@ export default function Navbar() {
         {/* Demo Apps Button - Mobile */}
         <button
           onClick={handleDemoAppsClick}
-          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg font-poppins font-medium transition-colors duration-300 hover:bg-blue-700"
+          className="bg-blue-600 text-white px-2 py-1 text-sm rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md"
         >
           Demo Apps
         </button>
@@ -175,7 +175,6 @@ export default function Navbar() {
                 { label: "About", id: "about" },
                 { label: "Features", id: "features" },
                 { label: "Our Teams", id: "ourteams" },
-                { label: "Testimoni", id: "testimoni" },
               ].map((item) => (
                 <li key={item.id}>
                   <button
