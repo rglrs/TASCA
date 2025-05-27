@@ -12,7 +12,7 @@ const routes = [
   { path: '*', element: <NotFound /> },
   { path: '/not-found', element: <NotFound /> },
   { path: '/forgot-password', element: <ForgotPasswordConfirm /> },
-  { path: '/Pomodoro', element: <Pomodoro /> },
+  { path: '/pomodoro', element: <Pomodoro /> },
   { path: '/PrivacyPolicy', element: <PrivacyPolicy /> },
   { path: '/Terms', element: <Terms /> },
   { path: '/testimoni', element: <Testimoni /> },
