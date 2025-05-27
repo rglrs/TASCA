@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FocusTimerScreen extends StatefulWidget {
+class FocusTimerScreen extends ConsumerStatefulWidget {
   const FocusTimerScreen({super.key});
 
   @override
-  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
+  ConsumerState<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
-class _FocusTimerScreenState extends State<FocusTimerScreen> {
+class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
   int selectedInterval = 0; // 0 for 25min, 1 for 50min
 
   @override
@@ -26,19 +27,42 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
 
   Future<void> _saveInterval(int interval) async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Save the selected interval
     await prefs.setInt('focus_interval', interval);
 
+    // Define and save durations based on interval
+    int focusDuration;
+    int restDuration;
+    
     if (interval == 0) {
-      await prefs.setInt('focus_duration', 25 * 60);
-      await prefs.setInt('rest_duration', 5 * 60);
+      focusDuration = 25 * 60; // 25 minutes in seconds
+      restDuration = 5 * 60;   // 5 minutes in seconds
     } else {
-      await prefs.setInt('focus_duration', 50 * 60);
-      await prefs.setInt('rest_duration', 10 * 60);
+      focusDuration = 50 * 60; // 50 minutes in seconds
+      restDuration = 10 * 60;  // 10 minutes in seconds
     }
+    
+    await prefs.setInt('focus_duration', focusDuration);
+    await prefs.setInt('rest_duration', restDuration);
 
     setState(() {
       selectedInterval = interval;
     });
+    
+    // Show a confirmation snackbar
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            interval == 0
+                ? 'Timer set to 25 min focus, 5 min break'
+                : 'Timer set to 50 min focus, 10 min break'
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -151,6 +175,28 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       style: TextStyle(color: Colors.black),
                     ),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Current session: ${selectedInterval == 0 ? "25/5" : "50/10"} minutes',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Changes will take effect on the next session',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey[700],
                 ),
               ),
             ),

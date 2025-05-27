@@ -3,18 +3,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login_page.dart';
 import 'detail_todo.dart';
-import '../widgets/navbar.dart';
-import '../services/todo_service.dart';
-import '../widgets/todo/todo_state_manager.dart';
-import '../widgets/todo/todo_header.dart';
-import '../widgets/todo/todo_search_bar.dart';
-import '../widgets/todo/todo_search_results.dart';
-import '../widgets/todo/todo_empty_state.dart';
-import '../widgets/todo/todo_grid.dart';
-import '../widgets/todo/todo_selection_fab.dart';
-import '../widgets/todo/todo_delete_dialog.dart';
-import '../widgets/todo/todo_coach_mark.dart';
-import '../pages/add_todo.dart';
+import 'package:tasca_mobile1/widgets/navbar.dart';
+import 'package:tasca_mobile1/services/todo_service.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_state_manager.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_search_bar.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_search_results.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_empty_state.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_grid.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_selection_fab.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_delete_dialog.dart';
+import 'package:tasca_mobile1/widgets/todo/todo_coach_mark.dart';
+import 'package:tasca_mobile1/pages/add_todo.dart';
 
 // Konstanta untuk mode pengujian coach mark
 // Set ke false untuk production, true untuk pengujian
@@ -38,6 +37,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   
   // Coach mark manager
   TodoCoachMark? _coachMark;
+  
+  // Tambahkan state untuk menampilkan loading screen
+  bool _isDeleting = false;
   
   @override
   void initState() {
@@ -160,27 +162,49 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
     });
   }
 
-  // Delete single todo
+  // Delete single todo dengan loading screen
   Future<void> _deleteTodo(int todoId) async {
     if (!stateManager.mounted) return;
+
+    // Tampilkan loading screen
+    setState(() {
+      _isDeleting = true;
+    });
 
     try {
       final success = await TodoService.deleteTodo(todoId);
 
-      if (stateManager.mounted && success) {
-        await _fetchTodosAndTasks();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Todo berhasil dihapus')));
+      if (stateManager.mounted) {
+        if (success) {
+          // Update state secara lokal untuk menghindari permintaan tambahan
+          setState(() {
+            stateManager.todos.removeWhere((todo) => todo['id'] == todoId);
+            _isDeleting = false;
+          });
+          
+          // Setelah update UI, lakukan refresh data dari server
+          _fetchTodosAndTasks();
+          
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Todo berhasil dihapus')));
+        } else {
+          setState(() {
+            _isDeleting = false;
+          });
+        }
       }
     } catch (e) {
       if (stateManager.mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
       }
     }
   }
 
-  // Delete multiple todos
+  // Delete multiple todos dengan loading screen
   Future<void> _deleteMultipleTodos() async {
     if (!stateManager.mounted) return;
 
@@ -191,6 +215,11 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       return;
     }
 
+    // Tampilkan loading screen
+    setState(() {
+      _isDeleting = true;
+    });
+
     try {
       final result = await TodoService.deleteMultipleTodos(
         List<int>.from(stateManager.selectedTodoIds),
@@ -198,12 +227,18 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
 
       if (!stateManager.mounted) return;
 
-      await _fetchTodosAndTasks();
-
+      // Update state secara lokal untuk menghindari permintaan tambahan
       setState(() {
+        stateManager.todos.removeWhere(
+          (todo) => stateManager.selectedTodoIds.contains(todo['id'])
+        );
         stateManager.isInSelectionMode = false;
         stateManager.selectedTodoIds.clear();
+        _isDeleting = false;
       });
+      
+      // Setelah update UI, lakukan refresh data dari server
+      _fetchTodosAndTasks();
 
       if (result['failed'] == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -223,6 +258,9 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
       }
     } catch (e) {
       if (stateManager.mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error menghapus todo: $e')));
       }
@@ -346,174 +384,143 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F1FE),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header dengan GlobalKey untuk coach mark
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'To Do',
-                    style: GoogleFonts.poppins(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
+      // Stack untuk loading screen
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // Header dengan GlobalKey untuk coach mark
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (stateManager.isInSelectionMode)
-                        Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          child: Text(
-                            '${stateManager.selectedTodoIds.length} dipilih',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).primaryColor,
+                      Text(
+                        'To Do',
+                        style: GoogleFonts.poppins(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          if (stateManager.isInSelectionMode)
+                            Container(
+                              margin: const EdgeInsets.only(right: 12),
+                              child: Text(
+                                '${stateManager.selectedTodoIds.length} dipilih',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                            ),
+                          InkWell(
+                            key: _deleteKey, // GlobalKey untuk coach mark
+                            onTap: _toggleSelectionMode,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: stateManager.isInSelectionMode
+                                    ? const Color(0xFFEEE8F8)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                stateManager.isInSelectionMode ? Icons.close : Icons.delete_outline,
+                                size: 24,
+                                color: stateManager.isInSelectionMode
+                                    ? const Color(0xFF8B7DFA)
+                                    : Colors.red,
+                              ),
                             ),
                           ),
-                        ),
-                      InkWell(
-                        key: _deleteKey, // GlobalKey untuk coach mark
-                        onTap: _toggleSelectionMode,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: stateManager.isInSelectionMode
-                                ? const Color(0xFFEEE8F8)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            stateManager.isInSelectionMode ? Icons.close : Icons.delete_outline,
-                            size: 24,
-                            color: stateManager.isInSelectionMode
-                                ? const Color(0xFF8B7DFA)
-                                : Colors.red,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        key: _addKey, // GlobalKey untuk coach mark
-                        onTap: stateManager.isInSelectionMode ? null : _showAddTodoBottomSheet,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: stateManager.isInSelectionMode
-                                ? Colors.grey.withOpacity(0.1)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            size: 24,
-                            color: stateManager.isInSelectionMode ? Colors.grey : Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // Search Bar dengan GlobalKey untuk coach mark
-            Padding(
-              key: _searchKey, // GlobalKey untuk coach mark
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-              child: TextField(
-                controller: stateManager.searchController,
-                decoration: InputDecoration(
-                  hintText: 'Cari Task....',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: stateManager.searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            stateManager.searchController.clear();
-                            stateManager.searchTasks('', setState);
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (value) {
-                  stateManager.searchTasks(value, setState);
-                },
-              ),
-            ),
-            
-            // Main Content
-            Expanded(
-              child: stateManager.isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : stateManager.errorMessage != null 
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Error: ${stateManager.errorMessage}'),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _fetchTodosAndTasks,
-                            child: const Text('Coba Lagi'),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            key: _addKey, // GlobalKey untuk coach mark
+                            onTap: stateManager.isInSelectionMode ? null : _showAddTodoBottomSheet,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: stateManager.isInSelectionMode
+                                    ? Colors.grey.withOpacity(0.1)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                size: 24,
+                                color: stateManager.isInSelectionMode ? Colors.grey : Colors.black,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  : stateManager.isSearching 
-                    ? TodoSearchResults(
-                        searchResults: stateManager.searchResults,
-                        searchText: stateManager.searchController.text,
-                        todos: stateManager.todos,
-                        onTodoTap: _navigateToDetailPage,
-                      )
-                    : stateManager.todos.isEmpty 
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const TodoEmptyState(),
-                            
-                            // Tombol untuk menampilkan panduan
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _showCoachMark,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).primaryColor,
-                                foregroundColor: Colors.white,
-                                textStyle: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                elevation: 2,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
+                    ],
+                  ),
+                ),
+                
+                // Search Bar dengan GlobalKey untuk coach mark
+                Padding(
+                  key: _searchKey, // GlobalKey untuk coach mark
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                  child: TextField(
+                    controller: stateManager.searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari Task....',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: stateManager.searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                stateManager.searchController.clear();
+                                stateManager.searchTasks('', setState);
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    onChanged: (value) {
+                      stateManager.searchTasks(value, setState);
+                    },
+                  ),
+                ),
+                
+                // Main Content
+                Expanded(
+                  child: stateManager.isLoading 
+                    ? const Center(child: CircularProgressIndicator())
+                    : stateManager.errorMessage != null 
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Error: ${stateManager.errorMessage}'),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _fetchTodosAndTasks,
+                                child: const Text('Coba Lagi'),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.help_outline, size: 18),
-                                  const SizedBox(width: 8),
-                                  const Text('Tampilkan Panduan'),
-                                ],
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         )
-                      : Stack(
-                          children: [
-                            TodoGrid(
+                      : stateManager.isSearching 
+                        ? TodoSearchResults(
+                            searchResults: stateManager.searchResults,
+                            searchText: stateManager.searchController.text,
+                            todos: stateManager.todos,
+                            onTodoTap: _navigateToDetailPage,
+                          )
+                        : stateManager.todos.isEmpty 
+                          ? const TodoEmptyState()
+                          : TodoGrid(
                               todos: stateManager.todos,
                               isInSelectionMode: stateManager.isInSelectionMode,
                               selectedTodoIds: stateManager.selectedTodoIds,
@@ -541,60 +548,45 @@ class _TodoPageState extends State<TodoPage> with WidgetsBindingObserver {
                               },
                               onTodoMenuPressed: _showDeleteDialog,
                             ),
-                            
-                            // Tombol bantuan modern
-                            Positioned(
-                              bottom: 16,
-                              right: 16,
-                              child: InkWell(
-                                onTap: _showCoachMark,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).primaryColor,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        spreadRadius: 1,
-                                        blurRadius: 3,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.help_outline,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Bantuan',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 12,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                ),
+                
+                // Navigation Bar
+                const Navbar(initialActiveIndex: 1),
+              ],
             ),
-            
-            // Navigation Bar
-            const Navbar(initialActiveIndex: 1),
-          ],
-        ),
+          ),
+          
+          // Loading overlay saat proses penghapusan
+          if (_isDeleting)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Menghapus Todo...',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       
       // Floating Action Button for multiple delete

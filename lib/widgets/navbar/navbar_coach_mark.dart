@@ -116,6 +116,7 @@ class NavbarCoachMark {
                 description: "Gunakan timer Pomodoro untuk meningkatkan produktivitas Anda.",
                 icon: Icons.more_time_rounded,
                 onNext: () {
+                  _currentStep = 1;
                   controller.next();
                 },
                 onSkip: () {
@@ -123,6 +124,7 @@ class NavbarCoachMark {
                 },
                 isFirstStep: true,
                 isLastStep: false,
+                currentStep: 1,
               );
             },
           ),
@@ -149,6 +151,7 @@ class NavbarCoachMark {
                 description: "Atur dan lacak semua tugas Anda di halaman To Do.",
                 icon: Icons.format_list_bulleted_add,
                 onNext: () {
+                  _currentStep = 2;
                   controller.next();
                 },
                 onSkip: () {
@@ -156,6 +159,7 @@ class NavbarCoachMark {
                 },
                 isFirstStep: false,
                 isLastStep: false,
+                currentStep: 2,
               );
             },
           ),
@@ -181,6 +185,7 @@ class NavbarCoachMark {
                 description: "Pantau jadwal dan tugas Anda melalui kalender.",
                 icon: Icons.calendar_today,
                 onNext: () {
+                  _currentStep = 3;
                   controller.next();
                 },
                 onSkip: () {
@@ -188,6 +193,7 @@ class NavbarCoachMark {
                 },
                 isFirstStep: false,
                 isLastStep: false,
+                currentStep: 3,
               );
             },
           ),
@@ -213,6 +219,7 @@ class NavbarCoachMark {
                 description: "Lihat semua tugas yang sudah Anda selesaikan di sini.",
                 icon: Icons.check_circle,
                 onNext: () {
+                  _currentStep = 4;
                   controller.next();
                 },
                 onSkip: () {
@@ -220,6 +227,7 @@ class NavbarCoachMark {
                 },
                 isFirstStep: false,
                 isLastStep: false,
+                currentStep: 4,
               );
             },
           ),
@@ -245,6 +253,7 @@ class NavbarCoachMark {
                 description: "Sesuaikan pengaturan aplikasi sesuai kebutuhan Anda.",
                 icon: Icons.settings,
                 onNext: () {
+                  _currentStep = 5;
                   controller.next();
                 },
                 onSkip: () {
@@ -252,6 +261,7 @@ class NavbarCoachMark {
                 },
                 isFirstStep: false,
                 isLastStep: true,
+                currentStep: 5,
               );
             },
           ),
@@ -273,6 +283,7 @@ class NavbarCoachMark {
     required VoidCallback onSkip,
     required bool isFirstStep,
     required bool isLastStep,
+    required int currentStep,  // Parameter tambahan untuk menerima langkah saat ini
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -334,7 +345,7 @@ class NavbarCoachMark {
             ],
           ),
 
-          // Progress indicator
+          // Progress indicator diupdate untuk menggunakan currentStep yang tepat
           Container(
             margin: const EdgeInsets.symmetric(vertical: 16),
             height: 4,
@@ -345,7 +356,7 @@ class NavbarCoachMark {
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     decoration: BoxDecoration(
-                      color: index <= _currentStep
+                      color: index < currentStep
                           ? Theme.of(context).primaryColor
                           : Colors.grey.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),

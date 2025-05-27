@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:tasca_mobile1/pages/login_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tasca_mobile1/pages/sliding_pages.dart'; // Perbaikan nama file import
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -522,7 +523,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     alignment: Alignment.topLeft,
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.pop(context);
+                        // Navigasi yang benar ke SlicingScreen dengan initialPage 3
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SlicingScreen(initialPage: 3),
+                          ),
+                          (route) => false,
+                        );
                       },
                       child: const Icon(Icons.arrow_back, size: 24),
                     ),

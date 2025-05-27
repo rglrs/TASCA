@@ -10,7 +10,6 @@ import 'package:tasca_mobile1/services/task_service.dart';
 import 'package:tasca_mobile1/services/pomodoro.dart';
 import 'package:tasca_mobile1/pages/login_page.dart';
 import 'package:tasca_mobile1/widgets/done/done_coach_mark.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class DonePage extends StatefulWidget {
   const DonePage({super.key});
@@ -132,93 +131,47 @@ class _DonePageState extends State<DonePage> {
         ),
       ),
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: ListView(
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: ListView(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            StatCard(
-                              key: _taskDoneCardKey,
-                              title: 'Task Done',
-                              value: '$_totalTaskDone',
-                            ),
-                            StatCard(
-                              key: _focusedCardKey,
-                              title: 'Focused',
-                              value: '${_totalFocusedMinutes}m',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ChartCard(
-                          key: _taskDoneChartKey,
+                        StatCard(
+                          key: _taskDoneCardKey,
                           title: 'Task Done',
-                          dateRange: _getWeekDateRange(),
-                          child: TaskDoneBarChart(taskService: _taskService),
+                          value: '$_totalTaskDone',
                         ),
-                        const SizedBox(height: 16),
-                        ChartCard(
-                          key: _focusedChartKey,
+                        StatCard(
+                          key: _focusedCardKey,
                           title: 'Focused',
-                          dateRange: _getWeekDateRange(),
-                          child: FocusLineChart(pomodoroService: _pomodoroService),
+                          value: '${_totalFocusedMinutes}m',
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const Navbar(initialActiveIndex: 3),
-              ],
-            ),
-            // Tombol Bantuan
-            Positioned(
-              top: 16,
-              right: 16,
-              child: InkWell(
-                onTap: _showCoachMark,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.help_outline,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Bantuan',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                    const SizedBox(height: 16),
+                    ChartCard(
+                      key: _taskDoneChartKey,
+                      title: 'Task Done',
+                      dateRange: _getWeekDateRange(),
+                      child: TaskDoneBarChart(taskService: _taskService),
+                    ),
+                    const SizedBox(height: 16),
+                    ChartCard(
+                      key: _focusedChartKey,
+                      title: 'Focused',
+                      dateRange: _getWeekDateRange(),
+                      child: FocusLineChart(pomodoroService: _pomodoroService),
+                    ),
+                  ],
                 ),
               ),
             ),
+            const Navbar(initialActiveIndex: 3),
           ],
         ),
       ),

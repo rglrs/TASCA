@@ -6,37 +6,41 @@ class TodoEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset(
-          'images/empty.png',
-          width: 250,
-          height: 250,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'There are no scheduled tasks.',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF6A6A6A),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 20),
+          Image.asset(
+            'images/empty.png',
+            width: 250, // Ukuran asli dipertahankan
+            height: 250,
+            fit: BoxFit.contain,
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
-          child: Text(
-            'Create a new task or activity to ensure it is always scheduled.',
-            textAlign: TextAlign.center,
+          const SizedBox(height: 20),
+          Text(
+            'There are no scheduled tasks.',
             style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.normal,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
               color: const Color(0xFF6A6A6A),
             ),
           ),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
+            child: Text(
+              'Create a new task or activity to ensure it is always scheduled.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+                color: const Color(0xFF6A6A6A),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }

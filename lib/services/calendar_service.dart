@@ -41,6 +41,10 @@ class Task {
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
+    final DateTime utcDeadline = DateTime.parse(json['deadline']);
+
+    final DateTime localDeadline = utcDeadline.toLocal();
+
     return Task(
       id: json['id'],
       title: json['title'],
@@ -48,9 +52,9 @@ class Task {
       description: json['description'] ?? '',
       priority: json['priority'] ?? 0,
       isComplete: json['is_complete'] ?? false,
-      deadline: DateTime.parse(json['deadline']),
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      deadline: localDeadline,
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
+      updatedAt: DateTime.parse(json['updated_at']).toLocal(),
     );
   }
 }
@@ -169,6 +173,7 @@ class CalendarService {
 
     return days;
   }
+
   // Method baru untuk menghapus semua cache
   void clearCache() {
     _taskCache.clear();
