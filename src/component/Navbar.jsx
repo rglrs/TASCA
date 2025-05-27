@@ -94,10 +94,11 @@ export default function Navbar() {
             { label: "Features", id: "features" },
             { label: "Our Teams", id: "ourteams" },
             { label: "Testimoni", id: "testimoni" },
+            { label: "Demo Apps", id: "demo-apps", isExternal: true },
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => scrollToSection(item.id)}
+              onClick={() => item.isExternal ? handleDemoAppsClick() : scrollToSection(item.id)}
               className="text-blue-600 relative group transition-transform duration-500 hover:scale-110"
             >
               {item.label}
@@ -114,24 +115,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Button - Desktop */}
-      <button
-        onClick={handleDemoAppsClick}
-        className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
-      >
-        Demo Apps
-      </button>
-
       {/* Mobile Menu Controls */}
-      <div className="flex md:hidden items-center space-x-2">
-        {/* Demo Apps Button - Mobile */}
-        <button
-          onClick={handleDemoAppsClick}
-          className="bg-blue-600 text-white px-2 py-1 text-sm rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md"
-        >
-          Demo Apps
-        </button>
-
+      <div className="flex md:hidden items-center">
         {/* Hamburger Menu */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -175,11 +160,17 @@ export default function Navbar() {
                 { label: "About", id: "about" },
                 { label: "Features", id: "features" },
                 { label: "Our Teams", id: "ourteams" },
+                { label: "Testimoni", id: "testimoni" },
+                { label: "Demo Apps", id: "demo-apps", isExternal: true },
               ].map((item) => (
                 <li key={item.id}>
                   <button
                     onClick={() => {
-                      scrollToSection(item.id);
+                      if (item.isExternal) {
+                        handleDemoAppsClick();
+                      } else {
+                        scrollToSection(item.id);
+                      }
                       setIsMobileMenuOpen(false);
                     }}
                     className={`block py-2 px-3 hover:bg-gray-100 rounded w-full text-left transition-all duration-300

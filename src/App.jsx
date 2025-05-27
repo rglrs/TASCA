@@ -15,7 +15,7 @@ const routes = [
   { path: '/Pomodoro', element: <Pomodoro /> },
   { path: '/PrivacyPolicy', element: <PrivacyPolicy /> },
   { path: '/Terms', element: <Terms /> },
-  { path: '/testimoni', element: <Testimoni /> }, // Tambahkan ini
+  { path: '/testimoni', element: <Testimoni /> },
 ];
 
 function App() {
