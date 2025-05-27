@@ -71,6 +71,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
     fetchUserProfile();
   }
 
+  // Phone number formatting functions
+  String formatPhoneForDisplay(String phone) {
+    // Remove all non-digit characters
+    String digitsOnly = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Format with dashes: XXX-XXX-XXX-XX
+    if (digitsOnly.length >= 10) {
+      return '${digitsOnly.substring(0, 3)}-${digitsOnly.substring(3, 6)}-${digitsOnly.substring(6, 9)}-${digitsOnly.substring(9)}';
+    } else if (digitsOnly.length >= 6) {
+      return '${digitsOnly.substring(0, 3)}-${digitsOnly.substring(3, 6)}-${digitsOnly.substring(6)}';
+    } else if (digitsOnly.length >= 3) {
+      return '${digitsOnly.substring(0, 3)}-${digitsOnly.substring(3)}';
+    }
+    return digitsOnly;
+  }
+
+  String formatPhoneForStorage(String phone) {
+    return phone.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  // Validation functions
+  String? validateUsername(String value) {
+    if (value.isEmpty) {
+      return 'Username tidak boleh kosong';
+    }
+    if (value.length < 4) {
+      return 'Username minimal 4 karakter';
+    }
+    if (value.length > 10) {
+      return 'Username maksimal 10 karakter';
+    }
+    if (!RegExp(r'^[A-Za-z0-9 ]+$').hasMatch(value)) {
+      return 'Username hanya boleh mengandung huruf, angka, dan spasi';
+    }
+    return null;
+  }
+
+  String? validateName(String value) {
+    if (value.isEmpty) {
+      return null; // Name is optional
+    }
+    if (value.length < 7) {
+      return 'Nama minimal 7 karakter';
+    }
+    if (value.length > 15) {
+      return 'Nama maksimal 15 karakter';
+    }
+    return null;
+  }
+
+  String? validatePhone(String value) {
+    if (value.isEmpty) {
+      return null; // Phone is optional
+    }
+
+    String digitsOnly = formatPhoneForStorage(value);
+    if (digitsOnly.length < 8) {
+      return 'Nomor telepon minimal 8 digit';
+    }
+    if (digitsOnly.length > 15) {
+      return 'Nomor telepon maksimal 15 digit';
+    }
+    return null;
+  }
+
   // function fetch user profile
   Future<void> fetchUserProfile() async {
     setState(() {
@@ -104,11 +169,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           usernameController.text = data['username'] ?? '';
           emailController.text = data['email'] ?? '';
           nameController.text = data['name'] ?? '';
-          phoneController.text = data['phone'] ?? '';
+
+          // Format phone for display
+          String rawPhone = data['phone'] ?? '';
+          phoneController.text =
+              rawPhone.isNotEmpty ? formatPhoneForDisplay(rawPhone) : '';
 
           originalUsername = data['username'];
           originalName = data['name'];
-          originalPhone = data['phone'];
+          originalPhone = rawPhone; // Store raw phone number
 
           if (data['picture'] != null &&
               data['picture'] is String &&
@@ -150,6 +219,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // function update profile
   Future<void> updateProfile() async {
+    // Validate all fields before updating
+    String? usernameError = validateUsername(usernameController.text.trim());
+    String? nameError = validateName(nameController.text.trim());
+    String? phoneError = validatePhone(phoneController.text.trim());
+
+    if (usernameError != null) {
+      _showErrorDialog(usernameError);
+      return;
+    }
+    if (nameError != null) {
+      _showErrorDialog(nameError);
+      return;
+    }
+    if (phoneError != null) {
+      _showErrorDialog(phoneError);
+      return;
+    }
+
     try {
       setState(() {
         isLoading = true;
@@ -173,16 +260,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       request.headers.addAll({'Authorization': 'Bearer $token'});
 
-      if (usernameController.text != originalUsername) {
-        request.fields['username'] = usernameController.text;
+      if (usernameController.text.trim() != originalUsername) {
+        request.fields['username'] = usernameController.text.trim();
       }
 
-      if (nameController.text != originalName) {
-        request.fields['name'] = nameController.text;
+      if (nameController.text.trim() != originalName) {
+        request.fields['name'] = nameController.text.trim();
       }
 
-      if (phoneController.text != originalPhone) {
-        request.fields['phone'] = phoneController.text;
+      // Format phone for storage (digits only)
+      String currentPhoneForStorage = formatPhoneForStorage(
+        phoneController.text.trim(),
+      );
+      if (currentPhoneForStorage != originalPhone) {
+        request.fields['phone'] = currentPhoneForStorage;
       }
 
       if (_selectedImage != null) {
@@ -240,9 +331,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         setState(() {
-          originalUsername = usernameController.text;
-          originalName = nameController.text;
-          originalPhone = phoneController.text;
+          originalUsername = usernameController.text.trim();
+          originalName = nameController.text.trim();
+          originalPhone = formatPhoneForStorage(phoneController.text.trim());
+
+          // Update phone display format
+          phoneController.text =
+              originalPhone!.isNotEmpty
+                  ? formatPhoneForDisplay(originalPhone!)
+                  : '';
 
           if (responseData['picture'] != null) {
             String pictureUrl = responseData['picture'];
@@ -276,7 +373,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       usernameController.text = originalUsername ?? '';
       nameController.text = originalName ?? '';
-      phoneController.text = originalPhone ?? '';
+      phoneController.text =
+          originalPhone != null && originalPhone!.isNotEmpty
+              ? formatPhoneForDisplay(originalPhone!)
+              : '';
       _selectedImage = null;
       isEdited = false;
     });
@@ -285,12 +385,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // function untuk check form diedit
   void checkIfEdited() {
     setState(() {
+      String currentPhoneForStorage = formatPhoneForStorage(
+        phoneController.text.trim(),
+      );
+
       isEdited =
-          usernameController.text != originalUsername ||
-          nameController.text != originalName ||
-          phoneController.text != originalPhone ||
+          usernameController.text.trim() != originalUsername ||
+          nameController.text.trim() != originalName ||
+          currentPhoneForStorage != originalPhone ||
           _selectedImage != null;
     });
+  }
+
+  // Custom phone input formatter
+  void _onPhoneChanged(String value) {
+    // Format the input as user types
+    String digitsOnly = formatPhoneForStorage(value);
+    String formatted = formatPhoneForDisplay(digitsOnly);
+
+    if (formatted != value) {
+      phoneController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+
+    checkIfEdited();
   }
 
   // function untuk memilih image
@@ -676,7 +796,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Column(
                               children: [
                                 ProfileFieldWidget(
-                                  label: 'Username',
+                                  label: 'Username (4-10 karakter)',
                                   controller: usernameController,
                                   editable: true,
                                   onChanged: (_) => checkIfEdited(),
@@ -692,11 +812,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   label: 'Phone Number',
                                   controller: phoneController,
                                   editable: true,
-                                  onChanged: (_) => checkIfEdited(),
+                                  onChanged: _onPhoneChanged,
                                 ),
                                 const SizedBox(height: 16),
                                 ProfileFieldWidget(
-                                  label: 'Fullname',
+                                  label: 'Fullname (7-15 karakter)',
                                   controller: nameController,
                                   editable: true,
                                   onChanged: (_) => checkIfEdited(),

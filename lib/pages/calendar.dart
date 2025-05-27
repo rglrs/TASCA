@@ -250,7 +250,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                     children: [
                       // Calendar Card
                       Expanded(
-                        flex: 2,
+                        flex: 3,
                         child: Container(
                           margin: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -462,7 +462,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                               crossAxisCount: 7,
                                               mainAxisSpacing: 4,
                                               crossAxisSpacing: 4,
-                                              childAspectRatio: 1,
+                                              childAspectRatio: 0.8,
                                             ),
                                         itemCount: days.length,
                                         itemBuilder: (context, index) {
@@ -573,7 +573,7 @@ class _CalendarScreenState extends State<CalendarScreen>
 
                       // Tasks List
                       Expanded(
-                        flex: 3,
+                        flex: 2,
                         child: Container(
                           key: _tasksListKey,
                           margin: const EdgeInsets.all(8),
