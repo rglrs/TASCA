@@ -94,11 +94,10 @@ export default function Navbar() {
             { label: "Features", id: "features" },
             { label: "Our Teams", id: "ourteams" },
             { label: "Testimoni", id: "testimoni" },
-            { label: "Demo Apps", id: "demo-apps", isExternal: true },
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => item.isExternal ? handleDemoAppsClick() : scrollToSection(item.id)}
+              onClick={() => scrollToSection(item.id)}
               className="text-blue-600 relative group transition-transform duration-500 hover:scale-110"
             >
               {item.label}
@@ -115,8 +114,24 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Demo Apps Button - Desktop */}
+      <button
+        onClick={handleDemoAppsClick}
+        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg font-poppins font-medium transition-colors duration-300 hover:bg-blue-700"
+      >
+        Demo Apps
+      </button>
+
       {/* Mobile Menu Controls */}
-      <div className="flex md:hidden items-center">
+      <div className="flex md:hidden items-center space-x-2">
+        {/* Demo Apps Button - Mobile */}
+        <button
+          onClick={handleDemoAppsClick}
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg font-poppins font-medium transition-colors duration-300 hover:bg-blue-700"
+        >
+          Demo Apps
+        </button>
+
         {/* Hamburger Menu */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -161,16 +176,11 @@ export default function Navbar() {
                 { label: "Features", id: "features" },
                 { label: "Our Teams", id: "ourteams" },
                 { label: "Testimoni", id: "testimoni" },
-                { label: "Demo Apps", id: "demo-apps", isExternal: true },
               ].map((item) => (
                 <li key={item.id}>
                   <button
                     onClick={() => {
-                      if (item.isExternal) {
-                        handleDemoAppsClick();
-                      } else {
-                        scrollToSection(item.id);
-                      }
+                      scrollToSection(item.id);
                       setIsMobileMenuOpen(false);
                     }}
                     className={`block py-2 px-3 hover:bg-gray-100 rounded w-full text-left transition-all duration-300
