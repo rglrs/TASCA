@@ -175,6 +175,7 @@ export default function Navbar() {
                 { label: "About", id: "about" },
                 { label: "Features", id: "features" },
                 { label: "Our Teams", id: "ourteams" },
+                { label: "Testimoni", id: "testimoni" },
               ].map((item) => (
                 <li key={item.id}>
                   <button

@@ -6,6 +6,7 @@ import LandingPage from "../component/LandingPage";
 import About from "../component/about";
 import OurTeam from "../component/Ourteam";
 import Testimoni from "../component/Testimoni";
+import Pomodoro from "../component/pomodoro";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);

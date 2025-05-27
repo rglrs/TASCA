@@ -5,7 +5,6 @@ import ForgotPasswordConfirm from './component/ForgotPasswordConfirm';
 import Pomodoro from './component/pomodoro';
 import PrivacyPolicy from './pages/Privacy-policy';
 import Terms from './pages/Terms';
-import Testimoni from './component/Testimoni'; // Import komponen Testimoni
 
 const routes = [
   { path: '/', element: <Dashboard /> },
@@ -15,7 +14,6 @@ const routes = [
   { path: '/pomodoro', element: <Pomodoro /> },
   { path: '/PrivacyPolicy', element: <PrivacyPolicy /> },
   { path: '/Terms', element: <Terms /> },
-  { path: '/testimoni', element: <Testimoni /> },
 ];
 
 function App() {

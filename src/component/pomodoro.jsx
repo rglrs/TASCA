@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Play, Pause, ChevronUp, ChevronDown, ChevronLeft } from "lucide-react";
 // Remove framer-motion import to reduce bundle size
 import Ambience from "../component/Ambience.jsx";
+import Pomodoro from './component/pomodoro';
 
 // Memoize dropdown component to prevent unnecessary re-renders
 const TimerDropdown = memo(({ isOpen, onSelect }) => {
