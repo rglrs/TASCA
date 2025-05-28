@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tasca_mobile1/pages/pomodoro.dart'; // Pastikan path ini sesuai dengan lokasi provider Pomodoro kamu
 
 class FocusTimerScreen extends ConsumerStatefulWidget {
   const FocusTimerScreen({super.key});
@@ -27,37 +28,40 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
 
   Future<void> _saveInterval(int interval) async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Save the selected interval
+
     await prefs.setInt('focus_interval', interval);
 
-    // Define and save durations based on interval
     int focusDuration;
     int restDuration;
-    
+
     if (interval == 0) {
-      focusDuration = 25 * 60; // 25 minutes in seconds
-      restDuration = 5 * 60;   // 5 minutes in seconds
+      focusDuration = 25 * 60;
+      restDuration = 5 * 60;
     } else {
-      focusDuration = 50 * 60; // 50 minutes in seconds
-      restDuration = 10 * 60;  // 10 minutes in seconds
+      focusDuration = 50 * 60;
+      restDuration = 10 * 60;
     }
-    
+
     await prefs.setInt('focus_duration', focusDuration);
     await prefs.setInt('rest_duration', restDuration);
+
+    // === INI BAGIAN PENTING ===
+    // Update provider Pomodoro agar timer langsung berubah tanpa reload
+    ref
+        .read(pomodoroProvider.notifier)
+        .updateDurations(focusDuration, restDuration);
 
     setState(() {
       selectedInterval = interval;
     });
-    
-    // Show a confirmation snackbar
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             interval == 0
                 ? 'Timer set to 25 min focus, 5 min break'
-                : 'Timer set to 50 min focus, 10 min break'
+                : 'Timer set to 50 min focus, 10 min break',
           ),
           duration: const Duration(seconds: 2),
         ),
@@ -196,7 +200,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
-                  color: Colors.grey[700],
+                  color: Colors.grey,
                 ),
               ),
             ),

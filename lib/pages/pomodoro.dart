@@ -115,6 +115,23 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     );
   }
 
+  void updateDurations(int newFocus, int newRest) {
+    // Matikan timer dan sound
+    _timer?.cancel();
+    _audioPlayer.stop();
+
+    // Timer langsung berubah ke durasi baru, status idle
+    state = state.copyWith(
+      focusDuration: newFocus,
+      restDuration: newRest,
+      isRunning: false,
+      isMuted: true,
+      currentSoundTitle: '',
+      currentSoundPath: '',
+      timeLeft: state.isFocusSession ? newFocus : newRest,
+    );
+  }
+
   Future<void> _initializeNotifications() async {
     localNotifications = FlutterLocalNotificationsPlugin();
     const AndroidInitializationSettings initializationSettingsAndroid =
