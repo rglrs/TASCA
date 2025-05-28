@@ -97,7 +97,7 @@ class _NavbarState extends State<Navbar> with WidgetsBindingObserver {
       Widget page;
       switch (index) {
         case 0:
-          page = PomodoroTimer();
+          page = PomodoroTimerPage();
           break;
         case 1:
           page = TodoPage();
@@ -154,102 +154,102 @@ class _NavbarState extends State<Navbar> with WidgetsBindingObserver {
         children: [
           isLoading
               ? Container(
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      5,
-                      (index) => SizedBox(
-                        width: 40,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.circle,
-                              color: Colors.grey.shade300,
-                              size: 28,
-                            ),
-                            SizedBox(height: 4),
-                            Container(
-                              height: 12,
-                              width: 30,
-                              color: Colors.grey.shade300,
-                            ),
-                          ],
-                        ),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(
+                    5,
+                    (index) => SizedBox(
+                      width: 40,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: Colors.grey.shade300,
+                            size: 28,
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            height: 12,
+                            width: 30,
+                            color: Colors.grey.shade300,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                )
-              : Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  margin: EdgeInsets.only(bottom: 20),
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      NavBarItem(
-                        key: _focusKey,
-                        icon: Icons.more_time_rounded,
-                        label: 'Focus',
-                        isActive: activeIndex == 0,
-                        onTap: () => _onItemTapped(0),
-                      ),
-                      NavBarItem(
-                        key: _todoKey,
-                        icon: Icons.format_list_bulleted_add,
-                        label: 'To Do',
-                        isActive: activeIndex == 1,
-                        onTap: () => _onItemTapped(1),
-                      ),
-                      NavBarItem(
-                        key: _dateKey,
-                        icon: Icons.calendar_today,
-                        label: 'Date',
-                        isActive: activeIndex == 4,
-                        onTap: () => _onItemTapped(4),
-                      ),
-                      NavBarItem(
-                        key: _doneKey,
-                        icon: Icons.check_circle,
-                        label: 'Done!',
-                        isActive: activeIndex == 3,
-                        onTap: () => _onItemTapped(3),
-                      ),
-                      NavBarItem(
-                        key: _settingKey,
-                        icon: Icons.settings,
-                        label: 'Setting',
-                        isActive: activeIndex == 2,
-                        onTap: () => _onItemTapped(2),
-                      ),
-                    ],
-                  ),
                 ),
+              )
+              : Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                margin: EdgeInsets.only(bottom: 20),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    NavBarItem(
+                      key: _focusKey,
+                      icon: Icons.more_time_rounded,
+                      label: 'Focus',
+                      isActive: activeIndex == 0,
+                      onTap: () => _onItemTapped(0),
+                    ),
+                    NavBarItem(
+                      key: _todoKey,
+                      icon: Icons.format_list_bulleted_add,
+                      label: 'To Do',
+                      isActive: activeIndex == 1,
+                      onTap: () => _onItemTapped(1),
+                    ),
+                    NavBarItem(
+                      key: _dateKey,
+                      icon: Icons.calendar_today,
+                      label: 'Date',
+                      isActive: activeIndex == 4,
+                      onTap: () => _onItemTapped(4),
+                    ),
+                    NavBarItem(
+                      key: _doneKey,
+                      icon: Icons.check_circle,
+                      label: 'Done!',
+                      isActive: activeIndex == 3,
+                      onTap: () => _onItemTapped(3),
+                    ),
+                    NavBarItem(
+                      key: _settingKey,
+                      icon: Icons.settings,
+                      label: 'Setting',
+                      isActive: activeIndex == 2,
+                      onTap: () => _onItemTapped(2),
+                    ),
+                  ],
+                ),
+              ),
           // Tombol bantuan telah dihapus dari sini
         ],
       ),

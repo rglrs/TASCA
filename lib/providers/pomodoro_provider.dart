@@ -8,6 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tasca_mobile1/services/pomodoro.dart';
+import 'package:tasca_mobile1/pages/login_page.dart';
+
+const bool TESTING_MODE = false;
 
 class PomodoroState {
   final int timeLeft;
@@ -16,9 +19,12 @@ class PomodoroState {
   final bool isMuted;
   final String currentSoundTitle;
   final String currentSoundPath;
-  final List<Map<String, dynamic>> tasks;
+  final List<Map<String, dynamic>> incompleteTasks;
   final String? selectedTask;
   final String? errorMessage;
+  final int focusDuration;
+  final int restDuration;
+  final bool unauthorized;
   final DateTime? lastUpdatedTime;
 
   PomodoroState({
@@ -28,9 +34,12 @@ class PomodoroState {
     required this.isMuted,
     required this.currentSoundTitle,
     required this.currentSoundPath,
-    required this.tasks,
+    required this.incompleteTasks,
     required this.selectedTask,
     required this.errorMessage,
+    required this.focusDuration,
+    required this.restDuration,
+    this.unauthorized = false,
     this.lastUpdatedTime,
   });
 
@@ -41,9 +50,12 @@ class PomodoroState {
     bool? isMuted,
     String? currentSoundTitle,
     String? currentSoundPath,
-    List<Map<String, dynamic>>? tasks,
+    List<Map<String, dynamic>>? incompleteTasks,
     String? selectedTask,
     String? errorMessage,
+    int? focusDuration,
+    int? restDuration,
+    bool? unauthorized,
     DateTime? lastUpdatedTime,
   }) {
     return PomodoroState(
@@ -53,9 +65,12 @@ class PomodoroState {
       isMuted: isMuted ?? this.isMuted,
       currentSoundTitle: currentSoundTitle ?? this.currentSoundTitle,
       currentSoundPath: currentSoundPath ?? this.currentSoundPath,
-      tasks: tasks ?? this.tasks,
+      incompleteTasks: incompleteTasks ?? this.incompleteTasks,
       selectedTask: selectedTask ?? this.selectedTask,
       errorMessage: errorMessage ?? this.errorMessage,
+      focusDuration: focusDuration ?? this.focusDuration,
+      restDuration: restDuration ?? this.restDuration,
+      unauthorized: unauthorized ?? this.unauthorized,
       lastUpdatedTime: lastUpdatedTime ?? this.lastUpdatedTime,
     );
   }
@@ -71,42 +86,76 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           isMuted: true,
           currentSoundTitle: '',
           currentSoundPath: '',
-          tasks: [],
+          incompleteTasks: [],
           selectedTask: null,
           errorMessage: null,
+          focusDuration: 1500,
+          restDuration: 300,
           lastUpdatedTime: DateTime.now(),
         ),
       ) {
-    _initNotifications();
-    _loadSavedSettings();
+    _pomodoroService = PomodoroService();
+    _audioPlayer = AudioPlayer();
+    _localNotifications = FlutterLocalNotificationsPlugin();
+    _init();
   }
 
-  int _focusDuration = 1500;
-  int _restDuration = 300;
-
+  late PomodoroService _pomodoroService;
+  late AudioPlayer _audioPlayer;
+  late FlutterLocalNotificationsPlugin _localNotifications;
   Timer? _timer;
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
-  final PomodoroService _pomodoroService = PomodoroService();
 
-  // --- INITIALIZATION ---
+  Future<void> _init() async {
+    await _initializeNotifications();
+    await _loadSavedSettings();
+    await fetchIncompleteTasks();
+  }
+
   Future<void> _loadSavedSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _focusDuration = prefs.getInt('focus_duration') ?? 1500;
-    _restDuration = prefs.getInt('rest_duration') ?? 300;
+    final focus = prefs.getInt('focus_duration') ?? 1500;
+    final rest = prefs.getInt('rest_duration') ?? 300;
     state = state.copyWith(
-      timeLeft: state.isFocusSession ? _focusDuration : _restDuration,
+      focusDuration: focus,
+      restDuration: rest,
+      timeLeft: state.isFocusSession ? focus : rest,
       lastUpdatedTime: DateTime.now(),
     );
   }
 
-  // --- NOTIFICATIONS ---
-  Future<void> _initNotifications() async {
+  /// PATCH: Timer & sound langsung mati, timer langsung berubah saat setDurations
+  Future<void> setDurations({required int focus, required int rest}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('focus_duration', focus);
+    await prefs.setInt('rest_duration', rest);
+
+    // Cancel timer & sound
+    _timer?.cancel();
+    await _audioPlayer.stop();
+
+    // Update state: timer langsung berubah, timer & sound langsung mati
+    final newTimeLeft = state.isFocusSession ? focus : rest;
+    state = state.copyWith(
+      focusDuration: focus,
+      restDuration: rest,
+      timeLeft: newTimeLeft,
+      isRunning: false,
+      isMuted: true,
+      currentSoundTitle: '',
+      currentSoundPath: '',
+      lastUpdatedTime: DateTime.now(),
+    );
+  }
+
+  Future<void> _initializeNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings();
+        DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        );
     const InitializationSettings initializationSettings =
         InitializationSettings(
           android: initializationSettingsAndroid,
@@ -115,23 +164,6 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     await _localNotifications.initialize(initializationSettings);
   }
 
-  Future<void> _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'pomodoro_channel',
-          'Pomodoro Notifications',
-          channelDescription:
-              'Notifies when Pomodoro focus or relax timer ends',
-          importance: Importance.max,
-          priority: Priority.high,
-        );
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDetails,
-    );
-    await _localNotifications.show(0, title, body, notificationDetails);
-  }
-
-  // --- TIMER ---
   void startTimer() {
     if (state.isRunning) return;
     _syncTimerIfNeeded();
@@ -142,22 +174,17 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           lastUpdatedTime: DateTime.now(),
         );
       } else {
+        _sendPomodoroSession();
         timer.cancel();
-        stopSound();
-        _showNotification(
+        state = state.copyWith(isRunning: false, lastUpdatedTime: DateTime.now());
+        _audioPlayer.stop();
+        switchSession();
+        _scheduleNotification(
           "Time's up!",
           state.isFocusSession
               ? "Time to take a break."
               : "Time to get back to focus.",
         );
-        int actualDuration =
-            state.isFocusSession
-                ? (_focusDuration - state.timeLeft) ~/ 60
-                : (_restDuration - state.timeLeft) ~/ 60;
-        if (actualDuration > 0) {
-          _sendPomodoroSession(actualDuration);
-        }
-        switchSession();
       }
     });
     state = state.copyWith(isRunning: true, lastUpdatedTime: DateTime.now());
@@ -172,13 +199,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       final secondsPassed = now.difference(state.lastUpdatedTime!).inSeconds;
       if (secondsPassed > 0) {
         if (state.timeLeft <= secondsPassed) {
-          int actualDuration =
-              state.isFocusSession
-                  ? (_focusDuration - state.timeLeft) ~/ 60
-                  : (_restDuration - state.timeLeft) ~/ 60;
-          if (actualDuration > 0) {
-            _sendPomodoroSession(actualDuration);
-          }
+          _sendPomodoroSession();
           switchSession();
         } else {
           state = state.copyWith(
@@ -190,6 +211,20 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     }
   }
 
+  void endCurrentSession() {
+    _sendPomodoroSession();
+    _timer?.cancel();
+    state = state.copyWith(
+      isRunning: false,
+      isMuted: true,
+      currentSoundTitle: '',
+      currentSoundPath: '',
+      timeLeft: state.isFocusSession ? state.focusDuration : state.restDuration,
+      lastUpdatedTime: DateTime.now(),
+    );
+    _audioPlayer.stop();
+  }
+
   void pauseTimer() {
     _timer?.cancel();
     state = state.copyWith(isRunning: false, lastUpdatedTime: DateTime.now());
@@ -198,7 +233,6 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 
   void resetTimer() {
     _timer?.cancel();
-    stopSound();
     switchSession();
     state = state.copyWith(
       isRunning: false,
@@ -207,7 +241,8 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       currentSoundPath: '',
       lastUpdatedTime: DateTime.now(),
     );
-    _showNotification(
+    _audioPlayer.stop();
+    _scheduleNotification(
       "Session switched!",
       state.isFocusSession
           ? "Time for a focus session."
@@ -215,42 +250,26 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     );
   }
 
-  void endCurrentSession() {
-    _timer?.cancel();
-    stopSound();
-    int actualDuration =
-        state.isFocusSession
-            ? (_focusDuration - state.timeLeft) ~/ 60
-            : (_restDuration - state.timeLeft) ~/ 60;
-    if (actualDuration > 0) {
-      _sendPomodoroSession(actualDuration);
-    }
-    state = state.copyWith(
-      isRunning: false,
-      isMuted: true,
-      currentSoundTitle: '',
-      currentSoundPath: '',
-      timeLeft: state.isFocusSession ? _focusDuration : _restDuration,
-      lastUpdatedTime: DateTime.now(),
-    );
-  }
-
   void switchSession() {
-    bool nextFocus = !state.isFocusSession;
+    final nextFocus = !state.isFocusSession;
     state = state.copyWith(
       isFocusSession: nextFocus,
-      timeLeft: nextFocus ? _focusDuration : _restDuration,
+      timeLeft: nextFocus ? state.focusDuration : state.restDuration,
       lastUpdatedTime: DateTime.now(),
     );
   }
 
-  Future<void> _sendPomodoroSession(int duration) async {
-    try {
-      await _pomodoroService.completePomodoroSession(duration);
-    } catch (_) {}
+  Future<void> playSound(String soundPath, String soundTitle) async {
+    await _audioPlayer.stop();
+    if (!state.isMuted && state.isRunning) {
+      try {
+        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer.play(AssetSource(soundPath));
+        state = state.copyWith(currentSoundTitle: soundTitle);
+      } catch (e) {}
+    }
   }
 
-  // --- SOUND ---
   void setSoundOption(String soundPath, String soundTitle) {
     state = state.copyWith(
       isMuted: false,
@@ -270,30 +289,31 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       currentSoundPath: '',
       lastUpdatedTime: DateTime.now(),
     );
-    stopSound();
+    _audioPlayer.stop();
   }
 
-  Future<void> playSound(String soundPath, String soundTitle) async {
-    await _audioPlayer.stop();
-    if (!state.isMuted && state.isRunning) {
-      try {
-        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-        await _audioPlayer.play(AssetSource(soundPath));
-      } catch (_) {}
-    }
+  Future<void> _scheduleNotification(String title, String body) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'pomodoro_channel',
+          'Pomodoro Notifications',
+          channelDescription:
+              'Notifies when Pomodoro focus or relax timer ends',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+    await _localNotifications.show(0, title, body, notificationDetails);
   }
 
-  Future<void> stopSound() async {
-    await _audioPlayer.stop();
-  }
-
-  // --- TASKS & API ---
-  Future<void> fetchTasks({Function? onUnauthorized}) async {
+  Future<void> fetchIncompleteTasks() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       if (token == null) {
-        if (onUnauthorized != null) onUnauthorized();
+        await _redirectToLogin();
         return;
       }
       final response = await http.get(
@@ -305,9 +325,9 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List<dynamic> tasksData = responseBody['data'];
+        final List tasksData = responseBody['data'];
         state = state.copyWith(
-          tasks:
+          incompleteTasks:
               tasksData.map<Map<String, dynamic>>((task) {
                 return {
                   'id': task['id'],
@@ -315,10 +335,11 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
                 };
               }).toList(),
           errorMessage: null,
+          unauthorized: false,
           lastUpdatedTime: DateTime.now(),
         );
       } else if (response.statusCode == 401) {
-        if (onUnauthorized != null) onUnauthorized();
+        await _redirectToLogin();
       } else {
         state = state.copyWith(
           errorMessage: 'Failed to load incomplete tasks: ${response.body}',
@@ -339,13 +360,29 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
   }
 
   void setSelectedTask(String? taskId) {
-    state = state.copyWith(
-      selectedTask: taskId,
-      lastUpdatedTime: DateTime.now(),
-    );
+    state = state.copyWith(selectedTask: taskId, lastUpdatedTime: DateTime.now());
   }
 
-  // --- APP LIFECYCLE ---
+  void _sendPomodoroSession() {
+    int actualDuration =
+        state.isFocusSession
+            ? (state.focusDuration - state.timeLeft) ~/ 60
+            : (state.restDuration - state.timeLeft) ~/ 60;
+    if (actualDuration > 0) {
+      _pomodoroService.completePomodoroSession(actualDuration);
+    }
+  }
+
+  Future<void> _redirectToLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    state = state.copyWith(unauthorized: true, lastUpdatedTime: DateTime.now());
+  }
+
+  void clearUnauthorized() {
+    state = state.copyWith(unauthorized: false, lastUpdatedTime: DateTime.now());
+  }
+
   void handleAppLifecycleChange(AppLifecycleState appState) {
     if (appState == AppLifecycleState.resumed) {
       _syncTimerIfNeeded();
@@ -358,33 +395,14 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
         appState == AppLifecycleState.inactive) {
       state = state.copyWith(lastUpdatedTime: DateTime.now());
     } else if (appState == AppLifecycleState.detached) {
-      int actualDuration =
-          state.isFocusSession
-              ? (_focusDuration - state.timeLeft) ~/ 60
-              : (_restDuration - state.timeLeft) ~/ 60;
-      if (actualDuration > 0) {
-        _sendPomodoroSession(actualDuration);
-      }
-      _timer?.cancel();
-      _audioPlayer.stop();
-    }
-  }
-
-  void checkAndRestartTimer() {
-    _syncTimerIfNeeded();
-    if (state.isRunning) {
-      if (_timer == null || !_timer!.isActive) {
-        startTimer();
-      }
-      if (!state.isMuted && state.currentSoundPath.isNotEmpty) {
-        playSound(state.currentSoundPath, state.currentSoundTitle);
-      }
+      endCurrentSession();
     }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -393,3 +411,9 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 final pomodoroProvider = StateNotifierProvider<PomodoroNotifier, PomodoroState>(
   (ref) => PomodoroNotifier(),
 );
+
+String formatTime(int seconds) {
+  int minutes = seconds ~/ 60;
+  int sec = seconds % 60;
+  return '$minutes:${sec.toString().padLeft(2, '0')}';
+}

@@ -19,58 +19,54 @@ class PomodoroState {
   final int timeLeft;
   final bool isRunning;
   final bool isFocusSession;
+  final int focusDuration;
+  final int restDuration;
   final bool isMuted;
   final String currentSoundTitle;
   final String currentSoundPath;
   final List<Map<String, dynamic>> incompleteTasks;
   final String? selectedTask;
   final String? errorMessage;
-  final int focusDuration;
-  final int restDuration;
-  final bool unauthorized;
 
   PomodoroState({
     required this.timeLeft,
     required this.isRunning,
     required this.isFocusSession,
+    required this.focusDuration,
+    required this.restDuration,
     required this.isMuted,
     required this.currentSoundTitle,
     required this.currentSoundPath,
     required this.incompleteTasks,
     required this.selectedTask,
     required this.errorMessage,
-    required this.focusDuration,
-    required this.restDuration,
-    this.unauthorized = false,
   });
 
   PomodoroState copyWith({
     int? timeLeft,
     bool? isRunning,
     bool? isFocusSession,
+    int? focusDuration,
+    int? restDuration,
     bool? isMuted,
     String? currentSoundTitle,
     String? currentSoundPath,
     List<Map<String, dynamic>>? incompleteTasks,
     String? selectedTask,
     String? errorMessage,
-    int? focusDuration,
-    int? restDuration,
-    bool? unauthorized,
   }) {
     return PomodoroState(
       timeLeft: timeLeft ?? this.timeLeft,
       isRunning: isRunning ?? this.isRunning,
       isFocusSession: isFocusSession ?? this.isFocusSession,
+      focusDuration: focusDuration ?? this.focusDuration,
+      restDuration: restDuration ?? this.restDuration,
       isMuted: isMuted ?? this.isMuted,
       currentSoundTitle: currentSoundTitle ?? this.currentSoundTitle,
       currentSoundPath: currentSoundPath ?? this.currentSoundPath,
       incompleteTasks: incompleteTasks ?? this.incompleteTasks,
       selectedTask: selectedTask ?? this.selectedTask,
-      errorMessage: errorMessage ?? this.errorMessage,
-      focusDuration: focusDuration ?? this.focusDuration,
-      restDuration: restDuration ?? this.restDuration,
-      unauthorized: unauthorized ?? this.unauthorized,
+      errorMessage: errorMessage,
     );
   }
 }
@@ -82,26 +78,25 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           timeLeft: 1500,
           isRunning: false,
           isFocusSession: true,
+          focusDuration: 1500,
+          restDuration: 300,
           isMuted: true,
           currentSoundTitle: '',
           currentSoundPath: '',
           incompleteTasks: [],
           selectedTask: null,
           errorMessage: null,
-          focusDuration: 1500,
-          restDuration: 300,
         ),
       ) {
-    _pomodoroService = PomodoroService();
     _audioPlayer = AudioPlayer();
-    _localNotifications = FlutterLocalNotificationsPlugin();
+    _pomodoroService = PomodoroService();
     _init();
   }
 
-  late PomodoroService _pomodoroService;
-  late AudioPlayer _audioPlayer;
-  late FlutterLocalNotificationsPlugin _localNotifications;
   Timer? _timer;
+  late AudioPlayer _audioPlayer;
+  late PomodoroService _pomodoroService;
+  FlutterLocalNotificationsPlugin? localNotifications;
 
   Future<void> _init() async {
     await _initializeNotifications();
@@ -120,30 +115,8 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     );
   }
 
-  /// PATCH: Timer & sound langsung mati, timer langsung berubah saat setDurations
-  Future<void> setDurations({required int focus, required int rest}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('focus_duration', focus);
-    await prefs.setInt('rest_duration', rest);
-
-    // Cancel timer & sound
-    _timer?.cancel();
-    await _audioPlayer.stop();
-
-    // Update state: timer langsung berubah, timer & sound langsung mati
-    final newTimeLeft = state.isFocusSession ? focus : rest;
-    state = state.copyWith(
-      focusDuration: focus,
-      restDuration: rest,
-      timeLeft: newTimeLeft,
-      isRunning: false,
-      isMuted: true,
-      currentSoundTitle: '',
-      currentSoundPath: '',
-    );
-  }
-
   Future<void> _initializeNotifications() async {
+    localNotifications = FlutterLocalNotificationsPlugin();
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings initializationSettingsIOS =
@@ -157,7 +130,52 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           android: initializationSettingsAndroid,
           iOS: initializationSettingsIOS,
         );
-    await _localNotifications.initialize(initializationSettings);
+    await localNotifications!.initialize(initializationSettings);
+  }
+
+  Future<void> fetchIncompleteTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token == null) {
+        state = state.copyWith(errorMessage: '401');
+        return;
+      }
+      final response = await http.get(
+        Uri.parse('https://api.tascaid.com/api/tasks/incomplete'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+        final List tasksData = responseBody['data'];
+        state = state.copyWith(
+          incompleteTasks:
+              tasksData.map<Map<String, dynamic>>((task) {
+                return {
+                  'id': task['id'],
+                  'title': task['title'] ?? 'Unnamed Task',
+                };
+              }).toList(),
+        );
+      } else if (response.statusCode == 401) {
+        state = state.copyWith(errorMessage: '401');
+      } else {
+        state = state.copyWith(
+          errorMessage: 'Failed to load incomplete tasks: ${response.body}',
+        );
+      }
+    } on SocketException {
+      state = state.copyWith(
+        errorMessage: 'Kesalahan Koneksi: Periksa koneksi internet Anda.',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Error fetching incomplete tasks: $e',
+      );
+    }
   }
 
   void startTimer() {
@@ -166,10 +184,9 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       if (state.timeLeft > 0) {
         state = state.copyWith(timeLeft: state.timeLeft - 1);
       } else {
-        _sendPomodoroSession();
         timer.cancel();
-        state = state.copyWith(isRunning: false);
         _audioPlayer.stop();
+        _sendPomodoroSession();
         switchSession();
         _scheduleNotification(
           "Time's up!",
@@ -185,19 +202,6 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     }
   }
 
-  void endCurrentSession() {
-    _sendPomodoroSession();
-    _timer?.cancel();
-    state = state.copyWith(
-      isRunning: false,
-      isMuted: true,
-      currentSoundTitle: '',
-      currentSoundPath: '',
-      timeLeft: state.isFocusSession ? state.focusDuration : state.restDuration,
-    );
-    _audioPlayer.stop();
-  }
-
   void pauseTimer() {
     _timer?.cancel();
     state = state.copyWith(isRunning: false);
@@ -206,6 +210,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 
   void resetTimer() {
     _timer?.cancel();
+    _audioPlayer.stop();
     switchSession();
     state = state.copyWith(
       isRunning: false,
@@ -213,7 +218,6 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       currentSoundTitle: '',
       currentSoundPath: '',
     );
-    _audioPlayer.stop();
     _scheduleNotification(
       "Session switched!",
       state.isFocusSession
@@ -222,12 +226,23 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     );
   }
 
-  void switchSession() {
-    final nextFocus = !state.isFocusSession;
+  void endCurrentSession() {
+    _sendPomodoroSession();
+    _timer?.cancel();
+    _audioPlayer.stop();
     state = state.copyWith(
-      isFocusSession: nextFocus,
-      timeLeft: nextFocus ? state.focusDuration : state.restDuration,
+      isRunning: false,
+      isMuted: true,
+      currentSoundTitle: '',
+      currentSoundPath: '',
+      timeLeft: state.isFocusSession ? state.focusDuration : state.restDuration,
     );
+  }
+
+  void switchSession() {
+    final isFocus = !state.isFocusSession;
+    final newTime = isFocus ? state.focusDuration : state.restDuration;
+    state = state.copyWith(isFocusSession: isFocus, timeLeft: newTime);
   }
 
   void playSound(String soundPath, String soundTitle) async {
@@ -261,7 +276,12 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     _audioPlayer.stop();
   }
 
+  void selectTask(String? taskId) {
+    state = state.copyWith(selectedTask: taskId);
+  }
+
   Future<void> _scheduleNotification(String title, String body) async {
+    if (localNotifications == null) return;
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
           'pomodoro_channel',
@@ -274,58 +294,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
     );
-    await _localNotifications.show(0, title, body, notificationDetails);
-  }
-
-  Future<void> fetchIncompleteTasks() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      if (token == null) {
-        await _redirectToLogin();
-        return;
-      }
-      final response = await http.get(
-        Uri.parse('https://api.tascaid.com/api/tasks/incomplete'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-        final List tasksData = responseBody['data'];
-        state = state.copyWith(
-          incompleteTasks:
-              tasksData.map<Map<String, dynamic>>((task) {
-                return {
-                  'id': task['id'],
-                  'title': task['title'] ?? 'Unnamed Task',
-                };
-              }).toList(),
-          errorMessage: null,
-          unauthorized: false,
-        );
-      } else if (response.statusCode == 401) {
-        await _redirectToLogin();
-      } else {
-        state = state.copyWith(
-          errorMessage: 'Failed to load incomplete tasks: ${response.body}',
-        );
-      }
-    } on SocketException {
-      state = state.copyWith(
-        errorMessage: 'Kesalahan Koneksi: Periksa koneksi internet Anda.',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Error fetching incomplete tasks: $e',
-      );
-    }
-  }
-
-  void setSelectedTask(String? taskId) {
-    state = state.copyWith(selectedTask: taskId);
+    await localNotifications!.show(0, title, body, notificationDetails);
   }
 
   void _sendPomodoroSession() {
@@ -338,20 +307,9 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     }
   }
 
-  Future<void> _redirectToLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    state = state.copyWith(unauthorized: true);
-  }
-
-  void clearUnauthorized() {
-    state = state.copyWith(unauthorized: false);
-  }
-
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -361,14 +319,14 @@ final pomodoroProvider = StateNotifierProvider<PomodoroNotifier, PomodoroState>(
   (ref) => PomodoroNotifier(),
 );
 
-class PomodoroTimer extends ConsumerStatefulWidget {
-  const PomodoroTimer({Key? key}) : super(key: key);
+class PomodoroTimerPage extends ConsumerStatefulWidget {
+  const PomodoroTimerPage({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<PomodoroTimer> createState() => _PomodoroTimerState();
+  ConsumerState<PomodoroTimerPage> createState() => _PomodoroTimerPageState();
 }
 
-class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
+class _PomodoroTimerPageState extends ConsumerState<PomodoroTimerPage>
     with WidgetsBindingObserver {
   final GlobalKey _skipKey = GlobalKey();
   final GlobalKey _playKey = GlobalKey();
@@ -384,23 +342,6 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initCoachMark();
     });
-    ref.read(pomodoroProvider.notifier).fetchIncompleteTasks();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      ref.read(pomodoroProvider.notifier).pauseTimer();
-    } else if (state == AppLifecycleState.detached) {
-      ref.read(pomodoroProvider.notifier).endCurrentSession();
-    }
   }
 
   void _initCoachMark() {
@@ -420,14 +361,37 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(pomodoroProvider);
-    final notifier = ref.read(pomodoroProvider.notifier);
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    // Redirect to login if unauthorized
-    if (state.unauthorized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        notifier.clearUnauthorized();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final timerState = ref.read(pomodoroProvider);
+    final timerNotifier = ref.read(pomodoroProvider.notifier);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (timerState.isRunning) {
+        timerNotifier.pauseTimer();
+      }
+    }
+  }
+
+  String formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int sec = seconds % 60;
+    return '$minutes:${sec.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final timerState = ref.watch(pomodoroProvider);
+    final timerNotifier = ref.read(pomodoroProvider.notifier);
+
+    if (timerState.errorMessage != null && timerState.errorMessage == '401') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => LoginPage()),
           (route) => false,
@@ -460,31 +424,16 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                     Center(
                       child: Container(
                         key: _selectTaskKey,
-                        constraints: const BoxConstraints(maxWidth: 150),
+                        constraints: BoxConstraints(maxWidth: 150),
                         child: CustomDropdown(
-                          items: state.incompleteTasks,
-                          selectedValue: state.selectedTask,
+                          items: timerState.incompleteTasks,
+                          selectedValue: timerState.selectedTask,
                           onChanged: (String? newValue) {
-                            notifier.setSelectedTask(newValue);
+                            timerNotifier.selectTask(newValue);
                           },
                         ),
                       ),
                     ),
-                    if (state.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 4,
-                        ),
-                        child: Text(
-                          state.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                   ],
                 ),
                 Center(
@@ -500,12 +449,12 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                             child: CircularProgressIndicator(
                               value:
                                   1 -
-                                  (state.timeLeft /
-                                      (state.isFocusSession
-                                          ? state.focusDuration
-                                          : state.restDuration)),
+                                  (timerState.timeLeft /
+                                      (timerState.isFocusSession
+                                          ? timerState.focusDuration
+                                          : timerState.restDuration)),
                               strokeWidth: 10,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
+                              valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.orange,
                               ),
                               backgroundColor: Colors.white.withOpacity(0.5),
@@ -515,7 +464,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                             children: [
                               const SizedBox(height: 5),
                               Text(
-                                state.isFocusSession
+                                timerState.isFocusSession
                                     ? "Stay Focused"
                                     : "Take a Break",
                                 style: const TextStyle(
@@ -530,7 +479,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                                 children: [
                                   for (var i = 0; i < 3; i++)
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(
+                                      padding: EdgeInsets.symmetric(
                                         horizontal: 2.0,
                                       ),
                                       child: Image.asset(
@@ -544,7 +493,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                               ),
                               const SizedBox(height: 25),
                               Text(
-                                formatTime(state.timeLeft),
+                                formatTime(timerState.timeLeft),
                                 style: const TextStyle(
                                   fontSize: 60,
                                   fontWeight: FontWeight.bold,
@@ -557,26 +506,130 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                                 children: [
                                   GestureDetector(
                                     key: _soundKey,
-                                    onTap:
-                                        () => showSoundOptions(
-                                          context,
-                                          notifier,
-                                          state,
-                                        ),
+                                    onTap: () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) {
+                                          return SingleChildScrollView(
+                                            child: SizedBox(
+                                              height: 300,
+                                              child: GridView.count(
+                                                crossAxisCount: 4,
+                                                children: [
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/musicoff.png',
+                                                    'Mute',
+                                                    () {
+                                                      timerNotifier.muteSound();
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/forest.png',
+                                                    'Forest',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/forest_ambience.mp3',
+                                                        'Forest',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/rain.png',
+                                                    'Rain',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/rain_ambience.mp3',
+                                                        'Rain',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/wave.png',
+                                                    'Ocean',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/wave_ambience.mp3',
+                                                        'Ocean',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/fire.png',
+                                                    'Fireplace',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/fire_ambience.mp3',
+                                                        'Fireplace',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/bird.png',
+                                                    'Bird',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/bird_ambience.mp3',
+                                                        'Bird',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/wind.png',
+                                                    'Wind',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/wind_ambience.mp3',
+                                                        'Wind',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                  _buildSoundOption(
+                                                    context,
+                                                    'images/night.png',
+                                                    'Night',
+                                                    () {
+                                                      timerNotifier.setSoundOption(
+                                                        'sound/night_ambience.mp3',
+                                                        'Night',
+                                                      );
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
                                     child: Image.asset(
-                                      state.isMuted
+                                      timerState.isMuted
                                           ? 'images/mute.png'
                                           : 'images/on.png',
                                       width: 50,
                                       height: 50,
                                     ),
                                   ),
-                                  if (state.currentSoundTitle.isNotEmpty)
+                                  if (timerState.currentSoundTitle.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8.0),
                                       child: Text(
-                                        state.currentSoundTitle,
-                                        style: const TextStyle(
+                                        timerState.currentSoundTitle,
+                                        style: TextStyle(
                                           fontSize: 20,
                                           color: Colors.black,
                                         ),
@@ -594,7 +647,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                         children: [
                           GestureDetector(
                             key: _skipKey,
-                            onTap: notifier.resetTimer,
+                            onTap: timerNotifier.resetTimer,
                             child: Container(
                               width: 55,
                               height: 55,
@@ -624,9 +677,9 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                           GestureDetector(
                             key: _playKey,
                             onTap:
-                                state.isRunning
-                                    ? notifier.pauseTimer
-                                    : notifier.startTimer,
+                                timerState.isRunning
+                                    ? timerNotifier.pauseTimer
+                                    : timerNotifier.startTimer,
                             child: Container(
                               width: 75,
                               height: 75,
@@ -643,7 +696,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                               ),
                               alignment: Alignment.center,
                               child: Icon(
-                                state.isRunning
+                                timerState.isRunning
                                     ? Icons.pause
                                     : Icons.play_arrow,
                                 size: 40,
@@ -654,7 +707,7 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
                           const SizedBox(width: 10),
                           GestureDetector(
                             key: _endKey,
-                            onTap: notifier.endCurrentSession,
+                            onTap: timerNotifier.endCurrentSession,
                             child: Container(
                               width: 55,
                               height: 55,
@@ -694,135 +747,20 @@ class _PomodoroTimerState extends ConsumerState<PomodoroTimer>
     );
   }
 
-  String formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int sec = seconds % 60;
-    return '$minutes:${sec.toString().padLeft(2, '0')}';
-  }
-
-  void showSoundOptions(
-    BuildContext context,
-    PomodoroNotifier notifier,
-    PomodoroState state,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SingleChildScrollView(
-          child: SizedBox(
-            height: 300,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 40.0),
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    children: [
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/musicoff.png',
-                        'Mute',
-                        '',
-                        true,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/forest.png',
-                        'Forest',
-                        'sound/forest_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/rain.png',
-                        'Rain',
-                        'sound/rain_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/wave.png',
-                        'Ocean',
-                        'sound/wave_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/fire.png',
-                        'Fireplace',
-                        'sound/fire_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/bird.png',
-                        'Bird',
-                        'sound/bird_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/wind.png',
-                        'Wind',
-                        'sound/wind_ambience.mp3',
-                        false,
-                      ),
-                      _buildSoundOption(
-                        context,
-                        notifier,
-                        'images/night.png',
-                        'Night',
-                        'sound/night_ambience.mp3',
-                        false,
-                      ),
-                    ],
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildSoundOption(
     BuildContext context,
-    PomodoroNotifier notifier,
     String imagePath,
     String label,
-    String soundPath,
-    bool isMute,
+    VoidCallback onTap,
   ) {
     return GestureDetector(
-      onTap: () {
-        if (isMute) {
-          notifier.muteSound();
-        } else {
-          notifier.setSoundOption(soundPath, label);
-        }
-        Navigator.pop(context);
-      },
+      onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.asset(imagePath, width: 60, height: 60),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 16)),
+          SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 16)),
         ],
       ),
     );
@@ -834,12 +772,11 @@ class CustomDropdown extends StatefulWidget {
   final String? selectedValue;
   final ValueChanged<String?> onChanged;
 
-  const CustomDropdown({
+  CustomDropdown({
     required this.items,
     required this.selectedValue,
     required this.onChanged,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   _CustomDropdownState createState() => _CustomDropdownState();
@@ -851,9 +788,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
   bool _isDropdownOpen = false;
 
   bool get _isNoTaskState =>
-      widget.items.isEmpty ||
-      (widget.items.length == 1 &&
-          widget.items[0]['title'] == 'Tidak ada task');
+      widget.items.length == 1 && widget.items[0]['title'] == 'Tidak ada task';
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
@@ -869,12 +804,12 @@ class _CustomDropdownState extends State<CustomDropdown> {
         _isDropdownOpen = false;
       });
     }
+    setState(() {});
   }
 
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     Size size = renderBox.size;
-
     return OverlayEntry(
       builder:
           (context) => Positioned(
@@ -886,14 +821,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
               child: Material(
                 elevation: 4.0,
                 child: Container(
-                  decoration: const BoxDecoration(color: Colors.purple),
+                  decoration: BoxDecoration(color: Colors.purple),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:
                         _isNoTaskState
                             ? [
                               Container(
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 8,
                                 ),
@@ -913,13 +848,13 @@ class _CustomDropdownState extends State<CustomDropdown> {
                                   _toggleDropdown();
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
+                                  padding: EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
                                   ),
                                   child: Text(
                                     task['title'],
-                                    style: const TextStyle(color: Colors.white),
+                                    style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                               );
@@ -933,12 +868,6 @@ class _CustomDropdownState extends State<CustomDropdown> {
   }
 
   @override
-  void dispose() {
-    _overlayEntry?.remove();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     String displayValue = "Select a Task";
     if (widget.selectedValue != null) {
@@ -948,7 +877,6 @@ class _CustomDropdownState extends State<CustomDropdown> {
       );
       displayValue = selectedItem['title'];
     }
-
     return CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(
@@ -958,14 +886,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
             color: Colors.purple,
             borderRadius: BorderRadius.circular(4.0),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   displayValue,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

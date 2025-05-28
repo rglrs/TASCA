@@ -61,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => PomodoroTimer()),
+            MaterialPageRoute(builder: (context) => PomodoroTimerPage()),
           );
         } else {
           await prefs.remove('auth_token');
@@ -125,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
         _showSuccessMessage('Login berhasil!');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => PomodoroTimer()),
+          MaterialPageRoute(builder: (context) => PomodoroTimerPage()),
         );
       } else {
         // Coba decode response untuk mendapatkan pesan error yang lebih spesifik
