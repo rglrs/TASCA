@@ -14,7 +14,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["home", "about", "features", "ourteams", "testimoni"];
+      const sections = ["home", "about", "features", "ourteam", "testimoni"];
       const scrollPosition = window.scrollY + 200; 
 
       for (const section of sections) {
@@ -43,7 +43,7 @@ export default function Navbar() {
       home: 120,
       about: 20,
       features: 59,
-      ourteams: 180,
+      ourteam: 180,
       testimoni: 150,
       download: 100,
     };
@@ -92,7 +92,7 @@ export default function Navbar() {
             { label: "Home", id: "home" },
             { label: "About", id: "about" },
             { label: "Features", id: "features" },
-            { label: "Our Teams", id: "ourteams" },
+            { label: "Our Team", id: "ourteam" },
             { label: "Testimoni", id: "testimoni" },
           ].map((item) => (
             <button
@@ -174,7 +174,7 @@ export default function Navbar() {
                 { label: "Home", id: "home" },
                 { label: "About", id: "about" },
                 { label: "Features", id: "features" },
-                { label: "Our Teams", id: "ourteams" },
+                { label: "Our Team", id: "ourteam" },
                 { label: "Testimoni", id: "testimoni" },
               ].map((item) => (
                 <li key={item.id}>

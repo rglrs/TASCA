@@ -74,7 +74,7 @@ export default function Dashboard() {
       <div id="features" className="w-full">
         <Features />
       </div>
-      <div id="ourteams" className="w-full min-h-screen">
+      <div id="ourteam" className="w-full min-h-screen">
         <OurTeam />
       </div>
       <div id="testimoni" className="w-full min-h-screen">
