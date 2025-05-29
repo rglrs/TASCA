@@ -117,7 +117,7 @@ export default function Navbar() {
       {/* Button - Desktop */}
       <button
         onClick={handleDemoAppsClick}
-        className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
+        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
       >
         Demo Apps
       </button>
@@ -127,7 +127,7 @@ export default function Navbar() {
         {/* Demo Apps Button - Mobile */}
         <button
           onClick={handleDemoAppsClick}
-          className="bg-blue-600 text-white px-2 py-1 text-sm rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md"
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-blue-700"
         >
           Demo Apps
         </button>
