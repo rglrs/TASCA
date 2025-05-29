@@ -33,6 +33,8 @@ const Testimoni = () => {
   const containerRef = useRef(null);
 
   useEffect(() => {
+    if (!containerRef.current) return;
+
     const animate = async () => {
       const containerWidth = containerRef.current.scrollWidth / 3;
 
@@ -74,7 +76,8 @@ const Testimoni = () => {
           </span>
         </h2>
         <p className="mt-4 text-lg text-white">
-          Thank you for believing in Tasca. Your support is the reason why <br />
+          Thank you for believing in Tasca. Your support is the reason why{" "}
+          <br />
           we continue to grow and make your learning experience more exciting.
         </p>
       </div>
@@ -86,22 +89,28 @@ const Testimoni = () => {
           ref={containerRef}
           style={{ width: "max-content" }}
         >
-          {[...Array(3)].flatMap(() => testimonials).map((item, idx) => (
-            <div
-              key={idx}
-              className="min-w-[280px] max-w-[280px] min-h-[260px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
-            >
-              <div className="flex items-center mb-4">
-                <img
-                  src={item.avatar}
-                  alt="Avatar"
-                  className="w-16 h-16 rounded-full mr-4"
-                />
-                <h3 className="font-semibold text-md text-black">{item.name}</h3>
+          {[...Array(3)]
+            .flatMap(() => testimonials)
+            .map((item, idx) => (
+              <div
+                key={idx}
+                className="min-w-[280px] max-w-[280px] min-h-[260px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
+              >
+                <div className="flex items-center mb-4">
+                  <img
+                    src={item.avatar}
+                    alt="Avatar"
+                    className="w-16 h-16 rounded-full mr-4"
+                  />
+                  <h3 className="font-semibold text-md text-black">
+                    {item.name}
+                  </h3>
+                </div>
+                <p className="text-black/90 text-sm leading-relaxed">
+                  {item.text}
+                </p>
               </div>
-              <p className="text-black/90 text-sm leading-relaxed">{item.text}</p>
-            </div>
-          ))}
+            ))}
         </motion.div>
       </div>
     </section>
