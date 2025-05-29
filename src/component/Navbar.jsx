@@ -117,7 +117,7 @@ export default function Navbar() {
       {/* Button - Desktop */}
       <button
         onClick={handleDemoAppsClick}
-        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
       >
         Demo Apps
       </button>
@@ -127,7 +127,7 @@ export default function Navbar() {
         {/* Demo Apps Button - Mobile */}
         <button
           onClick={handleDemoAppsClick}
-          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-xl hover:bg-blue-700"
         >
           Demo Apps
         </button>

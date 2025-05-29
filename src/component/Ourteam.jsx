@@ -46,7 +46,7 @@ const teamMembers = [
 const OurTeam = () => {
   return (
     <div
-      className="pt-36 pb-10 py-36 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-no-repeat bg-top"
+      className="pt-20 pb-10 py-20 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-no-repeat bg-top"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundSize: "contain",
