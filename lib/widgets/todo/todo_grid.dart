@@ -79,9 +79,10 @@ class TodoGrid extends StatelessWidget {
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.transparent,
+                          color:
+                              isSelected
+                                  ? Colors.black.withOpacity(0.3)
+                                  : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Stack(
@@ -145,13 +146,13 @@ class TodoGrid extends StatelessWidget {
   Color _getCardColor(String colorCode) {
     switch (colorCode) {
       case "#FC0101":
-        return const Color(0xFFFC0101);
-      case "#007BFF":
-        return const Color(0xFF007BFF);
+        return const Color(0xFFFC0101); // Merah - High Priority
       case "#FFC107":
-        return const Color(0xFFFFC107);
+        return const Color(0xFFFFC107); // Kuning - Medium Priority
+      case "#28A745":
+        return const Color(0xFF28A745);
       default:
-        return const Color(0xFF808080);
+        return const Color(0xFF808080); // Abu-abu - No Priority
     }
   }
 }

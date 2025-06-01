@@ -5,6 +5,10 @@ import 'package:tasca_mobile1/providers/task_provider.dart';
 import 'package:tasca_mobile1/services/task_service.dart';
 import 'package:tasca_mobile1/widgets/add_task/add_task_coach_mark.dart';
 
+// Konstanta untuk mode pengujian coach mark
+// Set ke true untuk menampilkan button testing, false untuk production
+const bool TESTING_MODE = false;
+
 class AddTaskPage extends StatefulWidget {
   final int todoId;
   final int? taskId;
@@ -73,8 +77,26 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
     // Tampilkan coach mark setelah frame pertama
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _coachMark.showCoachMarkIfNeeded();
+      if (TESTING_MODE) {
+        // Untuk pengujian, selalu tampilkan
+        _coachMark.showCoachMark();
+      } else {
+        // Untuk produksi, cek shared preference
+        _coachMark.showCoachMarkIfNeeded();
+      }
     });
+  }
+
+  // Method untuk menampilkan coach mark saat tombol bantuan diklik
+  void _showCoachMark() {
+    // Reset status untuk menampilkan ulang
+    if (!TESTING_MODE) {
+      AddTaskCoachMark.resetCoachMarkStatus().then((_) {
+        _coachMark.showCoachMark();
+      });
+    } else {
+      _coachMark.showCoachMark();
+    }
   }
 
   void _showPriorityBottomSheet() {
@@ -367,6 +389,17 @@ class _AddTaskPageState extends State<AddTaskPage> {
         ),
         title: Text(widget.taskId == null ? 'Add Task' : 'Edit Task'),
         actions: [
+          // ✅ BUTTON TESTING COACH MARK
+          if (TESTING_MODE)
+            IconButton(
+              icon: Icon(
+                Icons.help_outline,
+                color: Colors.blue,
+              ),
+              onPressed: _showCoachMark,
+              tooltip: 'Show Coach Mark (Testing)',
+            ),
+          
           if (_isLoading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),

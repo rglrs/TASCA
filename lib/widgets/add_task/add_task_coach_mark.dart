@@ -9,6 +9,9 @@ class AddTaskCoachMark {
 
   // Key untuk SharedPreferences
   static const String _coachMarkShownKey = 'add_task_coach_mark_shown';
+  
+  // ✅ TAMBAHAN: Flag untuk mencegah double display dalam satu session
+  static bool _hasShownInCurrentSession = false;
 
   // Global keys untuk widget yang akan di-highlight
   final GlobalKey titleKey;
@@ -40,26 +43,39 @@ class AddTaskCoachMark {
   Future<void> _markCoachMarkAsShown() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_coachMarkShownKey, true);
+    // ✅ TAMBAHAN: Set session flag
+    _hasShownInCurrentSession = true;
   }
 
   // Method untuk me-reset status coach mark (untuk pengujian atau tombol bantuan)
   static Future<void> resetCoachMarkStatus() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_coachMarkShownKey, false);
+    // ✅ TAMBAHAN: Reset session flag
+    _hasShownInCurrentSession = false;
   }
 
-  // Method untuk memulai coach mark
+  // ✅ PERBAIKAN: Method untuk memulai coach mark dengan session check
   Future<void> showCoachMarkIfNeeded() async {
+    // Cek session flag terlebih dahulu
+    if (_hasShownInCurrentSession) {
+      debugPrint("Coach mark sudah ditampilkan dalam session ini, dilewati");
+      return;
+    }
+    
     if (await _hasCoachMarkBeenShown()) {
       return; // Tidak ditampilkan jika sudah pernah muncul
     }
+    
     Future.delayed(const Duration(milliseconds: 500), () {
       _showCoachMark();
     });
   }
 
-  // Method untuk memaksa tampilkan coach mark (misalnya, via tombol bantuan)
+  // ✅ PERBAIKAN: Method untuk memaksa tampilkan coach mark dengan session check
   void showCoachMark() {
+    // Untuk manual show (tombol bantuan), reset session flag dulu
+    _hasShownInCurrentSession = false;
     _currentStep = 0;
     _showCoachMark();
   }
@@ -69,6 +85,12 @@ class AddTaskCoachMark {
     if ([titleKey, notesKey, priorityKey, deadlineDateKey, deadlineTimeKey]
         .any((key) => key.currentContext == null)) {
       debugPrint("Salah satu GlobalKey tidak valid, AddTask coach mark tidak ditampilkan");
+      return;
+    }
+
+    // ✅ TAMBAHAN: Cek jika coach mark sedang berjalan
+    if (_tutorialCoachMark != null) {
+      debugPrint("Coach mark sedang berjalan, diabaikan");
       return;
     }
 
@@ -83,6 +105,8 @@ class AddTaskCoachMark {
       pulseAnimationDuration: const Duration(milliseconds: 1000),
       onFinish: () {
         _markCoachMarkAsShown();
+        // ✅ TAMBAHAN: Reset tutorial instance
+        _tutorialCoachMark = null;
         debugPrint("AddTask coach mark selesai dan ditandai sebagai telah ditampilkan");
       },
       onClickTarget: (target) {
@@ -95,10 +119,15 @@ class AddTaskCoachMark {
       },
       onSkip: () {
         _markCoachMarkAsShown();
+        // ✅ TAMBAHAN: Reset tutorial instance
+        _tutorialCoachMark = null;
         debugPrint("AddTask coach mark dilewati dan ditandai sebagai telah ditampilkan");
         return true;
       },
     )..show(context: context);
+    
+    // ✅ TAMBAHAN: Set session flag setelah mulai
+    _hasShownInCurrentSession = true;
   }
 
   // Method untuk membuat target-target coach mark
