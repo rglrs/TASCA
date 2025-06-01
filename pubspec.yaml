@@ -1,7 +1,7 @@
 name: tasca_mobile1
 description: "Study monitoring and Task management app"
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: ^3.7.2
