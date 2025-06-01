@@ -7,7 +7,7 @@ const MENU_ITEMS = [
   { label: "Home", id: "home" },
   { label: "About", id: "about" },
   { label: "Features", id: "features" },
-  { label: "Our Teams", id: "ourteams" },
+  { label: "Our Teams", id: "ourteam" },
   { label: "Testimoni", id: "testimoni" },
 ];
 
@@ -15,7 +15,7 @@ const OFFSET_VALUES = {
   home: 120,
   about: 20,
   features: 59,
-  ourteams: 180,
+  ourteam: 180,
   testimoni: 150,
   download: 100,
 };
@@ -117,7 +117,7 @@ export default function Navbar() {
         </h1>
       </div>
 
-      {/* Menu - Desktop */}
+      {/* Menu Desktop */}
       <div className="hidden md:flex flex-1 justify-center space-x-8 font-poppins font-semibold">
         {renderMenuItems()}
       </div>
@@ -125,7 +125,7 @@ export default function Navbar() {
       {/* Demo Button - Desktop */}
       <button
         onClick={handleDemoAppsClick}
-        className="hidden md:block bg-blue-600 text-white px-3 py-1.5 rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md hover:shadow-2xl"
+        className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
       >
         Demo Apps
       </button>
@@ -134,7 +134,7 @@ export default function Navbar() {
       <div className="flex md:hidden items-center space-x-2">
         <button
           onClick={handleDemoAppsClick}
-          className="bg-blue-600 text-white px-2 py-1 text-sm rounded-xl transition-all duration-500 transform hover:scale-110 active:scale-95 hover:bg-blue-700 shadow-md"
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-xl hover:bg-blue-700"
         >
           Demo Apps
         </button>

@@ -6,7 +6,6 @@ import LandingPage from "../component/LandingPage";
 import About from "../component/about";
 import OurTeam from "../component/Ourteam";
 import Testimoni from "../component/Testimoni";
-import Pomodoro from "../component/pomodoro";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -75,7 +74,7 @@ export default function Dashboard() {
       <div id="features" className="w-full">
         <Features />
       </div>
-      <div id="ourteams" className="w-full min-h-screen">
+      <div id="ourteam" className="w-full min-h-screen">
         <OurTeam />
       </div>
       <div id="testimoni" className="w-full min-h-screen">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Pause, ChevronUp, ChevronDown, ChevronLeft } from "lucide-react";
-import Ambience from "../component/Ambience.jsx";
+import Ambience from "./Ambience.jsx";
 
 const TimerDropdown = memo(({ isOpen, onSelect }) => {
   if (!isOpen) return null;
@@ -46,7 +46,6 @@ const TimerDisplay = memo(({ time }) => {
   );
 });
 
-// Add a simple CSS animation instead of using framer-motion
 const cssAnimation = `
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px) scale(0.95); }
