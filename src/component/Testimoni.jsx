@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { useEffect, useRef, useState } from "react"
+import { motion, useAnimation } from "framer-motion"
 
 const Testimoni = () => {
   const testimonials = [
@@ -27,35 +27,58 @@ const Testimoni = () => {
       avatar: "https://randomuser.me/api/portraits/men/45.jpg",
       text: "Dulu saya sering terdistraksi saat belajar, tapi TASCA membantu saya tetap berada di jalur yang benar. Fitur pengatur waktu Pomodoro-nya membuat saya lebih disiplin, tenang dalam membagi sesi belajar dan istirahat.",
     },
-  ];
+  ]
 
-  const controls = useAnimation();
-  const containerRef = useRef(null);
+  const controls = useAnimation()
+  const containerRef = useRef(null)
+  const [isMounted, setIsMounted] = useState(false)
+  const animationRef = useRef(true)
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    setIsMounted(true)
+    return () => {
+      animationRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted || !containerRef.current) return
 
     const animate = async () => {
-      const containerWidth = containerRef.current.scrollWidth / 3;
+      try {
+        const containerWidth = containerRef.current.scrollWidth / 3
 
-      while (true) {
-        await controls.start({
-          x: -containerWidth,
-          transition: {
-            duration: 20,
-            ease: "linear",
-          },
-        });
+        while (animationRef.current) {
+          await controls.start({
+            x: -containerWidth,
+            transition: {
+              duration: 20,
+              ease: "linear",
+            },
+          })
 
-        await controls.start({
-          x: 0,
-          transition: { duration: 0 },
-        });
+          if (!animationRef.current) break
+
+          await controls.start({
+            x: 0,
+            transition: { duration: 0 },
+          })
+        }
+      } catch (error) {
+        console.error("Animation error:", error)
       }
-    };
+    }
 
-    animate();
-  }, [controls]);
+    animate()
+
+    return () => {
+      animationRef.current = false
+    }
+  }, [controls, isMounted])
+
+  if (!isMounted) {
+    return null 
+  }
 
   return (
     <section
@@ -76,19 +99,13 @@ const Testimoni = () => {
           </span>
         </h2>
         <p className="mt-4 text-lg text-white">
-          Thank you for believing in Tasca. Your support is the reason why{" "}
-          <br />
+          Thank you for believing in Tasca. Your support is the reason why <br />
           we continue to grow and make your learning experience more exciting.
         </p>
       </div>
 
       <div className="overflow-hidden">
-        <motion.div
-          className="flex flex-nowrap"
-          animate={controls}
-          ref={containerRef}
-          style={{ width: "max-content" }}
-        >
+        <motion.div className="flex flex-nowrap" animate={controls} ref={containerRef} style={{ width: "max-content" }}>
           {[...Array(3)]
             .flatMap(() => testimonials)
             .map((item, idx) => (
@@ -97,24 +114,16 @@ const Testimoni = () => {
                 className="min-w-[280px] max-w-[280px] min-h-[260px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
               >
                 <div className="flex items-center mb-4">
-                  <img
-                    src={item.avatar}
-                    alt="Avatar"
-                    className="w-16 h-16 rounded-full mr-4"
-                  />
-                  <h3 className="font-semibold text-md text-black">
-                    {item.name}
-                  </h3>
+                  <img src={item.avatar || "/placeholder.svg"} alt="Avatar" className="w-16 h-16 rounded-full mr-4" />
+                  <h3 className="font-semibold text-md text-black">{item.name}</h3>
                 </div>
-                <p className="text-black/90 text-sm leading-relaxed">
-                  {item.text}
-                </p>
+                <p className="text-black/90 text-sm leading-relaxed">{item.text}</p>
               </div>
             ))}
         </motion.div>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default Testimoni;
+export default Testimoni
