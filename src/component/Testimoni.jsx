@@ -33,36 +33,28 @@ const Testimoni = () => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!containerRef.current) return;
 
-    setTimeout(() => {
-      if (!containerRef.current) return;
-
+    const animate = async () => {
       const containerWidth = containerRef.current.scrollWidth / 3;
 
-      const animate = async () => {
-        while (isMounted) {
-          await controls.start({
-            x: -containerWidth,
-            transition: {
-              duration: 20,
-              ease: "linear",
-            },
-          });
+      while (true) {
+        await controls.start({
+          x: -containerWidth,
+          transition: {
+            duration: 20,
+            ease: "linear",
+          },
+        });
 
-          await controls.start({
-            x: 0,
-            transition: { duration: 0 },
-          });
-        }
-      };
-
-      animate();
-    }, 0);
-
-    return () => {
-      isMounted = false;
+        await controls.start({
+          x: 0,
+          transition: { duration: 0 },
+        });
+      }
     };
+
+    animate();
   }, [controls]);
 
   return (
