@@ -10,3 +10,4 @@ const Progress = ({ value, className }) => {
   };
   
   export default Progress;
+  
