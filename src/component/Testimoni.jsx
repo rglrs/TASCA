@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
-import { motion, useAnimation } from "framer-motion"
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useAnimation } from "framer-motion";
 
 const Testimoni = () => {
   const testimonials = [
@@ -27,67 +27,65 @@ const Testimoni = () => {
       avatar: "https://randomuser.me/api/portraits/men/45.jpg",
       text: "Dulu saya sering terdistraksi saat belajar, tapi TASCA membantu saya tetap berada di jalur yang benar. Fitur pengatur waktu Pomodoro-nya membuat saya lebih disiplin, tenang dalam membagi sesi belajar dan istirahat.",
     },
-  ]
+  ];
 
-  const controls = useAnimation()
-  const containerRef = useRef(null)
-  const [isMounted, setIsMounted] = useState(false)
-  const animationRef = useRef(true)
-
-  useEffect(() => {
-    setIsMounted(true)
-    return () => {
-      animationRef.current = false
-    }
-  }, [])
+  const controls = useAnimation();
+  const containerRef = useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!isMounted || !containerRef.current) return
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current || !isMounted) return;
+
+    let animationActive = true;
 
     const animate = async () => {
-      try {
-        const containerWidth = containerRef.current.scrollWidth / 3
+      const containerWidth = containerRef.current?.scrollWidth / 3;
+      
+      if (!containerWidth) return;
 
-        while (animationRef.current) {
+      while (animationActive) {
+        try {
           await controls.start({
             x: -containerWidth,
             transition: {
               duration: 20,
               ease: "linear",
             },
-          })
+          });
 
-          if (!animationRef.current) break
+          if (!animationActive) break;
 
           await controls.start({
             x: 0,
             transition: { duration: 0 },
-          })
+          });
+        } catch (error) {
+          // Handle animation interruption gracefully
+          break;
         }
-      } catch (error) {
-        console.error("Animation error:", error)
       }
-    }
+    };
 
-    animate()
+    animate();
 
     return () => {
-      animationRef.current = false
-    }
-  }, [controls, isMounted])
-
-  if (!isMounted) {
-    return null 
-  }
+      animationActive = false;
+      controls.stop();
+    };
+  }, [controls, isMounted]);
 
   return (
     <section
-      className="py-50 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
+      className="py-20 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
       style={{
         backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg)`,
       }}
     >
-      <div className="text-center mb-25">
+      <div className="text-center mb-16">
         <h2 className="text-4xl font-bold text-white">
           <span className="inline-flex items-center">
             <span className="text-[#007BFF]">T</span>
@@ -95,17 +93,23 @@ const Testimoni = () => {
             <span className="text-[#28A745]">S</span>
             <span className="text-[#FD7E14]">C</span>
             <span className="text-[#FD7E14]">A</span>
-            <span className="text-[#fcfafa] ml-2">Energizer!</span>
+            <span className="text-white ml-2">Energizer!</span>
           </span>
         </h2>
         <p className="mt-4 text-lg text-white">
-          Thank you for believing in Tasca. Your support is the reason why <br />
+          Thank you for believing in Tasca. Your support is the reason why{" "}
+          <br />
           we continue to grow and make your learning experience more exciting.
         </p>
       </div>
 
       <div className="overflow-hidden">
-        <motion.div className="flex flex-nowrap" animate={controls} ref={containerRef} style={{ width: "max-content" }}>
+        <motion.div
+          className="flex flex-nowrap"
+          animate={controls}
+          ref={containerRef}
+          style={{ width: "max-content" }}
+        >
           {[...Array(3)]
             .flatMap(() => testimonials)
             .map((item, idx) => (
@@ -114,16 +118,24 @@ const Testimoni = () => {
                 className="min-w-[280px] max-w-[280px] min-h-[260px] bg-white/20 backdrop-blur-md rounded-xl shadow-md p-6 border border-white/30 mr-8"
               >
                 <div className="flex items-center mb-4">
-                  <img src={item.avatar || "/placeholder.svg"} alt="Avatar" className="w-16 h-16 rounded-full mr-4" />
-                  <h3 className="font-semibold text-md text-black">{item.name}</h3>
+                  <img
+                    src={item.avatar}
+                    alt="Avatar"
+                    className="w-16 h-16 rounded-full mr-4"
+                  />
+                  <h3 className="font-semibold text-md text-black">
+                    {item.name}
+                  </h3>
                 </div>
-                <p className="text-black/90 text-sm leading-relaxed">{item.text}</p>
+                <p className="text-black/90 text-sm leading-relaxed">
+                  {item.text}
+                </p>
               </div>
             ))}
         </motion.div>
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default Testimoni
+export default Testimoni;
