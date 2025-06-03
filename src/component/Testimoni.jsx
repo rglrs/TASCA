@@ -82,7 +82,7 @@ const Testimoni = () => {
             <span className="text-[#fcfafa] ml-2">Energizer!</span>
           </span>
         </h2>
-        <p className="mt-4 text-lg text-white">
+        <p className="mt-4 text-lg text-black">
           Thank you for believing in Tasca. Your support is the reason why{" "}
           <br />
           we continue to grow and make your learning experience more exciting.
