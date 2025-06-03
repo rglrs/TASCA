@@ -33,31 +33,29 @@ const Testimoni = () => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    let animationActive = true;
+    let isActive = true;
 
     const animate = async () => {
       const containerWidth = containerRef.current?.scrollWidth / 3;
       if (!containerWidth) return;
 
-      while (animationActive) {
-        try {
-          await controls.start({
-            x: -containerWidth,
-            transition: {
-              duration: 20,
-              ease: "linear",
-            },
-          });
+      while (isActive) {
+        await controls.start({
+          x: -containerWidth,
+          transition: {
+            duration: 20,
+            ease: "linear",
+          },
+        });
 
-          if (!animationActive) break;
+        if (!isActive) break;
 
-          await controls.start({
-            x: 0,
-            transition: { duration: 0 },
-          });
-        } catch (error) {
-          break;
-        }
+        await controls.start({
+          x: 0,
+          transition: { duration: 0 },
+        });
+
+        await new Promise((res) => setTimeout(res, 16));
       }
     };
 
@@ -66,7 +64,7 @@ const Testimoni = () => {
     }
 
     return () => {
-      animationActive = false;
+      isActive = false;
       controls.stop();
     };
   }, [controls]);
