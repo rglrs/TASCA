@@ -79,7 +79,7 @@ const Testimoni = () => {
             <span className="text-[#28A745]">S</span>
             <span className="text-[#FD7E14]">C</span>
             <span className="text-[#FD7E14]">A</span>
-            <span className="text-[#fcfafa] ml-2">Energizer!</span>
+            <span className="text-[#000000] ml-2">Energizer!</span>
           </span>
         </h2>
         <p className="mt-4 text-lg text-black">
