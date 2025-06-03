@@ -2,8 +2,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 
-const bgImage =
-  "https://res.cloudinary.com/dqci5udgl/image/upload/v1748190761/OT_bg_2_dzlc9a.png";
+// const bgImage =
+//   "https://res.cloudinary.com/dqci5udgl/image/upload/v1748190761/OT_bg_2_dzlc9a.png";
 
 const teamMembers = [
   {
@@ -47,12 +47,12 @@ const OurTeam = () => {
   return (
     <div
       className="pt-20 pb-10 py-20 text-center px-4 sm:px-6 lg:px-8 min-h-screen h-full bg-no-repeat bg-top"
-      style={{
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: "contain",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "top center",
-      }}
+      // style={{
+      //   backgroundImage: `url(${bgImage})`,
+      //   backgroundSize: "contain",
+      //   backgroundRepeat: "no-repeat",
+      //   backgroundPosition: "top center",
+      // }}
     >
       <h2 className="text-3xl font-bold text-black mb-10">Our Team</h2>
 
