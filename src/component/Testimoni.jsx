@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
 
 const Testimoni = () => {
@@ -31,20 +31,12 @@ const Testimoni = () => {
 
   const controls = useAnimation();
   const containerRef = useRef(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!containerRef.current || !isMounted) return;
-
     let animationActive = true;
 
     const animate = async () => {
       const containerWidth = containerRef.current?.scrollWidth / 3;
-      
       if (!containerWidth) return;
 
       while (animationActive) {
@@ -64,28 +56,29 @@ const Testimoni = () => {
             transition: { duration: 0 },
           });
         } catch (error) {
-          // Handle animation interruption gracefully
           break;
         }
       }
     };
 
-    animate();
+    if (containerRef.current) {
+      animate();
+    }
 
     return () => {
       animationActive = false;
       controls.stop();
     };
-  }, [controls, isMounted]);
+  }, [controls]);
 
   return (
     <section
-      className="py-20 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
+      className="py-50 px-6 md:px-20 font-sans bg-cover bg-top bg-no-repeat min-h-screen"
       style={{
         backgroundImage: `url(https://res.cloudinary.com/dqrazyfpm/image/upload/v1744365458/bg_ourteam_rbrfz0.svg)`,
       }}
     >
-      <div className="text-center mb-16">
+      <div className="text-center mb-25">
         <h2 className="text-4xl font-bold text-white">
           <span className="inline-flex items-center">
             <span className="text-[#007BFF]">T</span>
@@ -93,7 +86,7 @@ const Testimoni = () => {
             <span className="text-[#28A745]">S</span>
             <span className="text-[#FD7E14]">C</span>
             <span className="text-[#FD7E14]">A</span>
-            <span className="text-white ml-2">Energizer!</span>
+            <span className="text-[#fcfafa] ml-2">Energizer!</span>
           </span>
         </h2>
         <p className="mt-4 text-lg text-white">
